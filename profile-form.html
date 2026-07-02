@@ -395,6 +395,16 @@
             <div class="voice-test" id="voiceTest" style="text-align:center; margin-top:10px; font-size:13px; color:#C8AAFF; cursor:pointer; display:none;">🔊 Послушать голос</div>
         </div>
 
+        <div class="form-group">
+            <div class="label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                До скольки лет хочешь прожить?
+                <span class="label-bonus">+5 монет</span>
+            </div>
+            <input type="number" class="input" id="lifeGoal" placeholder="Например: 90" min="30" max="120">
+            <div style="font-size:12px;color:#9db0ff;margin-top:8px;">На главной появится таймер жизни — сколько времени осталось. Это мощная мотивация ценить каждый день ⏳</div>
+        </div>
+
         <div class="buttons">
             <button class="btn-primary" id="saveBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
@@ -791,6 +801,7 @@
     }
     voiceOpts.forEach(o => o.addEventListener('click', () => { selectedVoice = o.dataset.voice; markVoice(); }));
     if (savedUser.assistantName) document.getElementById('assistantName').value = savedUser.assistantName;
+    if (savedUser.lifeGoal) document.getElementById('lifeGoal').value = savedUser.lifeGoal;
     markVoice();
 
     // тест голоса
@@ -828,6 +839,8 @@
         if (!birthDate) { showToast('Укажите дату рождения'); return; }
         if (!city) { showToast('Введите город'); return; }
         if (!phone) { showToast('Введите номер телефона'); return; }
+        const assistantName = document.getElementById('assistantName').value.trim();
+        if (!assistantName) { showToast('Придумай имя своему ассистенту ✨'); return; }
 
         // вычисляем возраст из даты рождения
         let age = '';
@@ -840,18 +853,25 @@
 
         let bonusCoins = 0;
         const updates = {};
-        if (!savedUser.name && name) { bonusCoins += 5; updates.name = name; }
-        if (!savedUser.birthDate && birthDate) { bonusCoins += 5; updates.birthDate = birthDate; updates.age = age; }
-        else if (birthDate) { updates.birthDate = birthDate; updates.age = age; }
-        if (!savedUser.city && city) { bonusCoins += 10; updates.city = city; }
-        if (!savedUser.phone && phone) { bonusCoins += 20; updates.phone = phone; }
-        // имя и голос ассистента
-        const assistantName = document.getElementById('assistantName').value.trim();
-        if (assistantName) {
-            if (!savedUser.assistantName) bonusCoins += 10;
-            updates.assistantName = assistantName;
-        }
+        // ВСЕГДА сохраняем ключевые поля (для гарда), бонус — только первый раз
+        updates.name = name;
+        updates.birthDate = birthDate;
+        updates.age = age;
+        updates.city = city;
+        updates.phone = phone;
+        updates.assistantName = assistantName;
         updates.assistantVoice = selectedVoice;
+        // цель по годам жизни (для таймера)
+        const lifeGoal = parseInt(document.getElementById('lifeGoal').value);
+        if (lifeGoal && lifeGoal >= 30 && lifeGoal <= 120) {
+            if (!savedUser.lifeGoal) bonusCoins += 5;
+            updates.lifeGoal = lifeGoal;
+        }
+        if (!savedUser.name) bonusCoins += 5;
+        if (!savedUser.birthDate) bonusCoins += 5;
+        if (!savedUser.city) bonusCoins += 10;
+        if (!savedUser.phone) bonusCoins += 20;
+        if (!savedUser.assistantName) bonusCoins += 10;
         // сбрасываем флаг чтобы приветствие проиграло заново при следующем входе
         try { localStorage.removeItem('focus_greeted'); } catch(e){}
 

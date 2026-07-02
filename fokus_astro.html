@@ -64,12 +64,40 @@
                 <div class="sign-element">Стихия: ${z.element}</div>
                 <div class="sign-trait">${z.trait}</div>
             </div>
-            <div class="section-title">✦ Астропрогноз судьбы</div>
+            <div class="section-title">☀️ Твой день сегодня</div>
+            <div id="dailyArea">
+                <button class="gen-btn" id="dailyBtn">✨ Прогноз на сегодня</button>
+            </div>
+            <div class="section-title">🌙 Астропрогноз судьбы</div>
             <div id="forecastArea">
-                <button class="gen-btn" id="genBtn">🔮 Получить прогноз от ИИ</button>
+                <button class="gen-btn" id="genBtn">🔮 Раскрыть судьбу от ИИ</button>
             </div>`;
 
         document.getElementById('genBtn').addEventListener('click', getForecast);
+        document.getElementById('dailyBtn').addEventListener('click', getDaily);
+    }
+
+    async function getDaily(){
+        const area = document.getElementById('dailyArea');
+        area.innerHTML = '<div class="loading">☀️ Читаю звёзды на сегодня...</div>';
+        const z = FocusAstro.getZodiac(FS.birthDate);
+        const astroCtx = FocusAstro.contextForAI(FS);
+        const today = new Date().toLocaleDateString('ru-RU', { day:'numeric', month:'long' });
+        const messages = [
+            { role:'system', content:
+                'Ты — астролог в приложении FOCUS. Составь короткий вдохновляющий гороскоп на СЕГОДНЯ (' + today + ') для знака ' + z.sign + '. ' +
+                'Учитывай тип личности человека. Дай конкретный настрой на день: на что обратить внимание, что благоприятно, совет. ' +
+                'Живой русский, 3-4 предложения, тепло и по делу. Без «звёзды говорят».'
+            },
+            { role:'user', content: 'Мой знак: ' + z.sign + '. ' + astroCtx + '. Гороскоп на сегодня.' }
+        ];
+        if (!window.fbAskAI) { area.innerHTML = '<div class="forecast-card">ИИ недоступен.</div>'; return; }
+        let res = await window.fbAskAI(messages, 400);
+        if (res.ok && res.reply && res.reply.trim()) {
+            area.innerHTML = '<div class="forecast-card">' + res.reply.trim().replace(/</g,'&lt;') + '</div>';
+        } else {
+            area.innerHTML = '<div class="forecast-card">⚠️ ' + (res.error || 'Ошибка') + '</div>';
+        }
     }
 
     async function getForecast(){

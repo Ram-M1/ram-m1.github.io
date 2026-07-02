@@ -54,6 +54,40 @@
     return reduceNum(sum);
   }
 
+  // Число души — по дню рождения
+  function getSoulNumber(birthDate){
+    if (!birthDate) return null;
+    const d = new Date(birthDate + 'T00:00:00');
+    if (isNaN(d)) return null;
+    return reduceNum(d.getDate());
+  }
+
+  // Число миссии — по году рождения
+  function getMissionNumber(birthDate){
+    if (!birthDate) return null;
+    const d = new Date(birthDate + 'T00:00:00');
+    if (isNaN(d)) return null;
+    return reduceNum(d.getFullYear());
+  }
+
+  // Совместимость двух чисел судьбы (процент + описание)
+  function getCompatibility(n1, n2){
+    if (!n1 || !n2) return null;
+    // матрица базовой совместимости
+    const harmony = {
+      '1':[1,5,7], '2':[2,4,8], '3':[3,6,9], '4':[2,4,8],
+      '5':[1,5,7], '6':[3,6,9], '7':[1,5,7], '8':[2,4,8], '9':[3,6,9]
+    };
+    const r1 = n1 > 9 ? reduceNum(n1) : n1;
+    const r2 = n2 > 9 ? reduceNum(n2) : n2;
+    let pct;
+    if (r1 === r2) pct = 88;
+    else if ((harmony[r1]||[]).includes(r2)) pct = 78;
+    else if (Math.abs(r1 - r2) === 1) pct = 55;
+    else pct = 42 + ((r1 * r2) % 20);
+    return Math.min(95, Math.max(35, pct));
+  }
+
   // Значения числа судьбы
   const LIFE_PATH_MEANINGS = {
     1: { title: 'Лидер', desc: 'Ты рождён вести за собой. Независимость, воля, инициатива — твои сильные стороны. Тебе важно идти своим путём и не бояться быть первым.' },
@@ -90,7 +124,10 @@
   window.FocusAstro = {
     getZodiac: getZodiac,
     getLifePathNumber: getLifePathNumber,
+    getSoulNumber: getSoulNumber,
+    getMissionNumber: getMissionNumber,
     getNameNumber: getNameNumber,
+    getCompatibility: getCompatibility,
     lifePathMeaning: function(n){ return LIFE_PATH_MEANINGS[n] || null; },
 
     // полный расклад по данным пользователя

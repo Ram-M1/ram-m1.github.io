@@ -13,18 +13,33 @@
     .back { width:40px; height:40px; border-radius:12px; background:rgba(200,170,255,0.1); border:1px solid rgba(200,170,255,0.25); display:flex; align-items:center; justify-content:center; cursor:pointer; }
     .back svg { width:20px; height:20px; color:#C8AAFF; }
     .top h1 { font-size:22px; font-weight:800; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
-    .num-card { background:linear-gradient(165deg,#1a1626,#12101c); border:1px solid rgba(200,170,255,0.25); border-radius:24px; padding:30px 22px; text-align:center; margin-bottom:14px; }
-    .num-big { font-size:72px; font-weight:900; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; line-height:1; margin-bottom:6px; }
-    .num-title { font-size:22px; font-weight:800; color:#fff; margin-bottom:10px; }
-    .num-desc { font-size:14px; color:#c8c8d0; line-height:1.55; }
-    .mini-row { display:flex; gap:10px; margin-bottom:18px; }
-    .mini-card { flex:1; background:rgba(200,170,255,0.05); border:1px solid rgba(200,170,255,0.15); border-radius:16px; padding:16px; text-align:center; }
-    .mini-num { font-size:32px; font-weight:800; color:#FFD966; }
-    .mini-label { font-size:11px; color:#9a9aab; margin-top:4px; }
+
+    .hero { background:linear-gradient(165deg,#1a1626,#12101c); border:1px solid rgba(200,170,255,0.25); border-radius:24px; padding:28px 22px; text-align:center; margin-bottom:14px; position:relative; overflow:hidden; }
+    .hero::before { content:''; position:absolute; top:-40%; left:-40%; width:180%; height:180%; background:radial-gradient(circle, rgba(200,170,255,0.12), transparent 60%); animation:heroGlow 6s ease-in-out infinite; }
+    @keyframes heroGlow { 0%,100%{ transform:scale(1); opacity:0.6;} 50%{ transform:scale(1.15); opacity:1;} }
+    .hero-num { font-size:80px; font-weight:900; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; line-height:1; position:relative; }
+    .hero-title { font-size:22px; font-weight:800; color:#fff; margin:6px 0 10px; position:relative; }
+    .hero-desc { font-size:14px; color:#c8c8d0; line-height:1.55; position:relative; }
+
+    .nums-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:16px; }
+    .num-cell { background:rgba(200,170,255,0.05); border:1px solid rgba(200,170,255,0.15); border-radius:16px; padding:14px 8px; text-align:center; cursor:pointer; transition:all 0.15s; }
+    .num-cell:active { transform:scale(0.96); background:rgba(200,170,255,0.1); }
+    .num-cell .n { font-size:30px; font-weight:800; color:#FFD966; }
+    .num-cell .l { font-size:10.5px; color:#9a9aab; margin-top:3px; line-height:1.3; }
+
     .section-title { font-size:15px; font-weight:700; color:#C8AAFF; margin:20px 0 10px; }
-    .forecast-card { background:rgba(200,170,255,0.05); border:1px solid rgba(200,170,255,0.15); border-radius:18px; padding:18px; font-size:14px; line-height:1.65; color:#e0e0e8; white-space:pre-wrap; }
-    .gen-btn { width:100%; padding:16px; margin-top:16px; border:none; border-radius:16px; background:linear-gradient(135deg,#C8AAFF,#FFD966); color:#0a0a0f; font-size:16px; font-weight:800; font-family:inherit; cursor:pointer; }
+    .gen-btn { width:100%; padding:16px; margin-top:8px; border:none; border-radius:16px; background:linear-gradient(135deg,#C8AAFF,#FFD966); color:#0a0a0f; font-size:16px; font-weight:800; font-family:inherit; cursor:pointer; }
     .gen-btn:active { transform:scale(0.98); }
+    .forecast-card { background:rgba(200,170,255,0.05); border:1px solid rgba(200,170,255,0.15); border-radius:18px; padding:18px; font-size:14px; line-height:1.65; color:#e0e0e8; white-space:pre-wrap; margin-top:12px; }
+
+    .compat-box { background:linear-gradient(165deg,#1a1626,#12101c); border:1px solid rgba(200,170,255,0.2); border-radius:20px; padding:20px; margin-top:20px; }
+    .compat-box h3 { font-size:16px; color:#fff; margin-bottom:6px; }
+    .compat-box p { font-size:12.5px; color:#9a9aab; margin-bottom:14px; line-height:1.5; }
+    .compat-input { width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(200,170,255,0.2); border-radius:12px; padding:13px; color:#fff; font-size:14px; font-family:inherit; outline:none; margin-bottom:12px; }
+    .compat-result { display:none; text-align:center; margin-top:14px; }
+    .compat-pct { font-size:44px; font-weight:900; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+    .compat-desc { font-size:13px; color:#c8c8d0; line-height:1.55; margin-top:8px; }
+
     .no-data { text-align:center; color:#9a9aab; font-size:14px; padding:40px 20px; line-height:1.6; }
     .no-data a { color:#C8AAFF; }
     .loading { text-align:center; color:#C8AAFF; padding:20px; font-size:14px; }
@@ -51,47 +66,79 @@
     function render(){
         const content = document.getElementById('content');
         if (!FS.birthDate) {
-            content.innerHTML = '<div class="no-data">🔢 Чтобы узнать число судьбы, укажи <b>дату рождения</b> в профиле.<br><br><a href="fokus_profile.html">Перейти в профиль →</a></div>';
+            content.innerHTML = '<div class="no-data">🔢 Чтобы узнать свои числа, укажи <b>дату рождения</b> в профиле.<br><br><a href="fokus_profile.html">Перейти в профиль →</a></div>';
             return;
         }
         const lp = FocusAstro.getLifePathNumber(FS.birthDate);
-        const meaning = FocusAstro.lifePathMeaning(lp);
+        const soul = FocusAstro.getSoulNumber(FS.birthDate);
+        const mission = FocusAstro.getMissionNumber(FS.birthDate);
         const nameNum = FocusAstro.getNameNumber(FS.name || '');
+        const meaning = FocusAstro.lifePathMeaning(lp);
 
         content.innerHTML =
-            '<div class="num-card">' +
-                '<div class="num-big">' + lp + '</div>' +
-                '<div class="num-title">' + (meaning ? meaning.title : 'Число судьбы') + '</div>' +
-                '<div class="num-desc">' + (meaning ? meaning.desc : '') + '</div>' +
+            '<div class="hero">' +
+                '<div class="hero-num">' + lp + '</div>' +
+                '<div class="hero-title">' + (meaning ? meaning.title : 'Число судьбы') + '</div>' +
+                '<div class="hero-desc">' + (meaning ? meaning.desc : '') + '</div>' +
             '</div>' +
-            (nameNum ? ('<div class="mini-row"><div class="mini-card"><div class="mini-num">' + lp + '</div><div class="mini-label">Число судьбы<br>(дата рождения)</div></div><div class="mini-card"><div class="mini-num">' + nameNum + '</div><div class="mini-label">Число имени<br>(ФИО)</div></div></div>') : '') +
-            '<div class="section-title">✦ Разбор твоего пути</div>' +
-            '<div id="forecastArea"><button class="gen-btn" id="genBtn">🔢 Получить разбор от ИИ</button></div>';
+            '<div class="nums-grid">' +
+                '<div class="num-cell"><div class="n">' + soul + '</div><div class="l">Число<br>души</div></div>' +
+                '<div class="num-cell"><div class="n">' + mission + '</div><div class="l">Число<br>миссии</div></div>' +
+                '<div class="num-cell"><div class="n">' + (nameNum||'—') + '</div><div class="l">Число<br>имени</div></div>' +
+            '</div>' +
+            '<div class="section-title">✦ Глубокий разбор от ИИ</div>' +
+            '<div id="forecastArea"><button class="gen-btn" id="genBtn">🔢 Раскрыть мой путь</button></div>' +
+            '<div class="compat-box">' +
+                '<h3>💞 Совместимость</h3>' +
+                '<p>Узнай насколько вы совпадаете с партнёром по числам судьбы. Введи его число (1–9, 11, 22, 33).</p>' +
+                '<input type="number" class="compat-input" id="compatInput" placeholder="Число судьбы партнёра">' +
+                '<button class="gen-btn" id="compatBtn" style="background:linear-gradient(135deg,#FF8AB0,#C8AAFF);">Проверить совместимость</button>' +
+                '<div class="compat-result" id="compatResult"><div class="compat-pct" id="compatPct"></div><div class="compat-desc" id="compatDesc"></div></div>' +
+            '</div>';
 
         document.getElementById('genBtn').addEventListener('click', getForecast);
+        document.getElementById('compatBtn').addEventListener('click', checkCompat);
     }
 
     async function getForecast(){
         const area = document.getElementById('forecastArea');
         area.innerHTML = '<div class="loading">✦ Числа раскрывают твой путь...</div>';
         const numCtx = FocusAstro.contextForAI(FS);
+        const soul = FocusAstro.getSoulNumber(FS.birthDate);
+        const mission = FocusAstro.getMissionNumber(FS.birthDate);
         const aboutText = getAboutText();
         const messages = [
             { role:'system', content:
-                'Ты — мудрый нумеролог в приложении FOCUS. Составь глубокий, вдохновляющий разбор жизненного пути человека по его числу судьбы. ' +
-                'Опирайся на число судьбы, число имени, знак зодиака и что он рассказал о себе. ' +
-                'Пиши живым русским, 4-6 предложений. Раскрой его сильные стороны, предназначение, на что обратить внимание в жизни. ' +
-                'Пиши лично, как будто видишь именно этого человека. Без пустых клише.'
+                'Ты — мудрый нумеролог в приложении FOCUS. Составь глубокий, вдохновляющий разбор жизненного пути человека. ' +
+                'У него: число судьбы, число души (' + soul + ' — внутренние желания), число миссии (' + mission + ' — предназначение), число имени, знак зодиака. ' +
+                'Учитывай тип личности и адаптируй разбор под него. Опирайся и на то, что человек рассказал о себе. ' +
+                'Пиши живым русским, 5-7 предложений. Раскрой сильные стороны, предназначение, на что обратить внимание. Лично, без клише.'
             },
-            { role:'user', content: 'Мои данные: ' + numCtx + '.\n' + (aboutText ? ('Обо мне: ' + aboutText + '\n') : '') + 'Составь разбор моего жизненного пути.' }
+            { role:'user', content: 'Мои данные: ' + numCtx + '. Число души: ' + soul + ', число миссии: ' + mission + '.\n' + (aboutText ? ('Обо мне: ' + aboutText + '\n') : '') + 'Раскрой мой путь.' }
         ];
         if (!window.fbAskAI) { area.innerHTML = '<div class="forecast-card">ИИ недоступен, обнови страницу.</div>'; return; }
-        let res = await window.fbAskAI(messages, 600);
+        let res = await window.fbAskAI(messages, 650);
         if (res.ok && res.reply && res.reply.trim()) {
             area.innerHTML = '<div class="forecast-card">' + res.reply.trim().replace(/</g,'&lt;') + '</div>';
         } else {
             area.innerHTML = '<div class="forecast-card">⚠️ Не удалось получить разбор. Причина: ' + (res.error || 'неизвестно') + '</div>';
         }
+    }
+
+    function checkCompat(){
+        const partnerNum = parseInt(document.getElementById('compatInput').value);
+        if (!partnerNum || isNaN(partnerNum)) { alert('Введи число судьбы партнёра'); return; }
+        const myNum = FocusAstro.getLifePathNumber(FS.birthDate);
+        const pct = FocusAstro.getCompatibility(myNum, partnerNum);
+        const resEl = document.getElementById('compatResult');
+        document.getElementById('compatPct').innerText = pct + '%';
+        let desc;
+        if (pct >= 80) desc = 'Прекрасное совпадение! Ваши числа резонируют — вы дополняете и усиливаете друг друга.';
+        else if (pct >= 65) desc = 'Хорошая совместимость. У вас много общего, а различия делают союз интереснее.';
+        else if (pct >= 50) desc = 'Средняя совместимость. Понадобится работа над пониманием, но это возможно.';
+        else desc = 'Непростое сочетание. Разные энергии — но противоположности иногда создают сильные пары.';
+        document.getElementById('compatDesc').innerText = desc;
+        resEl.style.display = 'block';
     }
 
     function getAboutText(){
