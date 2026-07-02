@@ -410,10 +410,6 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
                 Сохранить и продолжить
             </button>
-            <button class="btn-secondary" id="skipBtn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
-                Пропустить (без бонусов)
-            </button>
         </div>
         </div>
     </div>
@@ -875,48 +871,47 @@
         // сбрасываем флаг чтобы приветствие проиграло заново при следующем входе
         try { localStorage.removeItem('focus_greeted'); } catch(e){}
 
-        FocusStorage.saveUser(updates);
+        // сохраняем ВСЁ (в try чтобы ничего не прервало переход)
+        try { FocusStorage.saveUser(updates); } catch(e){}
+        try { FocusStorage.saveUser({ flags: { profileCompleted: true } }); } catch(e){}
 
-        if (bonusCoins > 0) {
-            FocusStorage.addCoins(bonusCoins);
-            if (FocusCore.coinBurst) {
-                FocusCore.coinBurst({ amount: bonusCoins, reason: 'Анкета заполнена', sourceEl: document.getElementById('saveBtn') });
+        try {
+            if (bonusCoins > 0) {
+                FocusStorage.addCoins(bonusCoins);
+                if (FocusCore && FocusCore.coinBurst) {
+                    FocusCore.coinBurst({ amount: bonusCoins, reason: 'Анкета заполнена', sourceEl: document.getElementById('saveBtn') });
+                }
             }
-        }
+        } catch(e){}
 
-        FocusStorage.saveUser({ flags: { profileCompleted: true } });
+        // облако — в фоне, не блокирует переход
+        try {
+            if (window.fbSaveUserData && window.fbCurrentUser && window.fbCurrentUser()) {
+                const fullUser = FocusStorage.getUser();
+                window.fbSaveUserData({
+                    name: fullUser.name || '', age: fullUser.age || '',
+                    birthDate: fullUser.birthDate || '', city: fullUser.city || '',
+                    phone: fullUser.phone || '', assistantName: fullUser.assistantName || '',
+                    assistantVoice: fullUser.assistantVoice || '', lifeGoal: fullUser.lifeGoal || null,
+                    coins: fullUser.coins || 0, profileCompleted: true,
+                    updatedAt: new Date().toISOString()
+                }).catch(() => {});
+            }
+        } catch(e){}
 
-        // Сохраняем профиль в облако Firestore (если Firebase готов и юзер вошёл)
-        if (window.fbSaveUserData && window.fbCurrentUser && window.fbCurrentUser()) {
-            const fullUser = FocusStorage.getUser();
-            window.fbSaveUserData({
-                name: fullUser.name || '',
-                age: fullUser.age || '',
-                city: fullUser.city || '',
-                phone: fullUser.phone || '',
-                coins: fullUser.coins || 0,
-                profileCompleted: true,
-                updatedAt: new Date().toISOString()
-            }).then(r => {
-                if (r && r.ok) console.log('✓ Профиль сохранён в облако');
-            }).catch(() => {});
-        }
-
-        setTimeout(() => { window.location.href = 'index.html'; }, 1600);
-    });
-
-    document.getElementById('skipBtn').addEventListener('click', function() {
-        FocusStorage.saveUser({ flags: { profileCompleted: true } });
+        // ПЕРЕХОД сразу и надёжно (что бы ни упало выше)
         window.location.href = 'index.html';
     });
 
-    FocusCore.initParticleSystem({
-        canvasId: 'cosmicCanvas',
-        triggers: [
-            { el: document.getElementById('logoTrigger'), shakeClass: true }
-        ]
-    });
-    FocusCore.initAtmosphere('atmosCanvas');
+    try {
+        FocusCore.initParticleSystem({
+            canvasId: 'cosmicCanvas',
+            triggers: [
+                { el: document.getElementById('logoTrigger'), shakeClass: true }
+            ]
+        });
+        FocusCore.initAtmosphere('atmosCanvas');
+    } catch(e){}
 
 
 </script>

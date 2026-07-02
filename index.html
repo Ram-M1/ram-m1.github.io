@@ -1891,24 +1891,41 @@
 </script>
     <script src="focus-chat-fab.js"></script>
     <style>
-    #greetOverlay { position:fixed; inset:0; z-index:5000; background:rgba(5,5,12,0.85); backdrop-filter:blur(6px); display:block; opacity:0; transition:opacity 0.35s; }
+    #greetOverlay { position:fixed; inset:0; z-index:5000; display:block; opacity:0; transition:opacity 0.4s; pointer-events:auto; }
     #greetOverlay.show { opacity:1; }
-    .greet-spotlight { position:fixed; display:none; border:2.5px solid #C8AAFF; border-radius:18px; box-shadow:0 0 0 9999px rgba(5,5,12,0.82), 0 0 30px rgba(200,170,255,0.7); pointer-events:none; transition:all 0.4s cubic-bezier(0.4,0,0.2,1); z-index:5001; }
-    .tour-glow { position:relative; z-index:5002 !important; animation:tourPulse 1.5s ease-in-out infinite; }
-    @keyframes tourPulse { 0%,100%{ filter:drop-shadow(0 0 8px rgba(200,170,255,0.6)); } 50%{ filter:drop-shadow(0 0 20px rgba(200,170,255,1)); } }
-    .greet-box { position:fixed; left:50%; transform:translateX(-50%); width:calc(100% - 40px); max-width:360px; background:linear-gradient(165deg,#1c1830,#141020); border:1px solid rgba(200,170,255,0.3); border-radius:22px; padding:22px 20px; text-align:center; z-index:5003; box-shadow:0 20px 60px rgba(0,0,0,0.6); top:50%; margin-top:-140px; transition:top 0.4s, margin-top 0.4s; }
-    .greet-box.bottom { top:auto; bottom:30px; margin-top:0; }
-    .greet-box.top { top:30px; margin-top:0; bottom:auto; }
-    .greet-orb { width:60px; height:60px; margin:0 auto 12px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #C8AAFF, #7C8CFF 60%, #4a5ad8); box-shadow:0 0 40px rgba(124,140,255,0.6); animation:orbPulse 2s ease-in-out infinite; }
-    @keyframes orbPulse { 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.1);} }
+    /* лёгкое затемнение только через тень споллайта — сам оверлей прозрачный */
+    #greetOverlay::before { content:''; position:fixed; inset:0; background:rgba(8,8,16,0.35); backdrop-filter:blur(1.5px); transition:opacity 0.4s; }
+    #greetOverlay.has-spot::before { opacity:0; }
+    .greet-spotlight { position:fixed; display:none; border-radius:20px;
+        /* лёгкое затемнение вокруг + технологичная подсветка */
+        box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 25px 4px rgba(200,170,255,0.55), inset 0 0 20px rgba(200,170,255,0.15);
+        pointer-events:none; transition:all 0.5s cubic-bezier(0.34,1.2,0.64,1); z-index:5001; }
+    /* анимированные углы-скобки — технологичный вид */
+    .greet-spotlight::before, .greet-spotlight::after { content:''; position:absolute; width:22px; height:22px; border:2.5px solid #FFD966; }
+    .greet-spotlight::before { top:-3px; left:-3px; border-right:none; border-bottom:none; border-radius:8px 0 0 0; }
+    .greet-spotlight::after { bottom:-3px; right:-3px; border-left:none; border-top:none; border-radius:0 0 8px 0; }
+    .spot-corners { position:fixed; pointer-events:none; z-index:5002; }
+    .spot-corners span { position:absolute; width:22px; height:22px; border:2.5px solid #FFD966; filter:drop-shadow(0 0 6px rgba(255,217,102,0.8)); }
+    .tour-glow { position:relative; z-index:5002 !important; animation:tourBreath 2s ease-in-out infinite; }
+    @keyframes tourBreath { 0%,100%{ filter:drop-shadow(0 0 6px rgba(200,170,255,0.5)); } 50%{ filter:drop-shadow(0 0 16px rgba(200,170,255,0.95)); } }
+    @keyframes spotScan { 0%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } 50%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(255,217,102,1), 0 0 32px 6px rgba(200,170,255,0.7), inset 0 0 25px rgba(200,170,255,0.2); } 100%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } }
+    .greet-spotlight.pulsing { animation:spotScan 2.2s ease-in-out infinite; }
+    .greet-box { position:fixed; left:50%; transform:translateX(-50%); width:calc(100% - 40px); max-width:350px; background:linear-gradient(165deg, rgba(30,26,48,0.97), rgba(20,16,32,0.97)); backdrop-filter:blur(20px); border:1px solid rgba(200,170,255,0.35); border-radius:24px; padding:22px 20px; text-align:center; z-index:5003; box-shadow:0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(124,140,255,0.15); top:50%; margin-top:-150px; transition:top 0.5s cubic-bezier(0.34,1.2,0.64,1), margin-top 0.5s; }
+    .greet-box.bottom { top:auto; bottom:28px; margin-top:0; }
+    .greet-box.top { top:96px; margin-top:0; bottom:auto; }
+    .greet-orb { width:56px; height:56px; margin:0 auto 12px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #E0CCFF, #C8AAFF 45%, #7C8CFF 75%, #4a5ad8); box-shadow:0 0 30px rgba(124,140,255,0.7), inset 0 -4px 12px rgba(74,90,216,0.5); animation:orbFloat 3s ease-in-out infinite; position:relative; }
+    .greet-orb::after { content:''; position:absolute; inset:-6px; border-radius:50%; border:1.5px solid rgba(200,170,255,0.3); animation:orbRing 3s ease-in-out infinite; }
+    @keyframes orbFloat { 0%,100%{ transform:translateY(0) scale(1);} 50%{ transform:translateY(-4px) scale(1.05);} }
+    @keyframes orbRing { 0%,100%{ transform:scale(1); opacity:0.5;} 50%{ transform:scale(1.15); opacity:0.1;} }
     .greet-name { font-size:22px; font-weight:800; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:12px; }
-    .greet-text { font-size:14px; line-height:1.6; color:#e0e0e8; margin-bottom:16px; }
+    .greet-text { font-size:14px; line-height:1.65; color:#e8e8f0; margin-bottom:18px; }
     .greet-progress { display:flex; gap:6px; justify-content:center; margin-bottom:16px; }
-    .gp-dot { width:7px; height:7px; border-radius:50%; background:rgba(200,170,255,0.25); transition:all 0.3s; }
-    .gp-dot.active { background:#C8AAFF; width:20px; border-radius:4px; }
+    .gp-dot { width:6px; height:6px; border-radius:50%; background:rgba(200,170,255,0.25); transition:all 0.4s; }
+    .gp-dot.active { background:linear-gradient(90deg,#C8AAFF,#FFD966); width:22px; border-radius:4px; box-shadow:0 0 8px rgba(200,170,255,0.6); }
     .greet-btns { display:flex; gap:10px; }
-    .greet-skip-all { flex:0 0 auto; padding:13px 18px; border:none; border-radius:14px; background:rgba(255,255,255,0.07); color:#9a9aab; font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; }
-    .greet-next { flex:1; padding:13px; border:none; border-radius:14px; background:linear-gradient(135deg,#C8AAFF,#FFD966); color:#0a0a0f; font-size:15px; font-weight:800; font-family:inherit; cursor:pointer; }
+    .greet-skip-all { flex:0 0 auto; padding:13px 18px; border:none; border-radius:14px; background:rgba(255,255,255,0.06); color:#9a9aab; font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; transition:all 0.15s; }
+    .greet-skip-all:active { transform:scale(0.95); }
+    .greet-next { flex:1; padding:13px; border:none; border-radius:14px; background:linear-gradient(135deg,#C8AAFF,#FFD966); color:#0a0a0f; font-size:15px; font-weight:800; font-family:inherit; cursor:pointer; box-shadow:0 4px 16px rgba(200,170,255,0.35); transition:all 0.15s; }
     .greet-next:active { transform:scale(0.97); }
     </style>
     <script>
@@ -1978,48 +1995,36 @@
 
             var idx = 0;
 
-            function speak(text){
-                if (!window.speechSynthesis || !text) return;
-                try {
-                    window.speechSynthesis.cancel();
-                    var u = new SpeechSynthesisUtterance(text);
-                    u.lang = 'ru-RU';
-                    var voices = window.speechSynthesis.getVoices().filter(function(v){ return v.lang.indexOf('ru')===0; });
-                    var picked = null;
-                    if (gUser.assistantVoice === 'female') picked = voices.find(function(v){ return /female|женск|Milena|Katya|Alena|Tatyana/i.test(v.name); });
-                    else picked = voices.find(function(v){ return /male|мужск|Yuri|Pavel|Dmitry/i.test(v.name); });
-                    if (!picked && voices.length) picked = voices[0];
-                    if (picked) u.voice = picked;
-                    u.pitch = gUser.assistantVoice === 'female' ? 1.15 : 0.9;
-                    u.rate = 0.98;
-                    window.speechSynthesis.speak(u);
-                } catch(e){}
-            }
+            function speak(text){ /* голос отключён — кино-голос ElevenLabs добавим позже */ }
 
             function highlight(step){
                 var spot = document.getElementById('greetSpot');
                 var box = document.getElementById('greetBox');
-                // сброс прошлых подсветок
                 document.querySelectorAll('.tour-glow').forEach(function(el){ el.classList.remove('tour-glow'); });
-                if (!step.target) { spot.style.display = 'none'; box.classList.remove('bottom','top'); return; }
-
+                if (!step.target) {
+                    spot.style.display = 'none';
+                    spot.classList.remove('pulsing');
+                    ov.classList.remove('has-spot');
+                    box.classList.remove('bottom','top');
+                    return;
+                }
                 var els = step.targetAll ? Array.from(document.querySelectorAll(step.target)) : [document.querySelector(step.target)];
                 els = els.filter(Boolean);
-                if (!els.length) { spot.style.display = 'none'; return; }
+                if (!els.length) { spot.style.display = 'none'; ov.classList.remove('has-spot'); return; }
                 els.forEach(function(el){ el.classList.add('tour-glow'); });
 
-                // рамка подсветки вокруг первого (или общая область)
                 var r1 = els[0].getBoundingClientRect();
                 var minX = r1.left, minY = r1.top, maxX = r1.right, maxY = r1.bottom;
                 els.forEach(function(el){ var r = el.getBoundingClientRect(); minX=Math.min(minX,r.left); minY=Math.min(minY,r.top); maxX=Math.max(maxX,r.right); maxY=Math.max(maxY,r.bottom); });
                 var pad = 8;
                 spot.style.display = 'block';
+                spot.classList.add('pulsing');
+                ov.classList.add('has-spot');
                 spot.style.left = (minX - pad) + 'px';
                 spot.style.top = (minY - pad) + 'px';
                 spot.style.width = (maxX - minX + pad*2) + 'px';
                 spot.style.height = (maxY - minY + pad*2) + 'px';
 
-                // ставим окошко подсказки снизу или сверху от подсветки
                 var vh = window.innerHeight;
                 if (minY < vh/2) { box.classList.add('bottom'); box.classList.remove('top'); }
                 else { box.classList.add('top'); box.classList.remove('bottom'); }
@@ -2054,13 +2059,8 @@
             document.getElementById('greetNext').addEventListener('click', nextStep);
             document.getElementById('greetSkipAll').addEventListener('click', finish);
 
-            // старт (голоса грузятся асинхронно)
-            if (window.speechSynthesis && !window.speechSynthesis.getVoices().length) {
-                window.speechSynthesis.onvoiceschanged = function(){ renderStep(); window.speechSynthesis.onvoiceschanged = null; };
-                setTimeout(renderStep, 600); // подстраховка
-            } else {
-                renderStep();
-            }
+            // старт тура (без голоса — сразу)
+            renderStep();
         }
         setTimeout(initGreeting, 800);
         // ===== ТАЙМЕР ЖИЗНИ =====
