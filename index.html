@@ -757,6 +757,21 @@
 <script type="module" src="firebase-auth-helper.js"></script>
 <script src="focus-core.js"></script>
 <script>
+    // ГАРД: если анкета не заполнена (нет имени ассистента или даты рождения) — на анкету
+    (function(){
+        try {
+            var _u = JSON.parse(localStorage.getItem('focus_user')) || {};
+            // пускаем на главную только если заполнены новые поля анкеты
+            var ok = _u && _u.name && _u.assistantName && _u.birthDate;
+            // но не редиректим если юзер вообще не залогинен (его landing разрулит)
+            var logged = _u && ((_u.flags && (_u.flags.loggedIn || _u.flags.demoMode)) || _u.email);
+            if (logged && !ok) {
+                location.replace('profile-form.html');
+            }
+        } catch(e){}
+    })();
+</script>
+<script>
     // Шим темы на случай открытия файла по одному (без общих файлов рядом)
     if (typeof FocusStorage === 'undefined') {
         window.FocusStorage = {
