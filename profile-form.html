@@ -347,21 +347,12 @@
 
         <div class="form-group">
             <div class="label">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-                Возраст
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                Дата рождения
                 <span class="label-bonus">+5 монет</span>
             </div>
-            <div class="age-input-wrap">
-                <input type="number" class="input" id="age" placeholder="Сколько лет?">
-                <div class="age-stepper">
-                    <button type="button" id="ageDown" aria-label="Уменьшить">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg>
-                    </button>
-                    <button type="button" id="ageUp" aria-label="Увеличить">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                    </button>
-                </div>
-            </div>
+            <input type="date" class="input" id="birthDate" max="2020-12-31" min="1920-01-01">
+            <div class="birth-hint" id="birthHint" style="font-size:12px;color:#9db0ff;margin-top:8px;display:none;"></div>
         </div>
 
         <div class="form-group">
@@ -382,6 +373,28 @@
             <input type="tel" class="input" id="phone" placeholder="+7 999 123-45-67">
         </div>
 
+        <div class="form-group">
+            <div class="label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 4h8M9 14h.01M15 14h.01"/></svg>
+                Имя твоего ИИ-ассистента
+                <span class="label-bonus">+10 монет</span>
+            </div>
+            <input type="text" class="input" id="assistantName" placeholder="Например: Джарвис, Пятница, Ева..." maxlength="20">
+            <div style="font-size:12px;color:#9db0ff;margin-top:8px;">Он будет обращаться к тебе и помогать. Дай ему имя ✨</div>
+        </div>
+
+        <div class="form-group">
+            <div class="label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3ZM5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+                Голос ассистента
+            </div>
+            <div class="voice-choice" style="display:flex; gap:10px;">
+                <div class="voice-opt" data-voice="male" style="flex:1; padding:14px; border-radius:14px; background:rgba(124,140,255,0.08); border:1.5px solid rgba(124,140,255,0.3); text-align:center; cursor:pointer; font-weight:700; font-size:14px;">👨 Мужской</div>
+                <div class="voice-opt" data-voice="female" style="flex:1; padding:14px; border-radius:14px; background:rgba(255,120,180,0.08); border:1.5px solid rgba(255,120,180,0.3); text-align:center; cursor:pointer; font-weight:700; font-size:14px;">👩 Женский</div>
+            </div>
+            <div class="voice-test" id="voiceTest" style="text-align:center; margin-top:10px; font-size:13px; color:#C8AAFF; cursor:pointer; display:none;">🔊 Послушать голос</div>
+        </div>
+
         <div class="buttons">
             <button class="btn-primary" id="saveBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
@@ -395,6 +408,7 @@
         </div>
     </div>
 </div>
+<script src="focus-astro.js"></script>
 <script src="focus-storage.js"></script>
 <script src="focus-core.js"></script>
 <script type="module" src="firebase-auth-helper.js"></script>
@@ -746,35 +760,100 @@
     if (savedUser.city) document.getElementById('city').value = savedUser.city;
     if (savedUser.phone) document.getElementById('phone').value = savedUser.phone;
 
-    const ageInput = document.getElementById('age');
-    document.getElementById('ageUp').addEventListener('click', function() {
-        let v = parseInt(ageInput.value) || 0;
-        if (v < 120) ageInput.value = v + 1;
+    // дата рождения — сразу показываем знак зодиака и число судьбы как подсказку
+    const birthInput = document.getElementById('birthDate');
+    if (savedUser.birthDate) birthInput.value = savedUser.birthDate;
+    function updateBirthHint(){
+        const hint = document.getElementById('birthHint');
+        const bd = birthInput.value;
+        if (!bd || !window.FocusAstro) { if(hint) hint.style.display='none'; return; }
+        const z = FocusAstro.getZodiac(bd);
+        const lp = FocusAstro.getLifePathNumber(bd);
+        if (z && lp && hint) {
+            hint.innerHTML = z.emoji + ' ' + z.sign + ' · Число судьбы: <b>' + lp + '</b>';
+            hint.style.display = 'block';
+        }
+    }
+    birthInput.addEventListener('change', updateBirthHint);
+    updateBirthHint();
+
+    // выбор голоса ассистента
+    let selectedVoice = savedUser.assistantVoice || 'male';
+    const voiceOpts = document.querySelectorAll('.voice-opt');
+    function markVoice(){
+        voiceOpts.forEach(o => {
+            const active = o.dataset.voice === selectedVoice;
+            o.style.opacity = active ? '1' : '0.5';
+            o.style.transform = active ? 'scale(1.02)' : 'scale(1)';
+            o.style.boxShadow = active ? '0 4px 14px rgba(124,140,255,0.25)' : 'none';
+        });
+        document.getElementById('voiceTest').style.display = 'block';
+    }
+    voiceOpts.forEach(o => o.addEventListener('click', () => { selectedVoice = o.dataset.voice; markVoice(); }));
+    if (savedUser.assistantName) document.getElementById('assistantName').value = savedUser.assistantName;
+    markVoice();
+
+    // тест голоса
+    document.getElementById('voiceTest').addEventListener('click', () => {
+        const nm = document.getElementById('assistantName').value.trim() || 'Ассистент';
+        speakTest('Привет! Меня зовут ' + nm + '. Я твой ИИ-ассистент в Фокусе.', selectedVoice);
     });
-    document.getElementById('ageDown').addEventListener('click', function() {
-        let v = parseInt(ageInput.value) || 0;
-        if (v > 1) ageInput.value = v - 1;
-    });
+    function speakTest(text, voice){
+        try {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'ru-RU';
+            const voices = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('ru'));
+            // пытаемся выбрать по полу (по названию/имени голоса)
+            let picked = null;
+            if (voice === 'female') picked = voices.find(v => /female|женск|Milena|Katya|Alena|Tatyana/i.test(v.name));
+            else picked = voices.find(v => /male|мужск|Yuri|Pavel|Dmitry/i.test(v.name));
+            if (!picked && voices.length) picked = voices[0];
+            if (picked) u.voice = picked;
+            u.pitch = voice === 'female' ? 1.15 : 0.9;
+            u.rate = 0.98;
+            window.speechSynthesis.speak(u);
+        } catch(e){}
+    }
 
         function showToast(msg){ var t=document.getElementById('toast'); if(!t) return; t.innerText=msg; t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)'; clearTimeout(window._tt); window._tt=setTimeout(function(){ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(20px)'; }, 2800); }
 
     document.getElementById('saveBtn').addEventListener('click', function() {
         const name = document.getElementById('name').value.trim();
-        const age = document.getElementById('age').value.trim();
+        const birthDate = document.getElementById('birthDate').value;
         const city = document.getElementById('city').value.trim();
         const phone = document.getElementById('phone').value.trim();
 
         if (!name) { showToast('Введите ваше имя'); return; }
-        if (!age || isNaN(age) || age < 1 || age > 120) { showToast('Введите корректный возраст'); return; }
+        if (!birthDate) { showToast('Укажите дату рождения'); return; }
         if (!city) { showToast('Введите город'); return; }
         if (!phone) { showToast('Введите номер телефона'); return; }
+
+        // вычисляем возраст из даты рождения
+        let age = '';
+        try {
+            const b = new Date(birthDate + 'T00:00:00');
+            const now = new Date();
+            age = now.getFullYear() - b.getFullYear() - ((now.getMonth() < b.getMonth() || (now.getMonth()===b.getMonth() && now.getDate()<b.getDate())) ? 1 : 0);
+            age = String(age);
+        } catch(e){}
 
         let bonusCoins = 0;
         const updates = {};
         if (!savedUser.name && name) { bonusCoins += 5; updates.name = name; }
-        if (!savedUser.age && age) { bonusCoins += 5; updates.age = age; }
+        if (!savedUser.birthDate && birthDate) { bonusCoins += 5; updates.birthDate = birthDate; updates.age = age; }
+        else if (birthDate) { updates.birthDate = birthDate; updates.age = age; }
         if (!savedUser.city && city) { bonusCoins += 10; updates.city = city; }
         if (!savedUser.phone && phone) { bonusCoins += 20; updates.phone = phone; }
+        // имя и голос ассистента
+        const assistantName = document.getElementById('assistantName').value.trim();
+        if (assistantName) {
+            if (!savedUser.assistantName) bonusCoins += 10;
+            updates.assistantName = assistantName;
+        }
+        updates.assistantVoice = selectedVoice;
+        // сбрасываем флаг чтобы приветствие проиграло заново при следующем входе
+        try { localStorage.removeItem('focus_greeted'); } catch(e){}
 
         FocusStorage.saveUser(updates);
 

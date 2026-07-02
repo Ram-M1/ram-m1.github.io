@@ -588,12 +588,41 @@
 
     document.getElementById('timerValue').innerText = 'через 7 дней';
 
+    // считаем дни за текущую неделю (понедельник — воскресенье)
+    function daysThisWeek(key){
+        try {
+            const arr = JSON.parse(localStorage.getItem(key)) || [];
+            const now = new Date();
+            const monday = new Date(now);
+            const day = (now.getDay() + 6) % 7; // 0=понедельник
+            monday.setDate(now.getDate() - day);
+            monday.setHours(0,0,0,0);
+            return arr.filter(d => {
+                const dt = new Date(d + 'T00:00:00');
+                return dt >= monday;
+            }).length;
+        } catch(e){ return 0; }
+    }
+    // сон считаем по записям focus_sleep_entries (уникальные даты за неделю)
+    function sleepDaysThisWeek(){
+        try {
+            const entries = JSON.parse(localStorage.getItem('focus_sleep_entries')) || [];
+            const dates = [...new Set(entries.map(e => e.date))];
+            const now = new Date();
+            const monday = new Date(now);
+            const day = (now.getDay() + 6) % 7;
+            monday.setDate(now.getDate() - day);
+            monday.setHours(0,0,0,0);
+            return dates.filter(d => new Date(d + 'T00:00:00') >= monday).length;
+        } catch(e){ return 0; }
+    }
+
     let criteria = {
-        workout: { current: 3, need: 5 },
-        sleep: { current: 4, need: 7 },
-        gratitude: { current: 2, need: 3 },
-        tasks: { done: false, need: 1 },
-        activeFriends: { current: 2, need: 3 },
+        workout: { current: daysThisWeek('focus_workout_days'), need: 5 },
+        sleep: { current: sleepDaysThisWeek(), need: 7 },
+        gratitude: { current: daysThisWeek('focus_habit_reward'), need: 3 },
+        tasks: { done: (function(){ try { return (JSON.parse(localStorage.getItem('focus_tasks_done_week'))||[]).length > 0; } catch(e){ return false; } })(), need: 1 },
+        activeFriends: { current: 0, need: 3 },
         paidFriend: false
     };
 

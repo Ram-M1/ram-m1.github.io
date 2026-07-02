@@ -169,6 +169,14 @@
     .connect-banner-ic { width:48px; height:48px; border-radius:50%; background:rgba(255,255,255,0.18); display:flex; align-items:center; justify-content:center; }
     .connect-banner-ic svg { width:24px; height:24px; color:#fff; }
     .chat-search { width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(var(--accent-rgb),0.16); border-radius:13px; padding:11px 14px; color:#fff; font-size:13px; font-family:inherit; outline:none; margin-bottom:13px; }
+    .chat-item.pinned { background:rgba(var(--accent-rgb),0.05); }
+    .chat-avatar.group { background:linear-gradient(135deg,#7C8CFF,#5a6cd8); }
+    .chat-ctx-menu { position:fixed; bottom:0; left:0; right:0; background:#1a1a24; border-radius:20px 20px 0 0; padding:12px; z-index:2000; box-shadow:0 -8px 30px rgba(0,0,0,0.5); animation:ctxUp 0.2s ease; }
+    @keyframes ctxUp { from{transform:translateY(100%);} to{transform:translateY(0);} }
+    .ctx-title { font-size:13px; color:#8e8e9e; text-align:center; padding:8px; font-weight:600; }
+    .ctx-item { padding:15px; text-align:center; font-size:15px; color:#fff; border-radius:12px; cursor:pointer; }
+    .ctx-item:active { background:rgba(255,255,255,0.08); }
+    .ctx-cancel { color:#ff6b6b; margin-top:4px; }
     .search-section-label { font-size:10px; color:#8e8e9e; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; margin:10px 4px 7px; }
     .search-msg-item { background:rgba(255,255,255,0.03); border:0.5px solid rgba(var(--accent-rgb),0.1); border-radius:12px; padding:10px 13px; margin-bottom:6px; cursor:pointer; transition:0.15s; }
     .search-msg-item:active { background:rgba(255,255,255,0.06); }
@@ -531,18 +539,36 @@ initAtmosphere(canvasId) {
     let searchQuery = '';
     let currentTab = 'all';
 
+    // закреплённые чаты (id в localStorage)
+    function getPinned(){ try { return JSON.parse(localStorage.getItem('focus_pinned_chats')) || []; } catch(e){ return []; } }
+    function savePinned(arr){ localStorage.setItem('focus_pinned_chats', JSON.stringify(arr)); }
+    function togglePin(chatId){
+        let p = getPinned();
+        if (p.includes(chatId)) p = p.filter(x => x !== chatId);
+        else p.push(chatId);
+        savePinned(p);
+        renderChats();
+    }
+
     function renderChats(){
         const cont = document.getElementById('chatsList');
-        // основной источник — реальные чаты из Firebase (+ кэш для мгновенного показа)
         let chats = realChats;
         if (!chats.length) {
             try { chats = JSON.parse(localStorage.getItem('focus_realchats_cache')) || []; } catch(e){ chats = []; }
         }
-        // фильтр по табу + поиску
         let filtered = chats;
         if (currentTab === 'unread') filtered = filtered.filter(c => c.unread > 0);
         else if (currentTab === 'groups') filtered = filtered.filter(c => c.type === 'group');
         if (searchQuery) filtered = filtered.filter(c => (c.name||'').toLowerCase().includes(searchQuery.toLowerCase()));
+
+        // закреплённые — наверх
+        const pinned = getPinned();
+        filtered = filtered.slice().sort((a,b) => {
+            const pa = pinned.includes(a.chatId) ? 1 : 0;
+            const pb = pinned.includes(b.chatId) ? 1 : 0;
+            if (pa !== pb) return pb - pa; // закреплённые первыми
+            return 0;
+        });
 
         const unreadTotal = chats.filter(c => c.unread > 0).length;
         const badge = document.getElementById('unreadBadge');
@@ -556,13 +582,18 @@ initAtmosphere(canvasId) {
         const frag = document.createDocumentFragment();
         filtered.forEach(c => {
             const initial = (c.name[0] || '?').toUpperCase();
+            const isGroup = c.type === 'group';
+            const isPinned = pinned.includes(c.chatId);
+            const avInner = (c.avatar && c.avatar.startsWith('data:image'))
+                ? `<img src="${c.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`
+                : escapeHtml(initial);
             const item = document.createElement('div');
-            item.className = 'chat-item';
+            item.className = 'chat-item' + (isPinned ? ' pinned' : '');
             item.innerHTML = `
-                <div class="chat-avatar">${escapeHtml(initial)}</div>
+                <div class="chat-avatar${isGroup?' group':''}">${avInner}</div>
                 <div class="chat-body">
                     <div class="chat-row1">
-                        <div class="chat-name">${escapeHtml(c.name)}</div>
+                        <div class="chat-name">${isPinned?'📌 ':''}${isGroup?'👥 ':''}${escapeHtml(c.name)}</div>
                         <div class="chat-time">${escapeHtml(c.time||'')}</div>
                     </div>
                     <div class="chat-row2">
@@ -570,13 +601,41 @@ initAtmosphere(canvasId) {
                         ${c.unread>0 ? `<div class="chat-unread">${c.unread}</div>` : ''}
                     </div>
                 </div>`;
+            // клик — открыть чат
             item.addEventListener('click', () => {
                 location.href = 'fokus_chat.html?chatId=' + c.chatId + '&name=' + encodeURIComponent(c.name);
             });
+            // долгий тап — меню (закрепить)
+            let pressTimer = null;
+            const startPress = () => { pressTimer = setTimeout(() => { showChatMenu(c, isPinned); }, 500); };
+            const cancelPress = () => { if (pressTimer) clearTimeout(pressTimer); };
+            item.addEventListener('touchstart', startPress, {passive:true});
+            item.addEventListener('touchend', cancelPress);
+            item.addEventListener('touchmove', cancelPress);
+            item.addEventListener('contextmenu', (e) => { e.preventDefault(); showChatMenu(c, isPinned); });
             frag.appendChild(item);
         });
         cont.innerHTML = '';
         cont.appendChild(frag);
+    }
+
+    // меню чата (закрепить/открепить)
+    function showChatMenu(chat, isPinned){
+        const existing = document.getElementById('chatCtxMenu');
+        if (existing) existing.remove();
+        const menu = document.createElement('div');
+        menu.id = 'chatCtxMenu';
+        menu.className = 'chat-ctx-menu';
+        menu.innerHTML = `
+            <div class="ctx-title">${escapeHtml(chat.name)}</div>
+            <div class="ctx-item" data-act="pin">${isPinned ? '📌 Открепить' : '📌 Закрепить наверху'}</div>
+            <div class="ctx-item ctx-cancel" data-act="cancel">Отмена</div>`;
+        document.body.appendChild(menu);
+        menu.addEventListener('click', (e) => {
+            const act = e.target.dataset.act;
+            if (act === 'pin') togglePin(chat.chatId);
+            menu.remove();
+        });
     }
 
     // Табы Max
@@ -817,21 +876,40 @@ initAtmosphere(canvasId) {
     });
     document.getElementById('cancelGroup').addEventListener('click', () => groupModal.classList.remove('show'));
     groupModal.addEventListener('click', (e) => { if (e.target.id === 'groupModal') groupModal.classList.remove('show'); });
-    document.getElementById('confirmGroup').addEventListener('click', () => {
+    document.getElementById('confirmGroup').addEventListener('click', async () => {
         const name = document.getElementById('groupNameInput').value.trim();
         if (!name) { toast('Введи название группы'); return; }
         if (selectedMembers.length < 1) { toast('Выбери хотя бы одного участника'); return; }
-        const members = friendPool.filter(f => selectedMembers.includes(f.id)).map(f => f.name);
-        const chats = getChats();
-        chats.unshift({
-            id: 'g' + Date.now(), name: name, type:'group', avatar:'👥', online:false,
-            last: 'Группа создана', time:'сейчас', unread:0,
-            members: members, isGroup:true
-        });
-        saveChats(chats);
-        groupModal.classList.remove('show');
-        renderChats();
-        toast('Группа «' + name + '» создана');
+        if (!window.fbCreateGroup) { toast('Подожди, идёт загрузка...'); return; }
+
+        const btn = document.getElementById('confirmGroup');
+        btn.disabled = true; const oldText = btn.innerText; btn.innerText = 'Создаю...';
+
+        // описание и аватар (если поля есть)
+        const descEl = document.getElementById('groupDescInput');
+        const description = descEl ? descEl.value.trim() : '';
+        const avatar = window._groupAvatar || '';
+
+        // uid участников
+        const memberUids = friendPool.filter(f => selectedMembers.includes(f.id)).map(f => f.id);
+
+        try {
+            const res = await Promise.race([
+                window.fbCreateGroup(name, description, avatar, memberUids),
+                new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 12000))
+            ]);
+            btn.disabled = false; btn.innerText = oldText;
+            if (res.ok) {
+                groupModal.classList.remove('show');
+                loadRealChats(); // обновляем список из облака
+                toast('Группа «' + name + '» создана 👥');
+            } else {
+                toast(res.error || 'Не удалось создать группу');
+            }
+        } catch(e) {
+            btn.disabled = false; btn.innerText = oldText;
+            toast(e.message === 'timeout' ? 'Долго нет ответа. Проверь правила Firestore v5' : 'Ошибка: ' + e.message);
+        }
     });
 
     renderChats();</script>

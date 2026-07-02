@@ -796,6 +796,108 @@ window.fbRestoreAllData = async function(){
   });
 })();
 
+// ========== ГРУППЫ (чаты на несколько человек, всё в облаке) ==========
+
+// Создать группу. Возвращает { ok, groupId }
+window.fbCreateGroup = async function(name, description, avatar, memberUids) {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return { ok: false, error: 'Не авторизован' };
+  try {
+    const groupId = 'g_' + user.uid.slice(0,6) + '_' + Date.now();
+    const members = Array.from(new Set([user.uid, ...(memberUids || [])]));
+    // документ группы
+    await setDoc(doc(db, 'chats', groupId), {
+      type: 'group',
+      name: name || 'Группа',
+      description: description || '',
+      avatar: avatar || '',
+      owner: user.uid,
+      admins: [user.uid],
+      participants: members,
+      createdAt: new Date().toISOString()
+    });
+    // добавляем группу в chatList каждого участника
+    for (const uid of members) {
+      await setDoc(doc(db, 'users', uid, 'chatList', groupId), {
+        chatId: groupId, type: 'group', withName: name || 'Группа',
+        avatar: avatar || '', lastText: 'Группа создана',
+        updatedAt: new Date().toISOString(), unread: 0
+      });
+    }
+    return { ok: true, groupId };
+  } catch (e) { return { ok: false, error: e.message }; }
+};
+
+// Получить данные группы
+window.fbGetGroup = async function(groupId) {
+  try {
+    const snap = await getDoc(doc(db, 'chats', groupId));
+    return snap.exists() ? { id: groupId, ...snap.data() } : null;
+  } catch (e) { return null; }
+};
+
+// Обновить группу (название/описание/аватар) — только админ
+window.fbUpdateGroup = async function(groupId, updates) {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return { ok: false, error: 'Не авторизован' };
+  try {
+    const g = await getDoc(doc(db, 'chats', groupId));
+    if (!g.exists()) return { ok: false, error: 'Группа не найдена' };
+    const data = g.data();
+    if (!(data.admins || []).includes(user.uid)) return { ok: false, error: 'Только админ может менять группу' };
+    const allowed = {};
+    if (updates.name != null) allowed.name = updates.name;
+    if (updates.description != null) allowed.description = updates.description;
+    if (updates.avatar != null) allowed.avatar = updates.avatar;
+    await setDoc(doc(db, 'chats', groupId), allowed, { merge: true });
+    // обновим название в chatList участников
+    if (updates.name != null || updates.avatar != null) {
+      for (const uid of (data.participants || [])) {
+        await setDoc(doc(db, 'users', uid, 'chatList', groupId), {
+          withName: updates.name != null ? updates.name : data.name,
+          avatar: updates.avatar != null ? updates.avatar : (data.avatar||'')
+        }, { merge: true }).catch(()=>{});
+      }
+    }
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+};
+
+// Добавить участника в группу
+window.fbAddGroupMember = async function(groupId, newUid) {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return { ok: false, error: 'Не авторизован' };
+  try {
+    const g = await getDoc(doc(db, 'chats', groupId));
+    if (!g.exists()) return { ok: false, error: 'Группа не найдена' };
+    const data = g.data();
+    await setDoc(doc(db, 'chats', groupId), { participants: arrayUnion(newUid) }, { merge: true });
+    await setDoc(doc(db, 'users', newUid, 'chatList', groupId), {
+      chatId: groupId, type: 'group', withName: data.name || 'Группа',
+      avatar: data.avatar || '', lastText: 'Вас добавили в группу',
+      updatedAt: new Date().toISOString(), unread: 1
+    });
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+};
+
+// Выйти из группы / удалить участника
+window.fbLeaveGroup = async function(groupId, uid) {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return { ok: false, error: 'Не авторизован' };
+  const target = uid || user.uid;
+  try {
+    const g = await getDoc(doc(db, 'chats', groupId));
+    if (!g.exists()) return { ok: false, error: 'Группа не найдена' };
+    const data = g.data();
+    const newParts = (data.participants || []).filter(u => u !== target);
+    await setDoc(doc(db, 'chats', groupId), { participants: newParts }, { merge: true });
+    // убираем из chatList
+    try { await setDoc(doc(db, 'users', target, 'chatList', groupId), { removed: true }, { merge: true }); } catch(e){}
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+};
+
 // сигнал готовности
 window.FB_AUTH_READY = true;
 window.dispatchEvent(new Event('fb-auth-ready'));

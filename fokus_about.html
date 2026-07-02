@@ -278,6 +278,7 @@
 </div>
 
 <script src="focus-storage.js"></script>
+<script src="focus-astro.js"></script>
 <script src="focus-ai.js"></script>
 <script type="module" src="firebase-auth-helper.js"></script>
 <script src="focus-core.js"></script>
@@ -566,7 +567,15 @@ initAtmosphere(canvasId) {
             const v = document.getElementById(f)?.value.trim();
             if (v) parts.push(labels[f] + ': ' + v);
         });
-        const userStory = parts.join('\n');
+        let userStory = parts.join('\n');
+        // добавляем астро-контекст (знак зодиака, число судьбы) чтобы ИИ учитывал
+        try {
+            const u = JSON.parse(localStorage.getItem('focus_user')) || {};
+            if (u.birthDate && window.FocusAstro) {
+                const astroCtx = FocusAstro.contextForAI(u);
+                if (astroCtx) userStory += '\n\n[Астро-профиль человека: ' + astroCtx + ']';
+            }
+        } catch(e){}
 
         // тон: поддержка или прямо
         const tone = (currentTone === 'direct')
@@ -586,13 +595,13 @@ initAtmosphere(canvasId) {
                 '2) Какие паттерны или внутренние конфликты заметны.\n' +
                 '3) Зоны роста — мягко, но честно.\n' +
                 '4) 2-3 конкретных практических шага что делать дальше.\n' +
-                'Пиши живым русским, тепло и по-человечески, обращайся на «ты». Это НЕ диагноз. Объём — 6-10 предложений.'
+                'Пиши живым русским, тепло и по-человечески, обращайся на «ты». Это НЕ диагноз. Объём — 6-10 предложений.\n' +
+                'Если в конце дан астро-профиль (знак зодиака, число судьбы) — можешь мягко и уместно вплести его в разбор, связав с характером человека. Но не делай его основой — главное это то что человек рассказал о себе.'
             },
             { role:'user', content: userStory }
         ];
 
-        let res = await window.fbAskAI(messages, 900);
-        if (!res.ok) res = await window.fbAskAI(messages, 900);
+        let res = await window.fbAskAI(messages, 600);
 
         if (res.ok && res.reply && res.reply.trim()) {
             textEl.innerHTML = res.reply.trim().replace(/</g,'&lt;').replace(/\n/g,'<br>');

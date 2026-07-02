@@ -222,6 +222,7 @@
 </div>
 <script src="focus-storage.js"></script>
 <script src="focus-rewards.js"></script>
+<script src="focus-astro.js"></script>
 <script src="focus-ai.js"></script>
 <script type="module" src="firebase-auth-helper.js"></script>
 <script src="focus-core.js"></script>
@@ -669,6 +670,13 @@ initAtmosphere(canvasId) {
             // подстраховка: если после обрезки первым оказался assistant — убираем
             while (hist.length && hist[0].role === 'assistant') hist.shift();
 
+            // астро-контекст собеседника (если заполнена дата рождения)
+            let astroContext = '';
+            try {
+                const u = JSON.parse(localStorage.getItem('focus_user')) || {};
+                if (u.birthDate && window.FocusAstro) astroContext = FocusAstro.contextForAI(u);
+            } catch(e){}
+
             const messages = [
                 { role:'system', content:
                     'Ты — опытный, тёплый психолог-собеседник в приложении FOCUS. Твоя задача — по-настоящему помочь человеку разобраться в том, что он чувствует.\n\n' +
@@ -679,8 +687,10 @@ initAtmosphere(canvasId) {
                     '— Если человек язвит или проверяет тебя — реагируй спокойно, с теплотой и юмором, не уходи в шаблон.\n' +
                     '— Помогай увидеть ситуацию под другим углом, поддерживай, будь честным.\n' +
                     '— Пиши живым разговорным русским, 2-4 предложения, без клише.\n' +
+                    '— Если известен астро-профиль человека (знак, число судьбы) — можешь изредка и уместно опираться на него, но осторожно, не в каждом ответе.\n' +
                     '— НЕ ставь диагнозы. При признаках кризиса мягко предложи обратиться к специалисту.\n' +
-                    'НИКОГДА не повторяй один и тот же вопрос или фразу дважды.'
+                    'НИКОГДА не повторяй один и тот же вопрос или фразу дважды.' +
+                    (astroContext ? ('\n\n[Астро-профиль собеседника: ' + astroContext + ']') : '')
                 },
                 ...hist
             ];

@@ -24,8 +24,9 @@
     { days: 60,  coins: 80 },
     { days: 100, coins: 150 }
   ];
-  // режим: 'streak' (монеты только за вехи стрика) | 'daily' (монета за каждый день)
-  var MODE = 'streak';
+  // режим: 'none' — монеты НЕ даём за активность (всё идёт в недельные 333 на подписку через status.html)
+  // 'streak' (монеты за вехи стрика) | 'daily' (монета за каждый день)
+  var MODE = 'none';
 
   function todayISO() { return new Date().toISOString().slice(0, 10); }
   function load(key, def) { try { return JSON.parse(localStorage.getItem(key)) || def; } catch (e) { return def; } }
@@ -66,7 +67,7 @@
 
       if (MODE === 'daily') {
         if (firstTodayInSphere) { coinsAwarded = 1; }
-      } else {
+      } else if (MODE === 'streak') {
         // streak-режим: при достижении новой вехи выдаём монеты один раз
         if (firstTodayInSphere) {
           var given = load(MILESTONE_KEY, {});

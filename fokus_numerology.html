@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="original" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Нумерология — FOCUS</title>
+<link rel="stylesheet" href="focus-theme.css">
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#0a0a12; color:#e8e8ee; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; min-height:100vh; -webkit-font-smoothing:antialiased; }
+    .wrap { max-width:440px; margin:0 auto; padding:18px 16px 60px; }
+    .top { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+    .back { width:40px; height:40px; border-radius:12px; background:rgba(200,170,255,0.1); border:1px solid rgba(200,170,255,0.25); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    .back svg { width:20px; height:20px; color:#C8AAFF; }
+    .top h1 { font-size:22px; font-weight:800; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+    .num-card { background:linear-gradient(165deg,#1a1626,#12101c); border:1px solid rgba(200,170,255,0.25); border-radius:24px; padding:30px 22px; text-align:center; margin-bottom:14px; }
+    .num-big { font-size:72px; font-weight:900; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; line-height:1; margin-bottom:6px; }
+    .num-title { font-size:22px; font-weight:800; color:#fff; margin-bottom:10px; }
+    .num-desc { font-size:14px; color:#c8c8d0; line-height:1.55; }
+    .mini-row { display:flex; gap:10px; margin-bottom:18px; }
+    .mini-card { flex:1; background:rgba(200,170,255,0.05); border:1px solid rgba(200,170,255,0.15); border-radius:16px; padding:16px; text-align:center; }
+    .mini-num { font-size:32px; font-weight:800; color:#FFD966; }
+    .mini-label { font-size:11px; color:#9a9aab; margin-top:4px; }
+    .section-title { font-size:15px; font-weight:700; color:#C8AAFF; margin:20px 0 10px; }
+    .forecast-card { background:rgba(200,170,255,0.05); border:1px solid rgba(200,170,255,0.15); border-radius:18px; padding:18px; font-size:14px; line-height:1.65; color:#e0e0e8; white-space:pre-wrap; }
+    .gen-btn { width:100%; padding:16px; margin-top:16px; border:none; border-radius:16px; background:linear-gradient(135deg,#C8AAFF,#FFD966); color:#0a0a0f; font-size:16px; font-weight:800; font-family:inherit; cursor:pointer; }
+    .gen-btn:active { transform:scale(0.98); }
+    .no-data { text-align:center; color:#9a9aab; font-size:14px; padding:40px 20px; line-height:1.6; }
+    .no-data a { color:#C8AAFF; }
+    .loading { text-align:center; color:#C8AAFF; padding:20px; font-size:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <div class="top">
+        <div class="back" onclick="location.href='index.html'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </div>
+        <h1>Нумерология</h1>
+    </div>
+    <div id="content"></div>
+</div>
+
+<script src="focus-astro.js"></script>
+<script src="focus-ai.js"></script>
+<script src="firebase-config.js"></script>
+<script type="module" src="firebase-auth-helper.js"></script>
+<script>
+    const FS = (function(){ try { return JSON.parse(localStorage.getItem('focus_user')) || {}; } catch(e){ return {}; } })();
+
+    function render(){
+        const content = document.getElementById('content');
+        if (!FS.birthDate) {
+            content.innerHTML = '<div class="no-data">🔢 Чтобы узнать число судьбы, укажи <b>дату рождения</b> в профиле.<br><br><a href="fokus_profile.html">Перейти в профиль →</a></div>';
+            return;
+        }
+        const lp = FocusAstro.getLifePathNumber(FS.birthDate);
+        const meaning = FocusAstro.lifePathMeaning(lp);
+        const nameNum = FocusAstro.getNameNumber(FS.name || '');
+
+        content.innerHTML =
+            '<div class="num-card">' +
+                '<div class="num-big">' + lp + '</div>' +
+                '<div class="num-title">' + (meaning ? meaning.title : 'Число судьбы') + '</div>' +
+                '<div class="num-desc">' + (meaning ? meaning.desc : '') + '</div>' +
+            '</div>' +
+            (nameNum ? ('<div class="mini-row"><div class="mini-card"><div class="mini-num">' + lp + '</div><div class="mini-label">Число судьбы<br>(дата рождения)</div></div><div class="mini-card"><div class="mini-num">' + nameNum + '</div><div class="mini-label">Число имени<br>(ФИО)</div></div></div>') : '') +
+            '<div class="section-title">✦ Разбор твоего пути</div>' +
+            '<div id="forecastArea"><button class="gen-btn" id="genBtn">🔢 Получить разбор от ИИ</button></div>';
+
+        document.getElementById('genBtn').addEventListener('click', getForecast);
+    }
+
+    async function getForecast(){
+        const area = document.getElementById('forecastArea');
+        area.innerHTML = '<div class="loading">✦ Числа раскрывают твой путь...</div>';
+        const numCtx = FocusAstro.contextForAI(FS);
+        const aboutText = getAboutText();
+        const messages = [
+            { role:'system', content:
+                'Ты — мудрый нумеролог в приложении FOCUS. Составь глубокий, вдохновляющий разбор жизненного пути человека по его числу судьбы. ' +
+                'Опирайся на число судьбы, число имени, знак зодиака и что он рассказал о себе. ' +
+                'Пиши живым русским, 4-6 предложений. Раскрой его сильные стороны, предназначение, на что обратить внимание в жизни. ' +
+                'Пиши лично, как будто видишь именно этого человека. Без пустых клише.'
+            },
+            { role:'user', content: 'Мои данные: ' + numCtx + '.\n' + (aboutText ? ('Обо мне: ' + aboutText + '\n') : '') + 'Составь разбор моего жизненного пути.' }
+        ];
+        if (!window.fbAskAI) { area.innerHTML = '<div class="forecast-card">ИИ недоступен, обнови страницу.</div>'; return; }
+        let res = await window.fbAskAI(messages, 600);
+        if (res.ok && res.reply && res.reply.trim()) {
+            area.innerHTML = '<div class="forecast-card">' + res.reply.trim().replace(/</g,'&lt;') + '</div>';
+        } else {
+            area.innerHTML = '<div class="forecast-card">⚠️ Не удалось получить разбор. Причина: ' + (res.error || 'неизвестно') + '</div>';
+        }
+    }
+
+    function getAboutText(){
+        const fields = ['b_story','b_moments','b_parents','b_relations','b_fears','b_dreams','b_free'];
+        const parts = [];
+        fields.forEach(f => { const v = localStorage.getItem('focus_about_' + f); if (v && v.trim()) parts.push(v.trim()); });
+        return parts.join('. ').slice(0, 800);
+    }
+
+    render();
+    try { document.getElementById('htmlRoot').setAttribute('data-theme', FS.theme || 'original'); } catch(e){}
+</script>
+<script>
+    if ("serviceWorker" in navigator) { window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }); }
+</script>
+</body>
+</html>
