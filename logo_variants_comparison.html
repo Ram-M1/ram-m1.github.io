@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>FOCUS — варианты логотипа и пирамиды</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: #060608;
+        color: #fff;
+        padding: 40px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 50px;
+        align-items: center;
+    }
+    .variant { text-align: center; }
+    .variant h3 { color: #FFD966; font-size: 14px; font-weight: 600; margin-bottom: 16px; letter-spacing: 0.3px; }
+    .pair { display: flex; gap: 28px; align-items: center; justify-content: center; }
+    .badge {
+        width: 56px; height: 56px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 30px;
+        background: rgba(255,217,102,0.07);
+        border: 1px solid rgba(255,217,102,0.25);
+        animation: pulse 2.6s ease-in-out infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { box-shadow: 0 0 6px rgba(255,217,102,0.15); }
+        50% { box-shadow: 0 0 26px rgba(255,217,102,0.6); }
+    }
+    .badge svg { width: 38px; height: 38px; }
+    .badge.oracle svg { width: 40px; height: 40px; }
+    .label { font-size: 10px; color: #6e6e7e; margin-top: 8px; }
+
+/* PWA-режим (установлено на телефон): на весь реальный экран, без макетной рамки */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; overflow: hidden !important; }
+    .phone {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding-top: env(safe-area-inset-top) !important;
+        padding-bottom: env(safe-area-inset-bottom) !important;
+        max-width: 100vw !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, #atmos, .atmos-canvas { border-radius: 0 !important; }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important;
+    }
+}
+
+/* Телефоны: приложение на весь экран без макетной рамки (надёжно, не зависит от PWA-режима) */
+@media (max-width: 600px) {
+    * { -webkit-user-select: none !important; user-select: none !important; -webkit-tap-highlight-color: transparent !important; }
+    input, textarea { -webkit-user-select: text !important; user-select: text !important; }
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; height: 100vh; height: 100dvh; display: block !important; }
+    body { display: flex !important; align-items: stretch !important; justify-content: flex-start !important; }
+    .phone {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    /* анимация/фон идут до самого верха под чёлку */
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important; border-radius: 0 !important;
+    }
+    /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
+    .screen, .session-area, .slideshow, .scroll-area {
+        padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+    }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+}
+</style>
+<script src="focus-analytics.js"></script>
+</head>
+<body>
+
+<div class="variant">
+    <h3>Вариант A — Текущий: гравированный диск + классическое Око Провидения (зрачок из 6 точек)</h3>
+    <div class="pair">
+        <div>
+            <div class="badge">
+                <svg viewBox="0 0 100 100" fill="none">
+                    <defs>
+                        <linearGradient id="gA1" x1="0" y1="0" x2="100" y2="100">
+                            <stop offset="0%" stop-color="#FFE9A8"/><stop offset="55%" stop-color="#FFD966"/><stop offset="100%" stop-color="#B8862A"/>
+                        </linearGradient>
+                        <radialGradient id="cA1" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#FFFFFF"/><stop offset="40%" stop-color="#FFE9A8"/><stop offset="100%" stop-color="#FFD966"/>
+                        </radialGradient>
+                    </defs>
+                    <circle cx="50" cy="50" r="47" stroke="url(#gA1)" stroke-width="1" opacity="0.35"/>
+                    <g stroke="url(#gA1)" stroke-width="1.1" stroke-linecap="round" opacity="0.55">
+                        <line x1="50" y1="4" x2="50" y2="14"/><line x1="50" y1="86" x2="50" y2="96"/>
+                        <line x1="4" y1="50" x2="14" y2="50"/><line x1="86" y1="50" x2="96" y2="50"/>
+                        <line x1="17.5" y1="17.5" x2="24.7" y2="24.7"/><line x1="75.3" y1="75.3" x2="82.5" y2="82.5"/>
+                        <line x1="17.5" y1="82.5" x2="24.7" y2="75.3"/><line x1="75.3" y1="24.7" x2="82.5" y2="17.5"/>
+                    </g>
+                    <g fill="url(#gA1)" opacity="0.85">
+                        <path d="M76 14 L78.3 19.4 L84 19.7 L79.6 23.5 L81.1 29 L76 25.9 L70.9 29 L72.4 23.5 L68 19.7 L73.7 19.4 Z"/>
+                        <path d="M19 18 L20.4 21.3 L24 21.5 L21.3 23.8 L22.1 27.3 L19 25.4 L15.9 27.3 L16.7 23.8 L14 21.5 L17.6 21.3 Z"/>
+                    </g>
+                    <circle cx="50" cy="50" r="34" stroke="url(#gA1)" stroke-width="1.4" fill="none" opacity="0.8"/>
+                    <path d="M34 50 Q41 38 50 38 Q59 38 66 50 Q59 62 50 62 Q41 62 34 50 Z" fill="url(#cA1)" fill-opacity="0.22" stroke="url(#gA1)" stroke-width="1.3"/>
+                    <circle cx="50" cy="50" r="7" fill="url(#cA1)"/>
+                    <circle cx="50" cy="50" r="2.4" fill="#3a2a08"/>
+                    <circle cx="47.3" cy="47.3" r="1.6" fill="#FFFFFF" opacity="0.9"/>
+                </svg>
+            </div>
+            <div class="label">Логотип</div>
+        </div>
+        <div>
+            <div class="badge oracle">
+                <svg viewBox="0 0 50 56" fill="none">
+                    <defs>
+                        <linearGradient id="pA1" x1="0" y1="0" x2="50" y2="50">
+                            <stop offset="0%" stop-color="#FFE9A8"/><stop offset="50%" stop-color="#FFD966"/><stop offset="100%" stop-color="#A8771F"/>
+                        </linearGradient>
+                        <radialGradient id="eA1" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#FFFFFF"/><stop offset="45%" stop-color="#FFE9A8"/><stop offset="100%" stop-color="#FFD966"/>
+                        </radialGradient>
+                    </defs>
+                    <g stroke="url(#pA1)" stroke-width="0.7" opacity="0.55">
+                        <line x1="25" y1="2" x2="25" y2="9"/><line x1="25" y1="2" x2="14" y2="11"/><line x1="25" y1="2" x2="36" y2="11"/>
+                        <line x1="11" y1="14" x2="6" y2="13"/><line x1="39" y1="14" x2="44" y2="13"/>
+                    </g>
+                    <polygon points="25,9 6,50 44,50" stroke="url(#pA1)" stroke-width="1.6" fill="none" stroke-linejoin="round"/>
+                    <line x1="11" y1="42" x2="39" y2="42" stroke="url(#pA1)" stroke-width="0.8" opacity="0.4"/>
+                    <line x1="15.5" y1="34" x2="34.5" y2="34" stroke="url(#pA1)" stroke-width="0.7" opacity="0.35"/>
+                    <path d="M14 24 Q25 15 36 24 Q25 33 14 24 Z" fill="#0a0a0f" stroke="url(#pA1)" stroke-width="1.3"/>
+                    <circle cx="25" cy="24" r="6.4" fill="url(#eA1)"/>
+                    <g fill="#3a2a08">
+                        <circle cx="25" cy="19.4" r="0.9"/><circle cx="29" cy="21.7" r="0.9"/><circle cx="29" cy="26.3" r="0.9"/>
+                        <circle cx="25" cy="28.6" r="0.9"/><circle cx="21" cy="26.3" r="0.9"/><circle cx="21" cy="21.7" r="0.9"/>
+                    </g>
+                    <circle cx="25" cy="24" r="1.5" fill="#3a2a08"/>
+                </svg>
+            </div>
+            <div class="label">Оракул</div>
+        </div>
+    </div>
+</div>
+
+<div class="variant">
+    <h3>Вариант B — Монограмма "F" в перстне + бриллиантовая призма вместо пирамиды</h3>
+    <div class="pair">
+        <div>
+            <div class="badge">
+                <svg viewBox="0 0 100 100" fill="none">
+                    <defs>
+                        <linearGradient id="gB1" x1="0" y1="0" x2="100" y2="100">
+                            <stop offset="0%" stop-color="#FFE9A8"/><stop offset="50%" stop-color="#FFD966"/><stop offset="100%" stop-color="#9C7320"/>
+                        </linearGradient>
+                    </defs>
+                    <circle cx="50" cy="50" r="44" stroke="url(#gB1)" stroke-width="2" fill="none"/>
+                    <circle cx="50" cy="50" r="38" stroke="url(#gB1)" stroke-width="0.7" fill="none" opacity="0.5"/>
+                    <path d="M34 28 L34 72 M34 28 L62 28 M34 48 L56 48" stroke="url(#gB1)" stroke-width="7" stroke-linecap="round" fill="none"/>
+                    <circle cx="50" cy="50" r="44" stroke="url(#gB1)" stroke-width="0.5" fill="none" stroke-dasharray="2 5" opacity="0.6"/>
+                </svg>
+            </div>
+            <div class="label">Логотип</div>
+        </div>
+        <div>
+            <div class="badge oracle">
+                <svg viewBox="0 0 50 56" fill="none">
+                    <defs>
+                        <linearGradient id="pB1" x1="0" y1="0" x2="50" y2="50">
+                            <stop offset="0%" stop-color="#FFE9A8"/><stop offset="50%" stop-color="#FFD966"/><stop offset="100%" stop-color="#A8771F"/>
+                        </linearGradient>
+                    </defs>
+                    <polygon points="25,6 38,20 25,50 12,20" stroke="url(#pB1)" stroke-width="1.6" fill="url(#pB1)" fill-opacity="0.08" stroke-linejoin="round"/>
+                    <line x1="12" y1="20" x2="38" y2="20" stroke="url(#pB1)" stroke-width="1.2"/>
+                    <line x1="25" y1="6" x2="25" y2="50" stroke="url(#pB1)" stroke-width="0.8" opacity="0.5"/>
+                    <line x1="25" y1="6" x2="16" y2="20" stroke="url(#pB1)" stroke-width="0.7" opacity="0.6"/>
+                    <line x1="25" y1="6" x2="34" y2="20" stroke="url(#pB1)" stroke-width="0.7" opacity="0.6"/>
+                    <line x1="17" y1="20" x2="25" y2="50" stroke="url(#pB1)" stroke-width="0.6" opacity="0.45"/>
+                    <line x1="33" y1="20" x2="25" y2="50" stroke="url(#pB1)" stroke-width="0.6" opacity="0.45"/>
+                    <circle cx="25" cy="20" r="2.2" fill="#FFFFFF"/>
+                </svg>
+            </div>
+            <div class="label">Оракул</div>
+        </div>
+    </div>
+</div>
+
+<div class="variant">
+    <h3>Вариант C — Минималистичный компас-апертура + пирамида-камео (плоский премиум, без линий-лучей)</h3>
+    <div class="pair">
+        <div>
+            <div class="badge">
+                <svg viewBox="0 0 100 100" fill="none">
+                    <defs>
+                        <linearGradient id="gC1" x1="0" y1="0" x2="100" y2="100">
+                            <stop offset="0%" stop-color="#FFE9A8"/><stop offset="50%" stop-color="#FFD966"/><stop offset="100%" stop-color="#A8771F"/>
+                        </linearGradient>
+                    </defs>
+                    <circle cx="50" cy="50" r="40" stroke="url(#gC1)" stroke-width="2.2" fill="none"/>
+                    <g stroke="url(#gC1)" stroke-width="2" stroke-linecap="round">
+                        <path d="M50 50 L50 22"/><path d="M50 50 L72 62"/><path d="M50 50 L28 62"/>
+                    </g>
+                    <circle cx="50" cy="50" r="4" fill="url(#gC1)"/>
+                    <circle cx="50" cy="22" r="3" fill="url(#gC1)"/>
+                    <circle cx="72" cy="62" r="3" fill="url(#gC1)"/>
+                    <circle cx="28" cy="62" r="3" fill="url(#gC1)"/>
+                </svg>
+            </div>
+            <div class="label">Логотип (6 точек = 6 сфер, видно 3 + центр)</div>
+        </div>
+        <div>
+            <div class="badge oracle">
+                <svg viewBox="0 0 50 56" fill="none">
+                    <defs>
+                        <linearGradient id="pC1" x1="0" y1="0" x2="50" y2="50">
+                            <stop offset="0%" stop-color="#FFE9A8"/><stop offset="50%" stop-color="#FFD966"/><stop offset="100%" stop-color="#A8771F"/>
+                        </linearGradient>
+                    </defs>
+                    <polygon points="25,9 6,50 44,50" stroke="url(#pC1)" stroke-width="2" fill="url(#pC1)" fill-opacity="0.1" stroke-linejoin="round"/>
+                    <ellipse cx="25" cy="30" rx="8.5" ry="5.5" stroke="url(#pC1)" stroke-width="1.5" fill="#0a0a0f"/>
+                    <circle cx="25" cy="30" r="3" fill="url(#pC1)"/>
+                </svg>
+            </div>
+            <div class="label">Оракул (минимал)</div>
+        </div>
+    </div>
+</div>
+
+    <script src="focus-chat-fab.js"></script>
+</body>
+</html>

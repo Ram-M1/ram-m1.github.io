@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="original" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FOCUS">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Регистрация — FOCUS</title>
+<link rel="stylesheet" href="focus-theme.css">
+<style>
+    :root, [data-theme="original"] {
+        --accent: #FFD966; --accent-rgb: 255,217,102;
+        --accent-2: #7C8CFF; --accent-2-rgb: 124,140,255;
+        --accent-light: #FFE9A8; --accent-dark: #C9952E;
+        --bg-1: #131319; --bg-2: #0d0d12; --text-strong: #FFFFFF;
+    }
+    [data-theme="tron"] {
+        --accent: #FF3B2E; --accent-rgb: 255,59,46;
+        --accent-2: #00E5FF; --accent-2-rgb: 0,229,255;
+        --accent-light: #FF8A6B; --accent-dark: #B8201A;
+        --bg-1: #0a0a0d; --bg-2: #000000; --text-strong: #FFFFFF;
+    }
+    [data-theme="predator"] {
+        --accent: #FF7A1A; --accent-rgb: 255,122,26;
+        --accent-2: #39FF6A; --accent-2-rgb: 57,255,106;
+        --accent-light: #FFB347; --accent-dark: #B84D00;
+        --bg-1: #0d120d; --bg-2: #050705; --text-strong: #FFFFFF;
+    }
+    [data-theme="mk"] {
+        --accent: #FF1A2E; --accent-rgb: 255,26,46;
+        --accent-2: #FFD700; --accent-2-rgb: 255,215,0;
+        --accent-light: #FF6B5C; --accent-dark: #8A0000;
+        --bg-1: #14080a; --bg-2: #050202; --text-strong: #FFFFFF;
+    }
+    [data-theme="matrix"] {
+        --accent: #00FF41; --accent-rgb: 0,255,65;
+        --accent-2: #39FF6A; --accent-2-rgb: 57,255,106;
+        --accent-light: #7FFF9E; --accent-dark: #008F25;
+        --bg-1: #050505; --bg-2: #000000; --text-strong: #FFFFFF;
+    }
+    .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
+    @keyframes mkShake {
+        0%, 100% { transform: translate(0,0); }
+        15% { transform: translate(-4px,2px) rotate(-0.4deg); }
+        30% { transform: translate(4px,-2px) rotate(0.4deg); }
+        45% { transform: translate(-3px,1px); }
+        60% { transform: translate(3px,-1px); }
+        75% { transform: translate(-2px,0); }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif;
+        background: #060608;
+        display: flex; justify-content: center; align-items: center;
+        min-height: 100vh; padding: 12px; position: relative; overflow: hidden;
+    }
+    body::before {
+        content: ''; position: fixed; width: 600px; height: 600px;
+        background: radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%);
+        top: 10%; left: 50%; transform: translateX(-50%); pointer-events: none;
+        animation: ambientDrift 12s ease-in-out infinite;
+    }
+    @keyframes ambientDrift { 0%,100%{opacity:.6;transform:translateX(-50%) scale(1);} 50%{opacity:1;transform:translateX(-50%) scale(1.15);} }
+    .phone {
+        width: 375px; height: 700px;
+        background: linear-gradient(165deg, var(--bg-1) 0%, var(--bg-2) 100%);
+        border-radius: 52px;
+        box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--accent-rgb),0.06),
+            0 0 0 8px #1c1c24, 0 0 0 9px rgba(var(--accent-rgb),0.08), 0 0 60px rgba(var(--accent-rgb),0.04);
+        overflow: hidden; display: flex; flex-direction: column; position: relative;
+    }
+    .phone::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        opacity: 0.1;
+        pointer-events: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    .phone::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 6%; right: 6%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.3), transparent);
+        z-index: 0;
+    }
+    .screen { flex: 1; padding: 22px 20px 18px; display: flex; flex-direction: column; height: 100%; overflow-y: auto; scrollbar-width: none; position: relative; z-index: 1; }
+    .screen::-webkit-scrollbar { display: none; }
+
+    .back-btn {
+        width: 38px; height: 38px; border-radius: 30px;
+        background: rgba(var(--accent-rgb),0.07); border: 1px solid rgba(var(--accent-rgb),0.2);
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 18px; cursor: pointer; transition: 0.3s ease;
+    }
+    .back-btn:active { transform: scale(0.92); }
+    .back-btn svg { width: 17px; height: 17px; color: var(--accent); }
+
+    .title {
+        font-size: 26px; font-weight: 700; letter-spacing: 0.2px;
+        background: linear-gradient(135deg, var(--text-strong) 20%, var(--accent) 70%, var(--accent-dark) 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+        margin-bottom: 6px;
+    }
+    .subtitle { font-size: 13px; color: #8e8e9e; margin-bottom: 24px; }
+
+    .form-group { margin-bottom: 16px; }
+    .label { font-size: 12.5px; font-weight: 600; color: #d8d8e2; margin-bottom: 7px; display: flex; align-items: center; gap: 6px; }
+    .label svg { width: 14px; height: 14px; color: var(--accent); }
+    .input-wrap { position: relative; }
+    .input {
+        width: 100%;
+        background: rgba(30,30,42,0.5);
+        border: 1px solid rgba(var(--accent-rgb),0.18);
+        border-radius: 16px;
+        padding: 13px 16px;
+        color: #fff;
+        font-size: 14.5px;
+        outline: none;
+        transition: 0.3s ease;
+    }
+    .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.1); }
+    .input.error { border-color: #ff4d4d; }
+    .toggle-pass {
+        position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+        cursor: pointer; color: #8e8e9e; transition: 0.2s ease;
+    }
+    .toggle-pass svg { width: 18px; height: 18px; }
+    .toggle-pass:hover { color: var(--accent); }
+    .error-message { color: #ff6b6b; font-size: 11.5px; margin-top: 5px; display: none; }
+    .match-hint { font-size: 11px; margin-top: 5px; display: none; align-items: center; gap: 5px; }
+    .match-hint.ok { color: #7CFFA0; display: flex; }
+    .match-hint.bad { color: #ff6b6b; display: flex; }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        border: none;
+        border-radius: 16px;
+        padding: 14px;
+        color: #0a0a0f;
+        font-weight: 700;
+        font-size: 15px;
+        text-align: center;
+        cursor: pointer;
+        width: 100%;
+        margin: 8px 0 18px;
+        transition: 0.3s cubic-bezier(.2,.8,.2,1);
+        box-shadow: 0 6px 20px rgba(var(--accent-2-rgb),0.35), 0 0 0 1px rgba(255,255,255,0.08) inset;
+        position: relative;
+        overflow: hidden;
+    }
+    .btn-primary::after {
+        content: '';
+        position: absolute;
+        top: 0; left: -120%;
+        width: 60%; height: 100%;
+        background: linear-gradient(100deg, transparent, rgba(255,255,255,0.25), transparent);
+        transition: left 0.7s ease;
+    }
+    .btn-primary:hover::after { left: 130%; }
+    .btn-primary:active { transform: scale(0.97); }
+
+    .footer-login { text-align: center; margin-top: auto; padding-top: 10px; }
+    .footer-login span { color: #8e8e9e; font-size: 12.5px; }
+    .footer-login a { color: var(--accent); text-decoration: none; font-weight: 600; }
+
+    .header-logo { display: flex; flex-direction: column; align-items: center; margin-bottom: 14px; }
+    .header-logo-badge {
+        width: 48px; height: 48px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 26px;
+        background: rgba(var(--accent-rgb),0.07);
+        border: 1px solid rgba(var(--accent-rgb),0.25);
+        animation: logoPulse 2.4s ease-in-out infinite;
+        margin-bottom: 6px;
+    }
+    @keyframes logoPulse {
+        0%, 100% { box-shadow: 0 0 6px rgba(var(--accent-rgb),0.15); }
+        50% { box-shadow: 0 0 26px rgba(var(--accent-rgb),0.65); }
+    }
+    .header-logo-icon { width: 32px; height: 32px; display: block; }
+    .header-logo-name {
+        font-size: 18px; font-weight: 700; letter-spacing: 0.3px;
+        background: linear-gradient(135deg, var(--text-strong) 20%, var(--accent) 70%, var(--accent-dark) 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+
+/* PWA-режим (установлено на телефон): на весь реальный экран, без макетной рамки */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; overflow: hidden !important; }
+    .phone {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding-top: env(safe-area-inset-top) !important;
+        padding-bottom: env(safe-area-inset-bottom) !important;
+        max-width: 100vw !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, #atmos, .atmos-canvas { border-radius: 0 !important; }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important;
+    }
+}
+
+/* Телефоны: приложение на весь экран без макетной рамки (надёжно, не зависит от PWA-режима) */
+@media (max-width: 600px) {
+    * { -webkit-user-select: none !important; user-select: none !important; -webkit-tap-highlight-color: transparent !important; }
+    input, textarea { -webkit-user-select: text !important; user-select: text !important; }
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; height: 100vh; height: 100dvh; display: block !important; }
+    body { display: flex !important; align-items: stretch !important; justify-content: flex-start !important; }
+    .phone {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    /* анимация/фон идут до самого верха под чёлку */
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important; border-radius: 0 !important;
+    }
+    /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
+    .screen, .session-area, .slideshow, .scroll-area {
+        padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+    }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+}
+</style>
+<script src="focus-analytics.js"></script>
+</head>
+<body>
+<div class="phone">
+    <div class="screen">
+        <div class="back-btn" onclick="location.href='landing.html'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </div>
+        <div class="header-logo">
+            <div class="header-logo-badge">
+                <div class="header-logo-icon">
+                    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="lg1" x1="0" y1="0" x2="100" y2="100">
+                                <stop offset="0%" style="stop-color:var(--accent-light)"/><stop offset="55%" style="stop-color:var(--accent)"/><stop offset="100%" stop-color="#B8862A"/>
+                            </linearGradient>
+                            <radialGradient id="lc1" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#FFFFFF"/><stop offset="40%" style="stop-color:var(--accent-light)"/><stop offset="100%" style="stop-color:var(--accent)"/>
+                            </radialGradient>
+                        </defs>
+                        <circle cx="50" cy="50" r="47" stroke="url(#lg1)" stroke-width="1" opacity="0.35"/>
+                        <g stroke="url(#lg1)" stroke-width="1.1" stroke-linecap="round" opacity="0.55">
+                            <line x1="50" y1="4" x2="50" y2="14"/><line x1="50" y1="86" x2="50" y2="96"/>
+                            <line x1="4" y1="50" x2="14" y2="50"/><line x1="86" y1="50" x2="96" y2="50"/>
+                            <line x1="17.5" y1="17.5" x2="24.7" y2="24.7"/><line x1="75.3" y1="75.3" x2="82.5" y2="82.5"/>
+                            <line x1="17.5" y1="82.5" x2="24.7" y2="75.3"/><line x1="75.3" y1="24.7" x2="82.5" y2="17.5"/>
+                        </g>
+                        <g fill="url(#lg1)" opacity="0.85">
+                            <path d="M76 14 L78.3 19.4 L84 19.7 L79.6 23.5 L81.1 29 L76 25.9 L70.9 29 L72.4 23.5 L68 19.7 L73.7 19.4 Z"/>
+                            <path d="M19 18 L20.4 21.3 L24 21.5 L21.3 23.8 L22.1 27.3 L19 25.4 L15.9 27.3 L16.7 23.8 L14 21.5 L17.6 21.3 Z"/>
+                        </g>
+                        <circle cx="50" cy="50" r="34" stroke="url(#lg1)" stroke-width="1.4" fill="none" opacity="0.8"/>
+                        <path d="M34 50 Q41 38 50 38 Q59 38 66 50 Q59 62 50 62 Q41 62 34 50 Z" fill="url(#lc1)" fill-opacity="0.22" stroke="url(#lg1)" stroke-width="1.3"/>
+                        <circle cx="50" cy="50" r="7" fill="url(#lc1)"/>
+                        <circle cx="50" cy="50" r="2.4" fill="#3a2a08"/>
+                        <circle cx="47.3" cy="47.3" r="1.6" fill="#FFFFFF" opacity="0.9"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="header-logo-name">FOCUS</div>
+        </div>
+        <div class="title">Создать аккаунт</div>
+        <div class="subtitle">Начни свой путь к осознанной жизни</div>
+
+        <div class="form-group">
+            <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Email</div>
+            <input type="email" class="input" id="email" placeholder="your@email.com">
+            <div class="error-message" id="emailError"></div>
+        </div>
+
+        <div class="form-group">
+            <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Пароль</div>
+            <div class="input-wrap">
+                <input type="password" class="input" id="password" placeholder="Не менее 6 символов">
+                <span class="toggle-pass" data-target="password">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </span>
+            </div>
+            <div class="error-message" id="passwordError"></div>
+        </div>
+
+        <div class="form-group">
+            <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 2.6 6.4M3 12V6m0 6h6"/></svg>Повторите пароль</div>
+            <div class="input-wrap">
+                <input type="password" class="input" id="confirmPassword" placeholder="Введите пароль ещё раз">
+                <span class="toggle-pass" data-target="confirmPassword">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </span>
+            </div>
+            <div class="error-message" id="confirmError"></div>
+            <div class="match-hint" id="matchHint"></div>
+        </div>
+
+        <button class="btn-primary" id="registerBtn">Зарегистрироваться</button>
+
+        <div class="footer-login">
+            <span>Уже есть аккаунт?</span>
+            <a href="login.html">Войти</a>
+        </div>
+    </div>
+</div>
+<script type="module" src="firebase-auth-helper.js"></script>
+<script src="focus-storage.js"></script>
+<script src="focus-core.js"></script>
+<script>
+    // Запасной вариант, если общие файлы не подгрузились (см. примечание в landing.html)
+    if (typeof FocusStorage === 'undefined') {
+        window.FocusStorage = {
+            _key: 'focus_user',
+            _defaults() { return { email:null, password:null, name:null, age:null, city:null, phone:null, coins:0, theme:'original', flags:{ emailConfirmed:false, demoUsed:false, demoMode:false, profileCompleted:false } }; },
+            getUser() {
+                try {
+                    const raw = localStorage.getItem(this._key);
+                    const d = this._defaults();
+                    if (!raw) return d;
+                    const p = JSON.parse(raw);
+                    return { ...d, ...p, flags: { ...d.flags, ...(p.flags||{}) } };
+                } catch(e) { return this._defaults(); }
+            },
+            saveUser(partial) {
+                const cur = this.getUser();
+                const merged = { ...cur, ...partial, flags: { ...cur.flags, ...(partial.flags||{}) } };
+                localStorage.setItem(this._key, JSON.stringify(merged));
+                return merged;
+            },
+            getTheme() { return this.getUser().theme || 'original'; },
+            setTheme(id) { this.saveUser({ theme: id }); }
+        };
+    }
+    if (typeof FocusCore === 'undefined') {
+        window.FocusCore = {
+            applyStoredTheme() {
+                const theme = FocusStorage.getTheme();
+                const root = document.getElementById('htmlRoot') || document.documentElement;
+                root.setAttribute('data-theme', theme);
+            },
+            renderTempThemeSwitcher() {
+                const themes = [
+                    { id: 'original', color: '#FFD966' }, { id: 'tron', color: '#FF3B2E' },
+                    { id: 'predator', color: '#FF7A1A' }, { id: 'mk', color: '#FF1A2E' },
+                    { id: 'matrix', color: '#00FF41' }
+                ];
+                const wrap = document.createElement('div');
+                wrap.style.cssText = 'position:fixed; top:30px; left:50%; transform:translateX(-200px); z-index:300; display:flex; gap:5px; background:rgba(0,0,0,0.6); padding:5px; border-radius:20px;';
+                themes.forEach(t => {
+                    const dot = document.createElement('div');
+                    dot.style.cssText = `width:18px;height:18px;border-radius:50%;background:${t.color};cursor:pointer;border:1px solid #fff;`;
+                    dot.addEventListener('click', () => {
+                        document.getElementById('htmlRoot').setAttribute('data-theme', t.id);
+                        FocusStorage.setTheme(t.id);
+                    });
+                    wrap.appendChild(dot);
+                });
+                document.body.appendChild(wrap);
+            }
+        };
+    }
+
+    FocusCore.applyStoredTheme();
+
+    document.querySelectorAll('.toggle-pass').forEach(el => {
+        el.addEventListener('click', function() {
+            const input = document.getElementById(this.dataset.target);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        });
+    });
+
+    const passwordEl = document.getElementById('password');
+    const confirmEl = document.getElementById('confirmPassword');
+    const matchHint = document.getElementById('matchHint');
+
+    function checkMatch() {
+        if (!confirmEl.value) { matchHint.style.display = 'none'; return; }
+        if (passwordEl.value === confirmEl.value) {
+            matchHint.className = 'match-hint ok';
+            matchHint.textContent = '✓ Пароли совпадают';
+        } else {
+            matchHint.className = 'match-hint bad';
+            matchHint.textContent = '✗ Пароли не совпадают';
+        }
+    }
+    passwordEl.addEventListener('input', checkMatch);
+    confirmEl.addEventListener('input', checkMatch);
+
+    document.getElementById('registerBtn').addEventListener('click', function() {
+        document.getElementById('emailError').style.display = 'none';
+        document.getElementById('passwordError').style.display = 'none';
+        document.getElementById('confirmError').style.display = 'none';
+        document.getElementById('email').classList.remove('error');
+        document.getElementById('password').classList.remove('error');
+        document.getElementById('confirmPassword').classList.remove('error');
+
+        let hasError = false;
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const confirm = document.getElementById('confirmPassword').value;
+
+        if (!email) {
+            document.getElementById('emailError').innerText = 'Введите email';
+            document.getElementById('emailError').style.display = 'block';
+            document.getElementById('email').classList.add('error');
+            hasError = true;
+        } else if (!email.includes('@') || !email.includes('.')) {
+            document.getElementById('emailError').innerText = 'Некорректный email';
+            document.getElementById('emailError').style.display = 'block';
+            document.getElementById('email').classList.add('error');
+            hasError = true;
+        }
+
+        if (!password) {
+            document.getElementById('passwordError').innerText = 'Введите пароль';
+            document.getElementById('passwordError').style.display = 'block';
+            document.getElementById('password').classList.add('error');
+            hasError = true;
+        } else if (password.length < 6) {
+            document.getElementById('passwordError').innerText = 'Пароль должен быть не менее 6 символов';
+            document.getElementById('passwordError').style.display = 'block';
+            document.getElementById('password').classList.add('error');
+            hasError = true;
+        }
+
+        if (password !== confirm) {
+            document.getElementById('confirmError').innerText = 'Пароли не совпадают';
+            document.getElementById('confirmError').style.display = 'block';
+            document.getElementById('confirmPassword').classList.add('error');
+            hasError = true;
+        }
+
+        if (!hasError) {
+            const btn = document.getElementById('registerBtn');
+            btn.disabled = true;
+            const originalText = btn.innerText;
+            btn.innerText = 'Регистрируем...';
+
+            // реальная регистрация через Firebase
+            if (window.fbRegister) {
+                window.fbRegister(email, password).then(function(res) {
+                    if (res.ok && res.needVerify) {
+                        // сохраняем email локально, показываем экран подтверждения
+                        FocusStorage.saveUser({ email });
+                        showVerifyScreen(email);
+                    } else if (res.ok) {
+                        FocusStorage.saveUser({ email });
+                        if (window.fbSaveUserData) window.fbSaveUserData({ email: email, createdAt: Date.now() });
+                        window.location.href = 'profile-form.html';
+                    } else {
+                        btn.disabled = false;
+                        btn.innerText = originalText;
+                        document.getElementById('emailError').innerText = res.error;
+                        document.getElementById('emailError').style.display = 'block';
+                        document.getElementById('email').classList.add('error');
+                    }
+                });
+            } else {
+                FocusStorage.saveUser({ email, password });
+                window.location.href = 'profile-form.html';
+            }
+        }
+    });
+
+    // экран "подтвердите почту"
+    function showVerifyScreen(email){
+        const card = document.querySelector('.screen') || document.body;
+        card.innerHTML = `
+            <div style="display:flex;flex-direction:column;justify-content:center;height:100%;text-align:center;padding:30px 26px;">
+                <div style="font-size:56px;margin-bottom:18px;">📬</div>
+                <div style="font-size:20px;font-weight:700;color:var(--accent);margin-bottom:14px;">Подтвердите почту</div>
+                <div style="font-size:13.5px;color:#c8c8d0;line-height:1.6;margin-bottom:10px;">
+                    Мы отправили письмо на<br><b style="color:#fff;">${email}</b>
+                </div>
+                <div style="font-size:12px;color:#9a9aab;line-height:1.6;margin-bottom:26px;">
+                    Открой письмо и нажми ссылку подтверждения, потом войди.<br>
+                    <span style="color:#8e8e9e;">Не пришло? Проверь папку «Спам».</span>
+                </div>
+                <div onclick="location.href='login.html'" style="background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#0a0a0f;font-weight:700;padding:15px;border-radius:14px;cursor:pointer;font-size:15px;">Перейти ко входу</div>
+            </div>`;
+    }
+</script>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        });
+    }
+</script>
+</body>
+</html>

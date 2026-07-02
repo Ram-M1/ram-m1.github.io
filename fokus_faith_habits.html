@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="original" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FOCUS">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Привычки — FOCUS</title>
+<style>
+    :root, [data-theme="original"] { --accent:#FFD966; --accent-rgb:255,217,102; --accent-2:#7C8CFF; --accent-2-rgb:124,140,255; --accent-light:#FFE9A8; --accent-dark:#C9952E; --bg-1:#131319; --bg-2:#0d0d12; --text-strong:#FFFFFF; }
+    [data-theme="tron"] { --accent:#FF3B2E; --accent-rgb:255,59,46; --accent-2:#00E5FF; --accent-2-rgb:0,229,255; --accent-light:#FF8A6B; --accent-dark:#B8201A; --bg-1:#0a0a0d; --bg-2:#000000; --text-strong:#FFFFFF; }
+    [data-theme="predator"] { --accent:#FF7A1A; --accent-rgb:255,122,26; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#FFB347; --accent-dark:#B84D00; --bg-1:#0d120d; --bg-2:#050705; --text-strong:#FFFFFF; }
+    [data-theme="mk"] { --accent:#FF1A2E; --accent-rgb:255,26,46; --accent-2:#FFD700; --accent-2-rgb:255,215,0; --accent-light:#FF6B5C; --accent-dark:#8A0000; --bg-1:#14080a; --bg-2:#050202; --text-strong:#FFFFFF; }
+    [data-theme="matrix"] { --accent:#00FF41; --accent-rgb:0,255,65; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#7FFF9E; --accent-dark:#008F25; --bg-1:#050505; --bg-2:#000000; --text-strong:#FFFFFF; }
+    .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
+    @keyframes mkShake { 0%,100%{transform:translate(0,0);} 15%{transform:translate(-4px,2px) rotate(-0.4deg);} 30%{transform:translate(4px,-2px) rotate(0.4deg);} 45%{transform:translate(-3px,1px);} 60%{transform:translate(3px,-1px);} 75%{transform:translate(-2px,0);} }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif; background:#060608; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:12px; position:relative; overflow:hidden; }
+    body::before { content:''; position:fixed; width:600px; height:600px; background:radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%); top:10%; left:50%; transform:translateX(-50%); pointer-events:none; animation:ambientDrift 12s ease-in-out infinite; }
+    @keyframes ambientDrift { 0%,100%{opacity:.6;transform:translateX(-50%) scale(1);} 50%{opacity:1;transform:translateX(-50%) scale(1.15);} }
+    .phone { width:375px; height:700px; background:linear-gradient(165deg, var(--bg-1) 0%, var(--bg-2) 100%); border-radius:52px; box-shadow:0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--accent-rgb),0.06), 0 0 0 8px #1c1c24, 0 0 0 9px rgba(var(--accent-rgb),0.08), 0 0 60px rgba(var(--accent-rgb),0.04); overflow:hidden; display:flex; flex-direction:column; position:relative; }
+    .phone::before { content:''; position:absolute; inset:0; z-index:0; opacity:0.1; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    .phone::after { content:''; position:absolute; top:0; left:6%; right:6%; height:1px; background:linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.3), transparent); z-index:0; }
+    #atmosCanvas { position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:52px; }
+    .screen { flex:1; padding:18px 16px 12px; display:flex; flex-direction:column; height:100%; overflow:hidden; position:relative; z-index:1; }
+    .header-row { display:flex; align-items:center; gap:12px; margin-bottom:13px; }
+    .back-btn { width:36px; height:36px; border-radius:30px; background:rgba(var(--accent-rgb),0.07); border:1px solid rgba(var(--accent-rgb),0.2); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:0.3s ease; flex-shrink:0; }
+    .back-btn:active { transform:scale(0.92); }
+    .back-btn svg { width:16px; height:16px; color:var(--accent); }
+    .title { font-size:20px; font-weight:700; letter-spacing:0.2px; background:linear-gradient(135deg, var(--text-strong) 20%, var(--accent) 70%, var(--accent-dark) 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .title-icon { width:30px; height:30px; flex-shrink:0; border-radius:9px; background:radial-gradient(circle at 35% 30%, rgba(120,220,150,0.28), rgba(120,220,150,0.06)); border:0.5px solid rgba(120,220,150,0.4); display:flex; align-items:center; justify-content:center; margin-left:auto; }
+    .title-icon svg { width:17px; height:17px; color:#78DC96; }
+
+    .mode-tabs { display:flex; gap:6px; background:rgba(0,0,0,0.25); border-radius:13px; padding:4px; margin-bottom:14px; }
+    .archive-btn { width:30px; height:30px; flex-shrink:0; border-radius:9px; background:rgba(255,217,102,0.12); border:0.5px solid rgba(255,217,102,0.35); display:flex; align-items:center; justify-content:center; font-size:15px; cursor:pointer; }
+    .archive-btn:active { transform:scale(0.92); }
+    .habit-progress-track { height:6px; background:rgba(255,255,255,0.08); border-radius:4px; overflow:hidden; margin:9px 0; }
+    .habit-progress-fill { height:100%; border-radius:4px; transition:width 0.4s; }
+    .habit-progress-fill.bad { background:linear-gradient(90deg,#FF8A7C,#FFB088); }
+    .habit-progress-fill.good { background:linear-gradient(90deg,#78DC96,#5BC47E); }
+    .habit-warn { font-size:10.5px; color:#FFB088; background:rgba(255,138,124,0.1); border-radius:9px; padding:8px 10px; margin-bottom:8px; line-height:1.4; }
+    .habit-act.done { background:linear-gradient(135deg,#FFD966,#FFB84D); color:#0a0a0f; font-weight:700; }
+    /* окно следующего дня */
+    .nd-title { font-size:20px; font-weight:700; color:#fff; text-align:center; margin-bottom:6px; }
+    .nd-sub { font-size:13px; color:#9a9aab; text-align:center; line-height:1.4; margin-bottom:14px; }
+    .nd-norm-box { background:rgba(0,0,0,0.3); border-radius:14px; padding:16px; text-align:center; margin-bottom:12px; }
+    .nd-norm-label { font-size:11px; color:#9a9aab; font-weight:600; margin-bottom:6px; }
+    .nd-norm-val { font-size:40px; font-weight:700; }
+    .nd-norm-val.bad { color:#FF8A7C; }
+    .nd-norm-val.good { color:#78DC96; }
+    .nd-hint { font-size:11.5px; color:#8e8e9e; text-align:center; line-height:1.4; }
+    /* архив */
+    .archive-item { display:flex; align-items:center; gap:12px; padding:12px; background:rgba(255,255,255,0.04); border-radius:13px; margin-bottom:9px; }
+    .arch-icon { width:42px; height:42px; border-radius:12px; flex-shrink:0; background:rgba(255,217,102,0.12); display:flex; align-items:center; justify-content:center; font-size:20px; }
+    .arch-info { flex:1; min-width:0; }
+    .arch-name { font-size:14px; font-weight:700; color:#fff; }
+    .arch-meta { font-size:10.5px; color:#9a9aab; margin-top:2px; }
+    .arch-date { font-size:10px; color:#78DC96; margin-top:3px; }
+    .mode-tab { flex:1; text-align:center; padding:10px 4px; border-radius:10px; font-size:12.5px; font-weight:700; color:#8e8e9e; cursor:pointer; transition:0.2s ease; }
+    .mode-tab.active.good { background:linear-gradient(135deg, #78DC96, #5BC47E); color:#0a0a0f; }
+    .mode-tab.active.bad { background:linear-gradient(135deg, #FF8A7C, #FF6B5C); color:#0a0a0f; }
+
+    .scroll-area { flex:1; overflow-y:auto; scrollbar-width:none; }
+    .scroll-area::-webkit-scrollbar { display:none; }
+
+    .habit-item { background:linear-gradient(135deg, rgba(35,35,46,0.55), rgba(22,22,30,0.55)); border:1px solid rgba(var(--accent-rgb),0.12); border-radius:16px; padding:15px; margin-bottom:11px; }
+    .habit-item.bad { border-color:rgba(255,138,124,0.25); }
+    .habit-item.good { border-color:rgba(120,220,150,0.25); }
+    .habit-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:11px; }
+    .habit-name { font-size:15px; font-weight:700; color:#fff; }
+    .habit-meta { font-size:10px; color:#9a9aab; margin-top:2px; }
+    .habit-del { color:#ff6b6b; opacity:0.4; cursor:pointer; flex-shrink:0; }
+    .habit-del svg { width:14px; height:14px; }
+    .habit-counter { display:flex; align-items:center; justify-content:center; gap:18px; margin-bottom:12px; }
+    .hc-btn { width:42px; height:42px; border-radius:13px; border:none; font-size:24px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+    .hc-btn.minus { background:rgba(255,255,255,0.08); color:#fff; }
+    .hc-btn.plus.good { background:rgba(120,220,150,0.18); color:#78DC96; }
+    .hc-btn.plus.bad { background:rgba(255,138,124,0.16); color:#FF8A7C; }
+    .hc-btn:active { transform:scale(0.9); }
+    .hc-value { font-size:30px; font-weight:700; color:#fff; min-width:46px; text-align:center; }
+    .hc-value small { font-size:14px; color:#9a9aab; font-weight:500; }
+    .habit-dots { display:flex; flex-wrap:wrap; gap:5px; justify-content:center; margin-bottom:11px; }
+    .habit-dot { width:11px; height:11px; border-radius:50%; background:rgba(255,255,255,0.1); }
+    .hdot { width:14px; height:14px; border-radius:50%; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.12); cursor:pointer; transition:0.15s; }
+    .hdot:active { transform:scale(0.85); }
+    .hdot.filled.bad { background:#78DC96; border-color:#78DC96; }
+    .hdot.filled.good { background:#78DC96; border-color:#78DC96; }
+    .hdot.over { background:#FF3B30; border-color:#FF6B5C; box-shadow:0 0 6px rgba(255,59,48,0.5); }
+    .habit-dot.filled.good { background:#78DC96; }
+    .habit-dot.filled.bad { background:#FF8A7C; }
+    .habit-dot.over { background:#FF6B5C; }
+    .habit-info-row { display:flex; gap:8px; margin-bottom:11px; }
+    .habit-chip { flex:1; font-size:10px; padding:7px 9px; border-radius:9px; background:rgba(255,255,255,0.04); color:#c8c8d0; line-height:1.4; }
+    .habit-chip b { display:block; color:#9a9aab; font-size:8.5px; margin-bottom:2px; font-weight:700; }
+    .habit-ai { font-size:10.5px; color:#AAB9FF; background:rgba(124,140,255,0.08); border:0.5px solid rgba(124,140,255,0.2); border-radius:10px; padding:9px 11px; margin-bottom:11px; display:flex; gap:7px; align-items:flex-start; }
+    .habit-ai svg { width:13px; height:13px; flex-shrink:0; margin-top:1px; }
+    .habit-actions { display:flex; gap:8px; }
+    .habit-act { flex:1; padding:10px; border-radius:11px; font-size:11.5px; font-weight:700; cursor:pointer; text-align:center; }
+    .habit-act.fix { background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; }
+    .habit-act.stats { background:rgba(255,255,255,0.06); color:#c8c8d0; border:1px solid rgba(255,255,255,0.1); }
+
+    .add-habit-btn { padding:14px; border-radius:15px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; font-weight:700; font-size:14px; text-align:center; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; margin-top:6px; }
+    .add-habit-btn:active { transform:scale(0.98); }
+    .add-habit-btn svg { width:16px; height:16px; }
+    .empty-mini { text-align:center; color:#6e6e7e; font-size:11px; padding:24px 12px; line-height:1.5; }
+
+    .modal { position:absolute; inset:0; z-index:400; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); display:none; align-items:center; justify-content:center; border-radius:52px; padding:18px; }
+    .modal.show { display:flex; }
+    .modal-box { background:linear-gradient(165deg, #1c1c26, #15151c); border-radius:22px; width:100%; max-height:560px; overflow-y:auto; scrollbar-width:none; padding:18px; border:0.5px solid rgba(var(--accent-rgb),0.2); }
+    .modal-box::-webkit-scrollbar { display:none; }
+    .modal-title { font-size:16px; font-weight:700; color:var(--accent); margin-bottom:14px; }
+    .modal-box input { width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(var(--accent-rgb),0.16); border-radius:11px; padding:11px 12px; color:#fff !important; -webkit-text-fill-color:#fff; font-size:14px; font-family:inherit; outline:none; margin-bottom:10px; }
+    .modal-box input[type=number] { -moz-appearance:textfield; appearance:textfield; }
+    .modal-box input[type=number]::-webkit-outer-spin-button, .modal-box input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+    .modal-box input:focus { border-color:var(--accent-2); }
+    .modal-box input::placeholder { color:#6e6e7e; }
+    .field-label { font-size:10px; color:#9a9aab; margin-bottom:5px; font-weight:600; }
+    .plan-hint { font-size:11px; color:#AAB9FF; background:rgba(170,185,255,0.08); border:1px solid rgba(170,185,255,0.18); border-radius:10px; padding:9px 11px; margin-bottom:10px; line-height:1.5; }
+    .habit-num-row { display:flex; gap:8px; margin-bottom:10px; }
+    .habit-num-col { flex:1; }
+    .habit-num-col .field-label { margin-bottom:4px; }
+    .habit-num-col input { margin-bottom:0 !important; text-align:center; }
+    .plan-hint b { color:#fff; font-weight:700; }
+    .modal-btns { display:flex; gap:8px; margin-top:4px; }
+    .modal-btn { flex:1; padding:12px; border-radius:13px; font-size:13px; font-weight:700; cursor:pointer; text-align:center; border:none; }
+    .modal-btn.save { background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; }
+    .modal-btn.cancel { background:rgba(255,255,255,0.06); color:#9a9aab; border:1px solid rgba(255,255,255,0.1); }
+    .stats-table { width:100%; font-size:11.5px; color:#e8e8ee; border-collapse:collapse; }
+    .stats-table td { padding:7px 4px; border-bottom:0.5px solid rgba(255,255,255,0.06); }
+    .stats-table td:last-child { text-align:right; font-weight:700; }
+
+    .toast { position:absolute; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,0.9); border:1px solid var(--accent); border-radius:20px; padding:9px 18px; color:var(--accent); font-size:12px; font-weight:600; z-index:500; opacity:0; transition:0.3s ease; pointer-events:none; white-space:nowrap; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* PWA-режим (установлено на телефон): на весь реальный экран, без макетной рамки */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; overflow: hidden !important; }
+    .phone {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding-top: env(safe-area-inset-top) !important;
+        padding-bottom: env(safe-area-inset-bottom) !important;
+        max-width: 100vw !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, #atmos, .atmos-canvas { border-radius: 0 !important; }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important;
+    }
+}
+
+/* Телефоны: приложение на весь экран без макетной рамки (надёжно, не зависит от PWA-режима) */
+@media (max-width: 600px) {
+    * { -webkit-user-select: none !important; user-select: none !important; -webkit-tap-highlight-color: transparent !important; }
+    input, textarea { -webkit-user-select: text !important; user-select: text !important; }
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; height: 100vh; height: 100dvh; display: block !important; }
+    body { display: flex !important; align-items: stretch !important; justify-content: flex-start !important; }
+    .phone {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    /* анимация/фон идут до самого верха под чёлку */
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important; border-radius: 0 !important;
+    }
+    /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
+    .screen, .session-area, .slideshow, .scroll-area {
+        padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+    }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+}
+</style>
+<script src="focus-analytics.js"></script>
+</head>
+<body>
+<div class="phone">
+    <canvas id="atmosCanvas" width="375" height="700" style="width:375px;height:700px;"></canvas>
+    <div class="screen">
+        <div class="header-row">
+            <div class="back-btn" onclick="location.href='fokus_faith.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <div class="title">Привычки</div>
+            <div class="archive-btn" id="archiveBtn" title="Архив марафонов">🏆</div>
+            <div class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        </div>
+
+        <div class="mode-tabs">
+            <div class="mode-tab active good" data-mode="good">✅ Полезные</div>
+            <div class="mode-tab bad" data-mode="bad">🚭 Вредные</div>
+        </div>
+
+        <div class="scroll-area">
+            <div id="habitsList"></div>
+            <div class="add-habit-btn" id="addHabitBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                <span id="addLabel">Добавить привычку</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка привычки -->
+    <div class="modal" id="habitModal">
+        <div class="modal-box">
+            <div class="modal-title" id="habitModalTitle">➕ Новая привычка</div>
+            <input type="text" id="habitName" placeholder="Название (напр: Курение)">
+            <div class="habit-num-row">
+                <div class="habit-num-col">
+                    <div class="field-label" id="startLabel">Сейчас</div>
+                    <input type="number" id="habitStart" placeholder="20" value="20">
+                </div>
+                <div class="habit-num-col">
+                    <div class="field-label" id="goalLabel">Цель</div>
+                    <input type="number" id="habitGoal" placeholder="0" value="0">
+                </div>
+                <div class="habit-num-col">
+                    <div class="field-label">Дней</div>
+                    <input type="number" id="habitDays" placeholder="21" value="21" min="1" max="365">
+                </div>
+            </div>
+            <div class="plan-hint" id="planHint"></div>
+            <input type="text" id="habitReplace" placeholder="✨ Заменить на (напр: прогулка)">
+            <div class="modal-btns">
+                <button class="modal-btn cancel" id="cancelHabit">Отмена</button>
+                <button class="modal-btn save" id="saveHabit">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка статистики -->
+    <div class="modal" id="statsModal">
+        <div class="modal-box">
+            <div class="modal-title" id="statsTitle">📊 Статистика</div>
+            <table class="stats-table" id="statsTable"></table>
+            <div class="modal-btns" style="margin-top:14px;">
+                <button class="modal-btn cancel" id="closeStats">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка "следующий день" -->
+    <div class="modal" id="nextDayModal">
+        <div class="modal-box">
+            <div id="nextDayBody"></div>
+            <div class="modal-btns" style="margin-top:16px;">
+                <button class="modal-btn save" id="closeNextDay" style="width:100%;">Понятно</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка архива марафонов -->
+    <div class="modal" id="archiveModal">
+        <div class="modal-box">
+            <div class="modal-title">🏆 Архив марафонов</div>
+            <div id="archiveList"></div>
+            <div class="modal-btns" style="margin-top:14px;">
+                <button class="modal-btn cancel" id="closeArchive">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+</div>
+<script src="focus-storage.js"></script>
+<script src="focus-rewards.js"></script>
+<script type="module" src="firebase-auth-helper.js"></script>
+<script src="focus-core.js"></script>
+<script>
+    if (typeof FocusStorage === 'undefined') {
+        window.FocusStorage = {
+            _key:'focus_user',
+            getUser(){ try { return JSON.parse(localStorage.getItem(this._key)) || {}; } catch(e){ return {}; } },
+            saveUser(p){ const c=this.getUser(); localStorage.setItem(this._key, JSON.stringify({...c,...p})); return {...c,...p}; },
+            addCoins(n){ const c=this.getUser().coins||0; this.saveUser({coins:c+n}); return c+n; },
+            addActivity(sphere, action){ const u=this.getUser(); const d=new Date().toISOString().slice(0,10); u.activity=u.activity||{}; u.activity[d]=u.activity[d]||[]; u.activity[d].push({sphere,action,t:Date.now()}); this.saveUser({activity:u.activity}); },
+            getTheme(){ return this.getUser().theme || 'original'; },
+            setTheme(id){ this.saveUser({ theme:id }); }
+        };
+    }
+    if (typeof FocusCore === 'undefined') {
+        window.FocusCore = {
+            applyStoredTheme(){ (document.getElementById('htmlRoot')||document.documentElement).setAttribute('data-theme', FocusStorage.getTheme()); },
+            celebrate: function(config) {
+                config = config || {};
+                var phrases = ['Огонь','Красава','Так держать','Бомба','Мощь','Зверь','Вот это да','На кураже','Чемпион','Жара','Вперёд','Гордость','Сила','Респект'];
+                var emojis = ['🔥','💪','⚡','💥','🚀','🦁','🌟','😎','🏆','👑'];
+                var text = config.text || phrases[Math.floor(Math.random()*phrases.length)];
+                var emo = config.emoji || emojis[Math.floor(Math.random()*emojis.length)];
+                var big = !!config.big;
+                var rs = getComputedStyle(document.documentElement);
+                var accent = (rs.getPropertyValue('--accent')||'#FFD966').trim();
+                var accent2 = (rs.getPropertyValue('--accent-2')||'#7C8CFF').trim();
+                var palette = [accent, accent2, '#FF6B5C', '#78DC96'];
+                var ox = window.innerWidth/2, oy = window.innerHeight/2;
+                if (config.fromEl && config.fromEl.getBoundingClientRect) { var r=config.fromEl.getBoundingClientRect(); ox=r.left+r.width/2; oy=r.top+r.height/2; }
+                var ov = document.createElement('div');
+                ov.style.cssText = 'position:fixed;inset:0;z-index:99999;pointer-events:none;overflow:hidden;';
+                document.body.appendChild(ov);
+                var ring = document.createElement('div');
+                ring.style.cssText = 'position:absolute;left:'+ox+'px;top:'+oy+'px;width:30px;height:30px;border-radius:50%;border:3px solid '+accent+';transform:translate(-50%,-50%) scale(0);';
+                ov.appendChild(ring);
+                ring.animate([{transform:'translate(-50%,-50%) scale(0)',opacity:1},{transform:'translate(-50%,-50%) scale('+(big?22:16)+')',opacity:0}],{duration:780,easing:'cubic-bezier(.15,.7,.4,1)'});
+                var N = big?38:26;
+                for (var i=0;i<N;i++){ (function(i){
+                    var p=document.createElement('div'); var size=7+Math.random()*10; var col=palette[Math.floor(Math.random()*palette.length)]; var isStar=Math.random()>0.5;
+                    p.style.cssText='position:absolute;left:'+ox+'px;top:'+oy+'px;width:'+size+'px;height:'+size+'px;'+(isStar?'':'border-radius:50%;')+'background:'+col+';box-shadow:0 0 10px '+col+';';
+                    if(isStar)p.style.clipPath='polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)';
+                    ov.appendChild(p);
+                    var ang=(i/N)*Math.PI*2+Math.random()*0.5; var dist=(big?160:120)+Math.random()*(big?220:170);
+                    var dx=Math.cos(ang)*dist, dy=Math.sin(ang)*dist; var rot=Math.random()*540-270;
+                    p.animate([{transform:'translate(-50%,-50%) scale(0.3) rotate(0deg)',opacity:1},{transform:'translate(calc(-50% + '+(dx*0.55)+'px),calc(-50% + '+(dy*0.55)+'px)) scale(1.15) rotate('+(rot*0.5)+'deg)',opacity:1,offset:0.45},{transform:'translate(calc(-50% + '+dx+'px),calc(-50% + '+(dy+45)+'px)) scale(0.2) rotate('+rot+'deg)',opacity:0}],{duration:1150+Math.random()*250,easing:'cubic-bezier(.16,.74,.44,1)'});
+                })(i); }
+                var wrap=document.createElement('div');
+                wrap.style.cssText='position:absolute;left:'+ox+'px;top:'+oy+'px;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;white-space:nowrap;';
+                var em=document.createElement('div'); em.innerText=emo; em.style.cssText='font-size:'+(big?52:42)+'px;line-height:1;';
+                var tx=document.createElement('div'); tx.innerText=text;
+                tx.style.cssText='font-family:-apple-system,system-ui,sans-serif;font-size:'+(big?38:32)+'px;font-weight:900;letter-spacing:1px;background:linear-gradient(135deg,'+accent+',#fff 55%,'+accent2+');-webkit-background-clip:text;background-clip:text;color:transparent;';
+                wrap.appendChild(em); wrap.appendChild(tx); ov.appendChild(wrap);
+                wrap.animate([{transform:'translate(-50%,-50%) scale(0.3)',opacity:0},{transform:'translate(-50%,-120%) scale(1.12)',opacity:1,offset:0.32},{transform:'translate(-50%,-160%) scale(1)',opacity:1,offset:0.72},{transform:'translate(-50%,-200%) scale(1.04)',opacity:0}],{duration:big?1700:1450,easing:'cubic-bezier(.34,1.4,.64,1)'});
+                if(navigator.vibrate){try{navigator.vibrate(big?[20,40,20]:18);}catch(e){}}
+                setTimeout(function(){ov.remove();}, big?1800:1500);
+            },
+
+            coinBurst(config) {
+
+      config = config || {};
+      var amount = config.amount || 1;
+      var reason = config.reason || '';
+      var count = Math.min(Math.max(Math.round(amount), 8), 20);
+
+      var rootStyle = getComputedStyle(document.documentElement);
+      var accent = (rootStyle.getPropertyValue('--accent') || '#FFD966').trim();
+      var accentLight = (rootStyle.getPropertyValue('--accent-light') || '#FFE9A8').trim();
+      var accentDark = (rootStyle.getPropertyValue('--accent-dark') || '#C9952E').trim();
+
+      var phone = document.querySelector('.phone') || document.body;
+      var phoneRect = phone.getBoundingClientRect();
+      var phoneW = phoneRect.width, phoneH = phoneRect.height;
+
+      var originX = phoneW / 2, originY = phoneH / 2;
+      if (config.sourceEl) {
+        try {
+          var sr = config.sourceEl.getBoundingClientRect();
+          originX = sr.left - phoneRect.left + sr.width / 2;
+          originY = sr.top - phoneRect.top + sr.height / 2;
+        } catch (e) {}
+      }
+
+      var layer = document.createElement('div');
+      layer.style.cssText = 'position:absolute; inset:0; z-index:2000; pointer-events:none; overflow:hidden; border-radius:52px;';
+      phone.appendChild(layer);
+
+      function coinSVG() {
+        return '<svg width="30" height="30" viewBox="0 0 40 40">' +
+          '<defs><radialGradient id="cgr" cx="38%" cy="32%" r="70%">' +
+          '<stop offset="0%" stop-color="' + accentLight + '"/>' +
+          '<stop offset="55%" stop-color="' + accent + '"/>' +
+          '<stop offset="100%" stop-color="' + accentDark + '"/></radialGradient></defs>' +
+          '<circle cx="20" cy="20" r="18" fill="url(#cgr)" stroke="' + accentDark + '" stroke-width="1.5"/>' +
+          '<circle cx="20" cy="20" r="14" fill="none" stroke="' + accentDark + '" stroke-width="1" opacity="0.5"/>' +
+          '<path d="M15 12h10M15 12v16M15 20h7" stroke="' + accentDark + '" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
+          '</svg>';
+      }
+
+      var coins = [];
+      for (var i = 0; i < count; i++) {
+        var el = document.createElement('div');
+        el.style.cssText = 'position:absolute; left:' + originX + 'px; top:' + originY + 'px; will-change:transform,opacity; filter:drop-shadow(0 0 5px rgba(255,200,80,0.55));';
+        el.innerHTML = coinSVG();
+        layer.appendChild(el);
+        var angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+        var power = 6 + Math.random() * 6;
+        coins.push({
+          el: el, x: 0, y: 0,
+          vx: Math.cos(angle) * power,
+          vy: Math.sin(angle) * power - 8,
+          rot: Math.random() * 360, vrot: (Math.random() - 0.5) * 30,
+          delay: Math.floor(Math.random() * 5)
+        });
+      }
+
+      // надпись
+      var note = document.createElement('div');
+      note.style.cssText = 'position:absolute; left:50%; top:40%; transform:translate(-50%,-50%) scale(0.6); z-index:2001;' +
+        'background:rgba(0,0,0,0.88); border:1.5px solid ' + accent + '; border-radius:22px; padding:11px 24px;' +
+        'color:' + accent + '; font-weight:800; font-size:16px; text-align:center; pointer-events:none;' +
+        'box-shadow:0 0 30px rgba(255,200,80,0.4); opacity:0; transition:all 0.4s cubic-bezier(.2,1.4,.4,1); font-family:inherit; white-space:nowrap;';
+      note.innerHTML = '+' + amount + ' F-coin' + (reason ? '<br><span style="font-size:11px;font-weight:600;opacity:0.85;">' + reason + '</span>' : '');
+      layer.appendChild(note);
+      requestAnimationFrame(function () { note.style.opacity = '1'; note.style.transform = 'translate(-50%,-50%) scale(1)'; });
+
+      var gravity = 0.4;
+      var floorY = phoneH - originY - 24;
+      var frame = 0;
+      var MAX_FRAMES = 110; // жёсткий предел — гарантия что всё уберётся
+
+      function animate() {
+        frame++;
+        // фейд монет с 60-го кадра
+        var fade = frame > 60 ? Math.max(0, 1 - (frame - 60) / 35) : 1;
+        coins.forEach(function (c) {
+          if (c.delay > 0) { c.delay--; return; }
+          c.vy += gravity;
+          c.x += c.vx; c.y += c.vy;
+          c.rot += c.vrot;
+          if (c.y > floorY) { c.y = floorY; c.vy *= -0.45; c.vx *= 0.7; }
+          c.el.style.opacity = fade;
+          c.el.style.transform = 'translate(' + c.x + 'px,' + c.y + 'px) rotate(' + c.rot + 'deg)';
+        });
+        // надпись исчезает к концу
+        if (frame > 70) {
+          var nf = Math.max(0, 1 - (frame - 70) / 30);
+          note.style.opacity = nf;
+          note.style.transform = 'translate(-50%,-50%) scale(' + (1 + (1 - nf) * 0.3) + ') translateY(' + (-(1 - nf) * 30) + 'px)';
+        }
+        if (frame < MAX_FRAMES) {
+          requestAnimationFrame(animate);
+        } else {
+          layer.remove(); // гарантированная очистка — ничего не зависнет
+        }
+      }
+      requestAnimationFrame(animate);
+            },
+initAtmosphere(canvasId) {
+                const ac = document.getElementById(canvasId || 'atmosCanvas');
+                if (!ac) return;
+                const actx = ac.getContext('2d');
+                ac.width = 375; ac.height = 700;
+                let tronPulses=[], mkEmbers=[], mkDrips=[], mkFlash=0, mkBolt=null, matrixDrops=null, matrixColumns=0;
+                let predatorRadarAngle=0, predatorScanY=0, predatorT=0, predatorBlips=[{a:1.2,r:0.7},{a:3.8,r:0.5}], predatorReticle=null;
+                const matrixChars = 'アイウエオカキクケコサシスセソ0123456789ABCDEF'.split('');
+                let lastTheme=null, lastTrigger=0, washT=0;
+                function currentTheme() { const r = document.getElementById('htmlRoot') || document.documentElement; return r.getAttribute('data-theme') || 'original'; }
+                function cssColor(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function cssColorRgb(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function drawFullScreenWash() {
+                    washT += 0.008;
+                    const accRgb = cssColorRgb('--accent-rgb'), acc2Rgb = cssColorRgb('--accent-2-rgb');
+                    const x = ac.width*(0.5+Math.sin(washT)*0.5), y = ac.height*(0.5+Math.cos(washT*0.7)*0.5);
+                    const grad = actx.createRadialGradient(x,y,0,ac.width/2,ac.height/2,Math.max(ac.width,ac.height)*0.9);
+                    grad.addColorStop(0,'rgba('+accRgb+',0.05)'); grad.addColorStop(0.5,'rgba('+acc2Rgb+',0.035)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+                    actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                }
+                function drawTron() {
+                    if (Math.random() > 0.93) {
+                        const vertical = Math.random() > 0.5;
+                        tronPulses.push({ vertical, pos: Math.floor(Math.random()*(vertical?ac.width:ac.height)), t:-40, speed:3+Math.random()*2, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2'), len:60 });
+                    }
+                    tronPulses.forEach(p => {
+                        p.t += p.speed;
+                        const grad = p.vertical ? actx.createLinearGradient(p.pos,p.t-p.len,p.pos,p.t) : actx.createLinearGradient(p.t-p.len,p.pos,p.t,p.pos);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,p.color);
+                        actx.strokeStyle = grad; actx.lineWidth=2; actx.shadowBlur=8; actx.shadowColor=p.color;
+                        actx.beginPath();
+                        if (p.vertical) { actx.moveTo(p.pos,p.t-p.len); actx.lineTo(p.pos,p.t); } else { actx.moveTo(p.t-p.len,p.pos); actx.lineTo(p.t,p.pos); }
+                        actx.stroke();
+                    });
+                    actx.shadowBlur=0;
+                    tronPulses = tronPulses.filter(p => p.t < Math.max(ac.width,ac.height)+40);
+                }
+                function drawPredator() {
+                    predatorT += 0.01;
+                    for (let i=0;i<5;i++) {
+                        const x = ac.width/2+Math.sin(predatorT+i*2)*ac.width*0.35, y = ac.height/2+Math.cos(predatorT*0.7+i*1.7)*ac.height*0.4;
+                        const r = 60+Math.sin(predatorT*2+i)*20;
+                        const grad = actx.createRadialGradient(x,y,0,x,y,r);
+                        grad.addColorStop(0,'rgba('+cssColorRgb('--accent-rgb')+',0.05)'); grad.addColorStop(1,'rgba('+cssColorRgb('--accent-rgb')+',0)');
+                        actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                    }
+                    predatorScanY += 1.8; if (predatorScanY > ac.height+20) predatorScanY=-20;
+                    const acc2 = cssColorRgb('--accent-2-rgb');
+                    const lineGrad = actx.createLinearGradient(0,predatorScanY-15,0,predatorScanY+15);
+                    lineGrad.addColorStop(0,'rgba('+acc2+',0)'); lineGrad.addColorStop(0.5,'rgba('+acc2+',0.35)'); lineGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.fillStyle = lineGrad; actx.fillRect(0,predatorScanY-15,ac.width,30);
+                    actx.strokeStyle='rgba('+acc2+',0.5)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.moveTo(0,predatorScanY); actx.lineTo(ac.width,predatorScanY); actx.stroke();
+                    const rcx=ac.width-46, rcy=64, rr=34;
+                    actx.save();
+                    actx.strokeStyle='rgba('+acc2+',0.4)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.arc(rcx,rcy,rr,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.arc(rcx,rcy,rr*0.6,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx-rr,rcy); actx.lineTo(rcx+rr,rcy); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx,rcy-rr); actx.lineTo(rcx,rcy+rr); actx.stroke();
+                    predatorRadarAngle += 0.05;
+                    const sweepGrad = actx.createLinearGradient(rcx,rcy,rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr);
+                    sweepGrad.addColorStop(0,'rgba('+acc2+',0.6)'); sweepGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.strokeStyle = sweepGrad; actx.lineWidth=2;
+                    actx.beginPath(); actx.moveTo(rcx,rcy); actx.lineTo(rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr); actx.stroke();
+                    predatorBlips.forEach(b => {
+                        const bx=rcx+Math.cos(b.a)*rr*b.r, by=rcy+Math.sin(b.a)*rr*b.r;
+                        const diff = Math.abs(((predatorRadarAngle%(Math.PI*2))-b.a+Math.PI*3)%(Math.PI*2)-Math.PI);
+                        const blipAlpha = diff<0.5 ? 1-diff/0.5 : 0;
+                        if (blipAlpha>0) { actx.fillStyle='rgba('+acc2+','+blipAlpha+')'; actx.beginPath(); actx.arc(bx,by,2,0,Math.PI*2); actx.fill(); }
+                    });
+                    actx.restore();
+                    if (Math.random()>0.992 && !predatorReticle) predatorReticle = { x:40+Math.random()*(ac.width-80), y:90+Math.random()*(ac.height-220), life:1 };
+                    if (predatorReticle) {
+                        predatorReticle.life -= 0.012;
+                        if (predatorReticle.life<=0) predatorReticle=null;
+                        else {
+                            const a = Math.min(predatorReticle.life>0.85?(1-predatorReticle.life)/0.15:1,1) * Math.min(predatorReticle.life/0.15,1);
+                            const size = 22+(1-Math.min(predatorReticle.life,1))*6;
+                            actx.save(); actx.globalAlpha=a; actx.strokeStyle=cssColor('--accent'); actx.lineWidth=1.3;
+                            actx.beginPath(); actx.arc(predatorReticle.x,predatorReticle.y,size,0,Math.PI*2); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x-size-6,predatorReticle.y); actx.lineTo(predatorReticle.x-size+4,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x+size-4,predatorReticle.y); actx.lineTo(predatorReticle.x+size+6,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y-size-6); actx.lineTo(predatorReticle.x,predatorReticle.y-size+4); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y+size-4); actx.lineTo(predatorReticle.x,predatorReticle.y+size+6); actx.stroke();
+                            actx.font='8px monospace'; actx.fillStyle=cssColor('--accent'); actx.fillText('LOCKED', predatorReticle.x-16, predatorReticle.y+size+14);
+                            actx.restore();
+                        }
+                    }
+                }
+                function drawMK() {
+                    const phoneEl = document.querySelector('.phone');
+                    if (Math.random()>0.4) mkEmbers.push({ x:Math.random()*ac.width, y:ac.height+10, vx:(Math.random()-0.5)*0.6, vy:-0.6-Math.random()*1.2, size:1+Math.random()*2, life:1, decay:0.004+Math.random()*0.006, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2') });
+                    mkEmbers.forEach(e => {
+                        e.x+=e.vx; e.y+=e.vy; e.life-=e.decay;
+                        const fade=Math.max(e.life,0); actx.globalAlpha=fade; actx.fillStyle=e.color; actx.shadowBlur=6; actx.shadowColor=e.color;
+                        actx.beginPath(); actx.arc(e.x,e.y,e.size,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1; actx.shadowBlur=0;
+                    mkEmbers = mkEmbers.filter(e=>e.life>0 && e.y>-10);
+                    if (Math.random()>0.96) mkDrips.push({ x:20+Math.random()*(ac.width-40), y:-10, len:8+Math.random()*10, speed:1.2+Math.random()*1.5, life:1 });
+                    mkDrips.forEach(d => {
+                        d.y+=d.speed; d.life-=0.004;
+                        const fade=Math.max(d.life,0); actx.globalAlpha=fade;
+                        const grad = actx.createLinearGradient(d.x,d.y-d.len,d.x,d.y);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,cssColor('--accent'));
+                        actx.strokeStyle=grad; actx.lineWidth=2;
+                        actx.beginPath(); actx.moveTo(d.x,d.y-d.len); actx.lineTo(d.x,d.y); actx.stroke();
+                        actx.fillStyle=cssColor('--accent'); actx.beginPath(); actx.arc(d.x,d.y,1.4,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1;
+                    mkDrips = mkDrips.filter(d=>d.life>0 && d.y<ac.height+10);
+                    if (Date.now()-lastTrigger>6000 && Math.random()>0.5) {
+                        lastTrigger = Date.now(); mkFlash=1;
+                        const startX = 30+Math.random()*(ac.width-60);
+                        const points=[{x:startX,y:-5}]; let x=startX;
+                        for (let i=1;i<=9;i++) { const y=(ac.height/9)*i; x+=(Math.random()-0.5)*50; x=Math.max(10,Math.min(ac.width-10,x)); points.push({x,y}); }
+                        mkBolt = { points, life:1 };
+                        if (phoneEl) { phoneEl.classList.add('mk-shake'); setTimeout(()=>phoneEl.classList.remove('mk-shake'),280); }
+                    }
+                    if (mkBolt) {
+                        mkBolt.life -= 0.05;
+                        if (mkBolt.life<=0) mkBolt=null;
+                        else {
+                            actx.save(); actx.globalAlpha=Math.min(mkBolt.life*2,1);
+                            actx.strokeStyle='#7CD9FF'; actx.shadowBlur=14; actx.shadowColor='#3AB8FF'; actx.lineWidth=2;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.strokeStyle='#FFFFFF'; actx.lineWidth=0.8; actx.shadowBlur=4;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.restore();
+                        }
+                    }
+                    if (mkFlash>0) { actx.fillStyle='rgba(124,217,255,'+(mkFlash*0.16)+')'; actx.fillRect(0,0,ac.width,ac.height); mkFlash -= 0.08; }
+                }
+                function drawMatrix() {
+                    if (!matrixDrops) { matrixColumns = Math.floor(ac.width/13); matrixDrops = Array(matrixColumns).fill(0).map(()=>Math.random()*-30); }
+                    actx.fillStyle='rgba(0,0,0,0.08)'; actx.fillRect(0,0,ac.width,ac.height); actx.font='13px monospace';
+                    for (let i=0;i<matrixColumns;i++) {
+                        const text = matrixChars[Math.floor(Math.random()*matrixChars.length)];
+                        const y = matrixDrops[i]*13;
+                        const isHead = Math.random()>0.92;
+                        actx.fillStyle = isHead ? '#cfffd9' : 'rgba('+cssColorRgb('--accent-rgb')+',0.55)';
+                        actx.fillText(text, i*13, y);
+                        if (y>ac.height && Math.random()>0.975) matrixDrops[i]=0;
+                        matrixDrops[i]++;
+                    }
+                }
+                function loop() {
+                    const theme = currentTheme();
+                    if (theme !== lastTheme) {
+                        actx.clearRect(0,0,ac.width,ac.height);
+                        tronPulses=[]; mkEmbers=[]; mkDrips=[]; mkBolt=null; matrixDrops=null; predatorReticle=null;
+                        lastTheme = theme;
+                    }
+                    if (theme !== 'matrix') actx.clearRect(0,0,ac.width,ac.height);
+                    drawFullScreenWash();
+                    if (theme==='tron') drawTron();
+                    else if (theme==='predator') drawPredator();
+                    else if (theme==='mk') drawMK();
+                    else if (theme==='matrix') drawMatrix();
+                    requestAnimationFrame(loop);
+                }
+                loop();
+            }        };
+    }
+
+    FocusCore.applyStoredTheme();
+    FocusCore.initAtmosphere('atmosCanvas');
+
+    function toast(msg){
+        const t=document.getElementById('toast');
+        t.innerText=msg; t.classList.add('show');
+        clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'), 1600);
+    }
+    function escapeHtml(s){ const d=document.createElement('div'); d.innerText=String(s==null?'':s); return d.innerHTML; }
+
+    // habits = [{id, name, type, start, goal, days, dayIndex, replace, todayCount, history:[{date,count,norm}], startedAt, done}]
+    // план: норма дня меняется плавно от start к goal за days дней
+    const KEY = 'faith_habits';
+    const ARCHIVE_KEY = 'faith_habits_archive';
+    let habits = [];
+    try {
+        habits = JSON.parse(localStorage.getItem(KEY)) || [];
+        habits = habits.map(h => {
+            if (!h.type) h.type = h.replace ? 'bad' : 'good';
+            // миграция старых привычек на новую модель
+            if (h.start === undefined) {
+                h.start = h.limit || 20;
+                h.goal = h.type === 'bad' ? 0 : (h.limit || 30);
+                h.days = h.interval || 21;
+                h.dayIndex = 0;
+                h.todayCount = h.current || 0;
+                h.history = h.history || [];
+                h.startedAt = h.startedAt || today;
+            }
+            return h;
+        });
+    } catch(e){ habits = []; }
+    function save(){ localStorage.setItem(KEY, JSON.stringify(habits)); }
+    function getArchive(){ try { return JSON.parse(localStorage.getItem(ARCHIVE_KEY))||[]; } catch(e){ return []; } }
+    function saveArchive(a){ localStorage.setItem(ARCHIVE_KEY, JSON.stringify(a)); }
+
+    // норма на конкретный день плана (плавное изменение start→goal)
+    function normForDay(h, dayIdx){
+        const isGrowth = h.goal > h.start; // наращивание полезного
+        if (h.days <= 1) {
+            const v = h.goal;
+            return isGrowth ? Math.max(1, v) : v;
+        }
+        const t = Math.min(dayIdx, h.days) / h.days; // 0..1
+        let val = h.start + (h.goal - h.start) * t;
+        val = Math.round(val);
+        // наращивание полезного: минимум 1 (нельзя "делать 0"), но финал = goal как есть
+        if (isGrowth && dayIdx < h.days) val = Math.max(1, val);
+        return val;
+    }
+    // норма сегодня
+    function todayNorm(h){ return normForDay(h, h.dayIndex || 0); }
+
+    // SVG-график плана: столбики по ключевым дням с числами (понятно "сколько когда")
+    function planChart(h, withFact){
+        const days = h.days;
+        const isBad = h.type === 'bad';
+        const color = isBad ? '#FF8A7C' : '#78DC96';
+        // выбираем ключевые дни для показа (чтобы не было каши): максимум ~7 столбиков
+        let marks = [];
+        if (days <= 7) {
+            for (let d = 1; d <= days; d++) marks.push(d);
+            marks.push(days + 1); // финал
+        } else {
+            const step = Math.max(1, Math.round(days / 5));
+            for (let d = 1; d <= days; d += step) marks.push(d);
+            if (marks[marks.length-1] !== days) marks.push(days);
+            marks.push(days + 1); // финал (цель)
+        }
+        const maxV = Math.max(h.start, h.goal, 1);
+        const n = marks.length;
+        const W = 300, H = 110, padB = 18, padT = 18;
+        const barW = Math.min(34, (W / n) * 0.6);
+        const gap = W / n;
+        let bars = '';
+        marks.forEach((d, i) => {
+            const dayIdx = d - 1; // day 0-based
+            const v = normForDay(h, dayIdx);
+            const bh = (v / maxV) * (H - padB - padT);
+            const x = gap * i + gap/2 - barW/2;
+            const y = H - padB - bh;
+            const isFinal = d === days + 1;
+            const barColor = isFinal ? '#FFD966' : color;
+            bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(2,bh).toFixed(1)}" rx="3" fill="${barColor}" opacity="${isFinal?1:0.85}"/>`;
+            // число над столбиком
+            bars += `<text x="${(x+barW/2).toFixed(1)}" y="${(y-5).toFixed(1)}" fill="#fff" font-size="11" font-weight="700" text-anchor="middle">${v}</text>`;
+            // подпись дня снизу
+            const label = isFinal ? '🏁' : ('Д' + d);
+            bars += `<text x="${(x+barW/2).toFixed(1)}" y="${H-5}" fill="#9a9aab" font-size="8.5" text-anchor="middle">${label}</text>`;
+        });
+        return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">${bars}</svg>`;
+    }
+
+    let mode = 'good';
+    const today = new Date().toISOString().slice(0,10);
+
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            mode = tab.dataset.mode;
+            document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('addLabel').innerText = mode==='good' ? 'Добавить полезную' : 'Добавить вредную';
+            document.getElementById('habitReplace').style.display = mode==='bad' ? 'block' : 'none';
+            renderHabits();
+        });
+    });
+
+    function aiTip(h){
+        const pct = h.limit > 0 ? (h.current||0)/h.limit : 0;
+        if (h.type === 'bad') {
+            if ((h.current||0) === 0) return 'Отличный старт — пока чисто. Держись!';
+            if (pct < 0.5) return 'Идёшь в пределах цели. Когда тянет — попробуй: ' + (h.replace || 'переключиться на другое дело') + '.';
+            if (pct < 1) return 'Приближаешься к лимиту. Сделай паузу: ' + (h.replace || 'вода, прогулка, дыхание') + '.';
+            return 'Лимит превышен. Не вини себя — завтра новый день. Замена: ' + (h.replace || 'найди здоровую альтернативу') + '.';
+        } else {
+            if (pct >= 1) return 'Цель достигнута — ты молодец! 🔥';
+            if (pct >= 0.5) return 'Больше половины пути пройдено, отличный темп!';
+            return 'Каждый раз приближает к цели. Продолжай!';
+        }
+    }
+
+    function renderHabits(){
+        const container = document.getElementById('habitsList');
+        const list = habits.filter(h => h.type === mode);
+        if (list.length === 0) {
+            container.innerHTML = '<div class="empty-mini">' + (mode==='good'
+                ? 'Пока нет полезных привычек.<br>Добавь то, что хочешь делать регулярно.'
+                : 'Пока нет вредных привычек для контроля.<br>Добавь то, что хочешь снизить.') + '</div>';
+            return;
+        }
+        container.innerHTML = '';
+        list.forEach(h => {
+            const isBad = h.type === 'bad';
+            const dayIdx = h.dayIndex || 0;
+            const norm = todayNorm(h);              // норма на сегодня
+            const tomorrowNorm = normForDay(h, dayIdx + 1);
+            const cur = h.todayCount || 0;
+            const dayNum = dayIdx + 1;              // показываем «День 1», не 0
+            const finished = dayIdx >= h.days;      // марафон завершён
+            const overLimit = isBad && cur > norm;
+            const div = document.createElement('div');
+            div.className = 'habit-item ' + h.type;
+            div.innerHTML = `
+                <div class="habit-top">
+                    <div>
+                        <div class="habit-name">${escapeHtml(h.name)}</div>
+                        <div class="habit-meta">День ${Math.min(dayNum,h.days)} из ${h.days} · ${isBad?'норма сегодня':'цель сегодня'}: <b style="color:${isBad?'#FF8A7C':'#78DC96'}">${norm}</b></div>
+                    </div>
+                    <div class="habit-del" data-del="${h.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></div>
+                </div>
+                <div class="habit-counter">
+                    <button class="hc-btn minus" data-dec="${h.id}">−</button>
+                    <div class="hc-value" style="${overLimit?'color:#FF8A7C':''}">${cur}<small>/${norm}</small></div>
+                    <button class="hc-btn plus ${h.type}" data-inc="${h.id}">+</button>
+                </div>
+                ${(() => {
+                    // кружочки: норма дня = серые кружки, заполняем по факту; превышение = красные сверх
+                    const total = Math.max(norm, cur);
+                    if (total === 0 || total > 60) return ''; // не рисуем если 0 или слишком много
+                    let dots = '';
+                    for (let i = 0; i < total; i++) {
+                        const filled = i < cur;
+                        const over = i >= norm; // сверх нормы
+                        let cls = 'hdot';
+                        if (filled && over) cls += ' over';
+                        else if (filled) cls += ' filled ' + h.type;
+                        dots += `<div class="${cls}" data-dot="${h.id}" data-idx="${i}"></div>`;
+                    }
+                    return `<div class="habit-dots">${dots}</div>`;
+                })()}
+                <div class="habit-progress-track"><div class="habit-progress-fill ${h.type}" style="width:${Math.min(100, Math.round(dayIdx/h.days*100))}%"></div></div>
+                ${overLimit ? `<div class="habit-warn">Сегодня больше нормы (${cur} из ${norm}). Ничего страшного — отметь честно, завтра новый день.</div>` : ''}
+                ${isBad && h.replace ? `<div class="habit-info-row"><div class="habit-chip"><b>✨ ЗАМЕНА</b>${escapeHtml(h.replace)}</div></div>` : ''}
+                <div class="habit-ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3c1.7 0 3 1.3 3 3 0 .5-.1 1-.3 1.4A3 3 0 0 1 18 15a3 3 0 0 1-3 3 3 3 0 0 1-6 0 3 3 0 0 1-3-3 3 3 0 0 1 .3-4.6A3 3 0 0 1 6 8c0-1.7 1.3-3 3-3a3 3 0 0 1 3-3Z"/></svg><span>${aiTip(h)}</span></div>
+                <div class="habit-actions">
+                    <div class="habit-act stats" data-stats="${h.id}">📊 Статистика</div>
+                    ${finished ? `<div class="habit-act done" data-finish="${h.id}">🏆 Завершить марафон</div>` : `<div class="habit-act fix" data-fix="${h.id}">✅ Завершить день</div>`}
+                </div>`;
+            container.appendChild(div);
+        });
+
+        container.querySelectorAll('[data-inc]').forEach(el => el.addEventListener('click', () => changeCount(el.dataset.inc, 1)));
+        container.querySelectorAll('[data-dec]').forEach(el => el.addEventListener('click', () => changeCount(el.dataset.dec, -1)));
+        container.querySelectorAll('[data-del]').forEach(el => el.addEventListener('click', () => {
+            habits = habits.filter(h => String(h.id) !== String(el.dataset.del));
+            save(); renderHabits();
+        }));
+        container.querySelectorAll('[data-fix]').forEach(el => el.addEventListener('click', (e) => fixDay(el.dataset.fix, e.currentTarget)));
+        container.querySelectorAll('[data-dot]').forEach(el => el.addEventListener('click', () => {
+            const h = habits.find(x => String(x.id) === String(el.dataset.dot));
+            if (!h) return;
+            const idx = parseInt(el.dataset.idx);
+            // тык по кружку: если он уже заполнен — снять до него, иначе заполнить включительно
+            const cur = h.todayCount || 0;
+            h.todayCount = (idx + 1 === cur) ? idx : idx + 1;
+            save(); renderHabits();
+        }));
+        container.querySelectorAll('[data-finish]').forEach(el => el.addEventListener('click', () => finishMarathon(el.dataset.finish)));
+        container.querySelectorAll('[data-stats]').forEach(el => el.addEventListener('click', () => showStats(el.dataset.stats)));
+    }
+
+    function changeCount(id, delta){
+        const h = habits.find(x => String(x.id) === String(id));
+        if (!h) return;
+        h.todayCount = Math.max(0, (h.todayCount||0) + delta);
+        save(); renderHabits();
+    }
+
+    function fixDay(id, btnEl){
+        const h = habits.find(x => String(x.id) === String(id));
+        if (!h) return;
+        if (!h.history) h.history = [];
+        const dayIdx = h.dayIndex || 0;
+        const norm = todayNorm(h);
+        const cur = h.todayCount || 0;
+        // записываем результат дня в историю
+        const ex = h.history.find(e => e.day === dayIdx);
+        if (ex) { ex.count = cur; ex.norm = norm; }
+        else h.history.push({ day: dayIdx, date: today, count: cur, norm: norm });
+        // двигаем план на следующий день
+        h.dayIndex = dayIdx + 1;
+        h.todayCount = 0;
+        h.lastFixDate = today;
+        save();
+
+        // подбадривающая анимация от кнопки
+        if (FocusCore.celebrate) FocusCore.celebrate({ fromEl: btnEl });
+
+        // награда раз в день (монеты копятся в фоне, без всплытия — эмоция уже дана анимацией)
+        let rd = []; try { rd = JSON.parse(localStorage.getItem('focus_habit_reward')) || []; } catch(e){}
+        if (!rd.includes(today)) {
+            rd.push(today); localStorage.setItem('focus_habit_reward', JSON.stringify(rd));
+            if(window.FocusRewards)FocusRewards.mark('faith','habit');else{FocusStorage.addCoins(1);FocusStorage.addActivity('faith','habit');}
+        }
+
+        // окно с нормой на следующий день
+        const newDayIdx = h.dayIndex;
+        if (newDayIdx >= h.days) {
+            // марафон пройден
+            showNextDay(h, true);
+        } else {
+            showNextDay(h, false);
+        }
+        renderHabits();
+    }
+
+    // окно "норма на следующий день"
+    function showNextDay(h, finished){
+        const isBad = h.type === 'bad';
+        const nextNorm = normForDay(h, h.dayIndex);
+        const dayNum = h.dayIndex + 1;
+        const modal = document.getElementById('nextDayModal');
+        const body = document.getElementById('nextDayBody');
+        if (finished) {
+            body.innerHTML = `
+                <div style="font-size:46px;text-align:center;margin-bottom:10px;">🏆</div>
+                <div class="nd-title">Марафон пройден!</div>
+                <div class="nd-sub">«${escapeHtml(h.name)}» — ${h.days} дней позади.<br>${isBad?'Ты снизил до цели. Огромный шаг!':'Привычка закреплена. Так держать!'}</div>
+                <div class="nd-norm-label">Заверши марафон, чтобы сохранить его в архив достижений.</div>`;
+        } else {
+            body.innerHTML = `
+                <div style="display:flex;justify-content:center;margin-bottom:10px;">${isBad
+                    ? '<svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="#FF8A7C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12A10 10 0 1 1 5.93 4.2"/><path d="M22 4 12 14l-3-3"/></svg>'
+                    : '<svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="#78DC96" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>'}</div>
+                <div class="nd-title">День ${dayNum} из ${h.days}</div>
+                <div class="nd-sub">${escapeHtml(h.name)}</div>
+                <div class="nd-norm-box">
+                    <div class="nd-norm-label">${isBad?'Норма на завтра':'Цель на завтра'}</div>
+                    <div class="nd-norm-val ${isBad?'bad':'good'}">${nextNorm}</div>
+                </div>
+                <div class="nd-hint">${isBad?'Каждый день чуть меньше — мягко и без ломки.':'Постепенно наращиваем. Шаг за шагом.'}</div>`;
+        }
+        modal.classList.add('show');
+    }
+    document.getElementById('closeNextDay') && document.getElementById('closeNextDay').addEventListener('click', () => {
+        document.getElementById('nextDayModal').classList.remove('show');
+    });
+
+    // завершить марафон → в архив
+    function finishMarathon(id){
+        const h = habits.find(x => String(x.id) === String(id));
+        if (!h) return;
+        const archive = getArchive();
+        const total = (h.history||[]).reduce((s,e)=>s+e.count,0);
+        archive.push({
+            id: h.id, name: h.name, type: h.type,
+            start: h.start, goal: h.goal, days: h.days,
+            startedAt: h.startedAt, finishedAt: today,
+            history: h.history || [], total: total
+        });
+        saveArchive(archive);
+        habits = habits.filter(x => String(x.id) !== String(id));
+        save();
+        document.getElementById('nextDayModal').classList.remove('show');
+        renderHabits();
+        if (FocusCore.celebrate) FocusCore.celebrate({ big: true, text: 'Марафон пройден', emoji: '🏆' });
+        toast('Марафон в архиве достижений!');
+    }
+
+    function showStats(id){
+        const h = habits.find(x => String(x.id) === String(id));
+        if (!h) return;
+        document.getElementById('statsTitle').innerText = '📊 ' + h.name;
+        const hist = (h.history||[]).slice().reverse();
+        let rows = '';
+        if (hist.length === 0) rows = '<tr><td colspan="3" style="text-align:center;color:#9a9aab;padding:14px;">Нет завершённых дней</td></tr>';
+        else { rows = '<tr style="color:#9a9aab;font-size:11px;"><td>День</td><td>Норма</td><td>Факт</td></tr>'; hist.forEach(e => { const over = h.type==='bad' && e.count > (e.norm||0); rows += `<tr><td>${(e.day||0)+1}</td><td>${e.norm!=null?e.norm:'—'}</td><td style="${over?'color:#FF8A7C':''}">${e.count}</td></tr>`; }); }
+        // итоги
+        const total = (h.history||[]).reduce((s,e)=>s+e.count,0);
+        const avg = hist.length ? (total/hist.length).toFixed(1) : 0;
+        rows += `<tr style="border-top:1px solid rgba(255,255,255,0.15);"><td><b>Всего</b></td><td><b>${total}</b></td></tr>`;
+        rows += `<tr><td><b>Среднее/день</b></td><td><b>${avg}</b></td></tr>`;
+        document.getElementById('statsTable').innerHTML = rows;
+        // график: план + факт
+        let chartBox = document.getElementById('statsChart');
+        if (!chartBox) {
+            chartBox = document.createElement('div');
+            chartBox.id = 'statsChart';
+            chartBox.style.cssText = 'margin-bottom:14px;background:rgba(0,0,0,0.2);border-radius:12px;padding:10px;';
+            document.getElementById('statsTable').parentNode.insertBefore(chartBox, document.getElementById('statsTable'));
+        }
+        chartBox.innerHTML = '<div style="font-size:10px;color:#9a9aab;margin-bottom:6px;">План (линия) и факт (жёлтые точки)</div>' + planChart(h, true);
+        document.getElementById('statsModal').classList.add('show');
+    }
+    document.getElementById('closeStats').addEventListener('click', () => document.getElementById('statsModal').classList.remove('show'));
+
+    // ===== Архив марафонов =====
+    document.getElementById('archiveBtn').addEventListener('click', () => {
+        const archive = getArchive();
+        const cont = document.getElementById('archiveList');
+        if (archive.length === 0) {
+            cont.innerHTML = '<div class="empty-mini">Архив пуст.<br>Заверши марафон — он появится здесь.</div>';
+        } else {
+            cont.innerHTML = '';
+            archive.slice().reverse().forEach(a => {
+                const isBad = a.type === 'bad';
+                const days = (a.history||[]).length;
+                const div = document.createElement('div');
+                div.className = 'archive-item';
+                div.innerHTML = `
+                    <div class="arch-icon">${isBad?'🚭':'💪'}</div>
+                    <div class="arch-info">
+                        <div class="arch-name">${escapeHtml(a.name)}</div>
+                        <div class="arch-meta">${isBad?'Снижение':'Наращивание'} ${a.start}→${a.goal} · ${a.days} дней · отмечено ${days}</div>
+                        <div class="arch-date">Завершён ${a.finishedAt}</div>
+                    </div>`;
+                cont.appendChild(div);
+            });
+        }
+        document.getElementById('archiveModal').classList.add('show');
+    });
+    document.getElementById('closeArchive').addEventListener('click', () => document.getElementById('archiveModal').classList.remove('show'));
+
+    // ===== Добавление =====
+    function updatePlanHint(){
+        const start = parseInt(document.getElementById('habitStart').value) || 0;
+        const goal = parseInt(document.getElementById('habitGoal').value) || 0;
+        const days = Math.max(1, Math.min(365, parseInt(document.getElementById('habitDays').value) || 21));
+        const hint = document.getElementById('planHint');
+        if (!start && !goal) { hint.innerText = ''; return; }
+        const isReduce = goal < start;
+        // примеры по дням
+        const tmp = { start, goal, days, type: (goal < start ? 'bad' : 'good'), id:'modal' };
+        hint.innerHTML = `<div style="margin-bottom:6px;font-size:10.5px;">${isReduce?'↓ Снижение':'↑ Наращивание'} ${start}→${goal} за ${days} дн. На графике — сколько в день:</div>` + planChart(tmp, false);
+    }
+    ['habitStart','habitGoal','habitDays'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updatePlanHint);
+    });
+
+    document.getElementById('addHabitBtn').addEventListener('click', () => {
+        document.getElementById('habitModalTitle').innerText = mode==='good' ? '➕ Полезная привычка' : '🚭 Вредная привычка';
+        document.getElementById('habitName').value = '';
+        document.getElementById('habitName').placeholder = mode==='good' ? 'Например: Чтение, Спорт' : 'Например: Курение, Алкоголь';
+        // дефолты: вредная — снижение 20→0, полезная — наращивание 0→30
+        document.getElementById('habitStart').value = mode==='good' ? 0 : 20;
+        document.getElementById('habitGoal').value = mode==='good' ? 30 : 0;
+        document.getElementById('habitDays').value = 21;
+        document.getElementById('startLabel').innerText = 'Сейчас';
+        document.getElementById('goalLabel').innerText = 'Цель';
+        document.getElementById('habitReplace').value = '';
+        document.getElementById('habitReplace').style.display = mode==='bad' ? 'block' : 'none';
+        updatePlanHint();
+        document.getElementById('habitModal').classList.add('show');
+    });
+    document.getElementById('cancelHabit').addEventListener('click', () => document.getElementById('habitModal').classList.remove('show'));
+    document.getElementById('saveHabit').addEventListener('click', () => {
+        const name = document.getElementById('habitName').value.trim();
+        if (!name) { toast('Введите название'); return; }
+        const start = parseInt(document.getElementById('habitStart').value) || 0;
+        const goal = parseInt(document.getElementById('habitGoal').value) || 0;
+        const days = Math.max(1, Math.min(365, parseInt(document.getElementById('habitDays').value) || 21));
+        habits.push({
+            id: Date.now(), name, type: mode,
+            start, goal, days,
+            dayIndex: 0, todayCount: 0,
+            replace: mode==='bad' ? document.getElementById('habitReplace').value.trim() : '',
+            history: [], startedAt: today
+        });
+        save();
+        document.getElementById('habitModal').classList.remove('show');
+        renderHabits();
+        toast(mode==='bad' ? 'Марафон отказа начат' : 'Марафон привычки начат');
+    });
+
+    ['habitModal','statsModal','nextDayModal','archiveModal'].forEach(id => {
+        document.getElementById(id).addEventListener('click', (e) => { if (e.target.id === id) e.currentTarget.classList.remove('show'); });
+    });
+
+    renderHabits();
+</script>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+    }
+</script>
+    <script src="focus-chat-fab.js"></script>
+</body>
+</html>

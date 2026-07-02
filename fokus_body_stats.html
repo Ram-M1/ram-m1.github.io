@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="original" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FOCUS">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Статистика тела — FOCUS</title>
+<style>
+    :root, [data-theme="original"] { --accent:#FFD966; --accent-rgb:255,217,102; --accent-2:#7C8CFF; --accent-2-rgb:124,140,255; --accent-light:#FFE9A8; --accent-dark:#C9952E; --bg-1:#131319; --bg-2:#0d0d12; --text-strong:#FFFFFF; }
+    [data-theme="tron"] { --accent:#FF3B2E; --accent-rgb:255,59,46; --accent-2:#00E5FF; --accent-2-rgb:0,229,255; --accent-light:#FF8A6B; --accent-dark:#B8201A; --bg-1:#0a0a0d; --bg-2:#000000; --text-strong:#FFFFFF; }
+    [data-theme="predator"] { --accent:#FF7A1A; --accent-rgb:255,122,26; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#FFB347; --accent-dark:#B84D00; --bg-1:#0d120d; --bg-2:#050705; --text-strong:#FFFFFF; }
+    [data-theme="mk"] { --accent:#FF1A2E; --accent-rgb:255,26,46; --accent-2:#FFD700; --accent-2-rgb:255,215,0; --accent-light:#FF6B5C; --accent-dark:#8A0000; --bg-1:#14080a; --bg-2:#050202; --text-strong:#FFFFFF; }
+    [data-theme="matrix"] { --accent:#00FF41; --accent-rgb:0,255,65; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#7FFF9E; --accent-dark:#008F25; --bg-1:#050505; --bg-2:#000000; --text-strong:#FFFFFF; }
+    .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
+    @keyframes mkShake { 0%,100%{transform:translate(0,0);} 15%{transform:translate(-4px,2px) rotate(-0.4deg);} 30%{transform:translate(4px,-2px) rotate(0.4deg);} 45%{transform:translate(-3px,1px);} 60%{transform:translate(3px,-1px);} 75%{transform:translate(-2px,0);} }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif; background:#060608; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:12px; position:relative; overflow:hidden; }
+    body::before { content:''; position:fixed; width:600px; height:600px; background:radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%); top:10%; left:50%; transform:translateX(-50%); pointer-events:none; animation:ambientDrift 12s ease-in-out infinite; }
+    @keyframes ambientDrift { 0%,100%{opacity:.6;transform:translateX(-50%) scale(1);} 50%{opacity:1;transform:translateX(-50%) scale(1.15);} }
+    .phone { width:375px; height:700px; background:linear-gradient(165deg, var(--bg-1) 0%, var(--bg-2) 100%); border-radius:52px; box-shadow:0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--accent-rgb),0.06), 0 0 0 8px #1c1c24, 0 0 0 9px rgba(var(--accent-rgb),0.08), 0 0 60px rgba(var(--accent-rgb),0.04); overflow:hidden; display:flex; flex-direction:column; position:relative; }
+    .phone::before { content:''; position:absolute; inset:0; z-index:0; opacity:0.1; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    .phone::after { content:''; position:absolute; top:0; left:6%; right:6%; height:1px; background:linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.3), transparent); z-index:0; }
+    #atmosCanvas { position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:52px; }
+    .screen { flex:1; padding:18px 16px 12px; display:flex; flex-direction:column; height:100%; overflow:hidden; position:relative; z-index:1; }
+    .header-row { display:flex; align-items:center; gap:12px; margin-bottom:13px; }
+    .back-btn { width:36px; height:36px; border-radius:30px; background:rgba(var(--accent-rgb),0.07); border:1px solid rgba(var(--accent-rgb),0.2); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:0.3s ease; flex-shrink:0; }
+    .back-btn:active { transform:scale(0.92); }
+    .back-btn svg { width:16px; height:16px; color:var(--accent); }
+    .title { font-size:19px; font-weight:700; letter-spacing:0.2px; background:linear-gradient(135deg, var(--text-strong) 20%, var(--accent) 70%, var(--accent-dark) 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .title-icon { width:30px; height:30px; flex-shrink:0; border-radius:9px; background:radial-gradient(circle at 35% 30%, rgba(200,170,255,0.3), rgba(200,170,255,0.06)); border:0.5px solid rgba(200,170,255,0.4); display:flex; align-items:center; justify-content:center; margin-left:auto; }
+    .title-icon svg { width:17px; height:17px; color:#C8AAFF; }
+
+    /* Вкладки */
+    .tabs { display:flex; gap:5px; background:rgba(0,0,0,0.25); border-radius:13px; padding:4px; margin-bottom:13px; }
+    .tab { flex:1; text-align:center; padding:8px 4px; border-radius:10px; font-size:11px; font-weight:700; color:#8e8e9e; cursor:pointer; transition:0.2s ease; }
+    .tab.active { background:linear-gradient(135deg, rgba(var(--accent-rgb),0.9), rgba(var(--accent-2-rgb),0.85)); color:#0a0a0f; }
+
+    .tab-content { flex:1; overflow-y:auto; scrollbar-width:none; }
+    .tab-content::-webkit-scrollbar { display:none; }
+    .pane { display:none; }
+    .pane.active { display:block; }
+
+    /* Параметры */
+    .param-card { background:linear-gradient(135deg, rgba(200,170,255,0.1), rgba(var(--accent-2-rgb),0.05)); border:1px solid rgba(200,170,255,0.22); border-radius:16px; padding:15px; margin-bottom:11px; position:relative; overflow:hidden; }
+    .param-card::before { content:''; position:absolute; top:0; left:0; width:50px; height:3px; background:linear-gradient(90deg, #C8AAFF, var(--accent-2)); border-radius:16px 0 7px 0; }
+    .param-card-title { font-size:11px; font-weight:700; color:var(--accent-2); letter-spacing:0.3px; margin-bottom:13px; }
+    .param-grid { display:flex; justify-content:space-between; gap:8px; }
+    .param { flex:1; text-align:center; }
+    .param-label { font-size:10px; color:#9a9aab; margin-bottom:5px; }
+    .param-value { font-size:23px; font-weight:700; color:#fff; line-height:1; }
+    .param-unit { font-size:11px; color:#9a9aab; font-weight:500; }
+    .param-divider { width:0.5px; background:rgba(255,255,255,0.1); }
+    .bmi-badge { display:inline-block; margin-top:5px; padding:2px 9px; border-radius:20px; font-size:9px; font-weight:700; background:rgba(120,220,150,0.18); color:#78DC96; }
+
+    /* Поля ввода (редактирование параметров) */
+    .edit-row { display:flex; align-items:center; justify-content:space-between; background:linear-gradient(135deg, rgba(35,35,46,0.5), rgba(22,22,30,0.5)); border:0.5px solid rgba(var(--accent-rgb),0.12); border-radius:13px; padding:11px 14px; margin-bottom:8px; }
+    .edit-label { font-size:13px; color:#e8e8ee; font-weight:600; display:flex; align-items:center; gap:9px; }
+    .edit-label .ic { width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .edit-label .ic svg { width:16px; height:16px; }
+    .edit-input-wrap { display:flex; align-items:center; gap:6px; }
+    .edit-input { width:62px; background:rgba(0,0,0,0.3); border:1px solid rgba(var(--accent-rgb),0.2); border-radius:10px; padding:8px; color:#fff; font-size:15px; font-weight:700; font-family:inherit; outline:none; text-align:center; }
+    .edit-input:focus { border-color:var(--accent); }
+    .edit-input::-webkit-outer-spin-button, .edit-input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+    .edit-input[type=number] { -moz-appearance:textfield; appearance:textfield; }
+    .edit-unit { font-size:11px; color:#8e8e9e; width:28px; }
+    .ic-weight { background:radial-gradient(circle at 35% 30%, rgba(255,156,100,0.25), transparent); border:0.5px solid rgba(255,156,100,0.3); }
+    .ic-weight svg { color:#FF9C64; }
+    .ic-height { background:radial-gradient(circle at 35% 30%, rgba(150,170,255,0.25), transparent); border:0.5px solid rgba(170,185,255,0.3); }
+    .ic-height svg { color:#AAB9FF; }
+    .ic-chest { background:radial-gradient(circle at 35% 30%, rgba(255,170,201,0.25), transparent); border:0.5px solid rgba(255,170,201,0.3); }
+    .ic-chest svg { color:#FFAAC9; }
+    .ic-waist { background:radial-gradient(circle at 35% 30%, rgba(120,220,150,0.25), transparent); border:0.5px solid rgba(120,220,150,0.3); }
+    .ic-waist svg { color:#78DC96; }
+    .ic-hip { background:radial-gradient(circle at 35% 30%, rgba(200,170,255,0.25), transparent); border:0.5px solid rgba(200,170,255,0.3); }
+    .ic-hip svg { color:#C8AAFF; }
+    .ic-bicep { background:radial-gradient(circle at 35% 30%, rgba(255,217,102,0.25), transparent); border:0.5px solid rgba(255,217,102,0.3); }
+    .ic-bicep svg { color:var(--accent); }
+    .ic-fat { background:radial-gradient(circle at 35% 30%, rgba(255,138,92,0.25), transparent); border:0.5px solid rgba(255,138,92,0.3); }
+    .ic-fat svg { color:#FF8A5C; }
+    .ic-muscle { background:radial-gradient(circle at 35% 30%, rgba(120,220,150,0.25), transparent); border:0.5px solid rgba(120,220,150,0.3); }
+    .ic-muscle svg { color:#78DC96; }
+
+    .save-btn { padding:13px; border-radius:15px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; font-weight:700; font-size:14px; text-align:center; cursor:pointer; margin-top:4px; box-shadow:0 4px 16px rgba(var(--accent-2-rgb),0.3); }
+    .save-btn:active { transform:scale(0.98); }
+    .section-hint { font-size:10px; color:#8e8e9e; margin:2px 2px 11px; line-height:1.4; }
+
+    /* История динамики */
+    .history-item { display:flex; align-items:center; justify-content:space-between; background:linear-gradient(135deg, rgba(35,35,46,0.5), rgba(22,22,30,0.5)); border:0.5px solid rgba(var(--accent-rgb),0.1); border-radius:12px; padding:10px 13px; margin-bottom:7px; }
+    .history-date { font-size:11.5px; color:#9a9aab; font-weight:600; }
+    .history-vals { display:flex; gap:11px; font-size:11px; }
+    .history-vals b { color:#fff; }
+    .history-vals .lbl { color:#8e8e9e; }
+    .trend { font-size:10px; font-weight:700; margin-left:4px; }
+    .trend.down { color:#78DC96; }
+    .trend.up { color:#FF9C64; }
+
+    /* Периоды трансформации */
+    .new-period-btn { padding:12px; border-radius:13px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; font-weight:700; font-size:12.5px; text-align:center; cursor:pointer; margin-bottom:12px; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 14px rgba(var(--accent-2-rgb),0.25); }
+    .new-period-btn:active { transform:scale(0.98); }
+    .new-period-btn svg { width:14px; height:14px; }
+    .period-card { background:linear-gradient(135deg, rgba(35,35,46,0.55), rgba(22,22,30,0.55)); border:0.5px solid rgba(var(--accent-rgb),0.14); border-radius:16px; padding:13px; margin-bottom:11px; position:relative; overflow:hidden; }
+    .period-card::before { content:''; position:absolute; top:0; left:0; width:45px; height:3px; background:linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius:16px 0 7px 0; }
+    .period-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+    .period-title { font-size:13.5px; font-weight:700; color:#fff; }
+    .period-actions { display:flex; gap:9px; }
+    .period-act { color:#9a9aab; cursor:pointer; opacity:0.65; }
+    .period-act svg { width:15px; height:15px; }
+    .period-act.del { color:#ff6b6b; }
+    .period-act.share { color:var(--accent-2); opacity:0.9; }
+    .period-dates { font-size:9.5px; color:#8e8e9e; margin-bottom:10px; }
+    .period-status { display:inline-block; font-size:8.5px; font-weight:700; padding:2px 8px; border-radius:10px; margin-left:7px; }
+    .period-status.active { background:rgba(120,220,150,0.18); color:#78DC96; }
+    .period-status.done { background:rgba(150,170,255,0.18); color:#AAB9FF; }
+    .period-photos { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+    .pslot { aspect-ratio:3/4; border-radius:12px; border:1.5px dashed rgba(var(--accent-rgb),0.3); background:rgba(0,0,0,0.25); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; position:relative; }
+    .pslot img { width:100%; height:100%; object-fit:cover; }
+    .pslot .pl { position:absolute; top:7px; left:7px; background:rgba(0,0,0,0.7); color:var(--accent); font-size:8.5px; font-weight:700; padding:2px 8px; border-radius:10px; z-index:2; }
+    .pslot .pa { color:#8e8e9e; font-size:9.5px; display:flex; flex-direction:column; align-items:center; gap:6px; }
+    .pslot .pa svg { width:22px; height:22px; color:rgba(var(--accent-rgb),0.5); }
+    .period-deltas { display:flex; gap:12px; margin-top:10px; padding-top:10px; border-top:0.5px solid rgba(255,255,255,0.07); }
+    .pdelta { font-size:10px; color:#9a9aab; }
+    .pdelta b { color:#fff; font-weight:700; }
+    .pdelta .chg { font-weight:700; margin-left:3px; }
+    .pdelta .chg.down { color:#78DC96; }
+    .pdelta .chg.up { color:#FF9C64; }
+    .archive-toggle { text-align:center; font-size:11px; color:var(--accent-2); font-weight:600; cursor:pointer; padding:8px; margin-top:4px; }
+    .archive-list { margin-top:4px; }
+    .archive-list.hidden { display:none; }
+    .period-finish-btn { margin-top:10px; padding:10px; border-radius:11px; background:rgba(var(--accent-2-rgb),0.12); border:1px solid rgba(var(--accent-2-rgb),0.3); color:var(--accent-2); font-size:11.5px; font-weight:700; text-align:center; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; }
+    .period-finish-btn:active { transform:scale(0.98); }
+    .period-finish-btn svg { width:13px; height:13px; }
+
+    /* Выбор соцсети */
+    .share-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:6px; }
+    .share-opt { background:linear-gradient(135deg, rgba(35,35,46,0.6), rgba(22,22,30,0.6)); border:0.5px solid rgba(var(--accent-rgb),0.14); border-radius:14px; padding:13px; display:flex; flex-direction:column; align-items:center; gap:7px; cursor:pointer; transition:0.2s ease; }
+    .share-opt:active { transform:scale(0.96); }
+    .share-ic { width:44px; height:44px; border-radius:13px; display:flex; align-items:center; justify-content:center; }
+    .share-ic svg { width:24px; height:24px; }
+    .share-name { font-size:12.5px; font-weight:700; color:#fff; }
+    .share-sub { font-size:9.5px; color:#8e8e9e; margin-top:-3px; }
+
+    /* Анализы */
+    .analysis-add-btn { padding:12px; border-radius:13px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); border:none; color:#0a0a0f; font-weight:700; font-size:12.5px; text-align:center; cursor:pointer; margin-bottom:11px; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 14px rgba(var(--accent-2-rgb),0.25); }
+    .analysis-add-btn:active { transform:scale(0.98); }
+    .analysis-add-btn svg { width:14px; height:14px; }
+    .analysis-item { background:linear-gradient(135deg, rgba(35,35,46,0.5), rgba(22,22,30,0.5)); border:0.5px solid rgba(var(--accent-rgb),0.12); border-radius:13px; padding:12px 14px; margin-bottom:8px; }
+    .analysis-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; }
+    .analysis-name { font-size:13.5px; font-weight:700; color:#fff; }
+    .analysis-del { color:#ff6b6b; opacity:0.5; cursor:pointer; }
+    .analysis-del svg { width:14px; height:14px; }
+    .analysis-val-row { display:flex; align-items:baseline; gap:8px; }
+    .analysis-val { font-size:17px; font-weight:700; color:var(--accent); }
+    .analysis-unit { font-size:11px; color:#9a9aab; }
+    .analysis-date { font-size:9.5px; color:#8e8e9e; margin-left:auto; }
+    .analysis-norm { font-size:9.5px; color:#8e8e9e; margin-top:3px; }
+
+    .empty-mini { text-align:center; color:#6e6e7e; font-size:11px; padding:24px 0; line-height:1.5; }
+
+    /* AI-консультант */
+    .ai-card { background:linear-gradient(135deg, rgba(124,140,255,0.12), rgba(var(--accent-rgb),0.06)); border:1px solid rgba(124,140,255,0.3); border-radius:16px; padding:14px; margin-bottom:13px; position:relative; overflow:hidden; }
+    .ai-card::before { content:''; position:absolute; top:0; left:0; width:50px; height:3px; background:linear-gradient(90deg, var(--accent-2), var(--accent)); border-radius:16px 0 7px 0; }
+    .ai-head { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+    .ai-ic { width:38px; height:38px; border-radius:11px; background:radial-gradient(circle at 35% 30%, rgba(124,140,255,0.35), rgba(124,140,255,0.08)); border:0.5px solid rgba(124,140,255,0.4); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .ai-ic svg { width:21px; height:21px; color:var(--accent-2); }
+    .ai-title { font-size:14px; font-weight:700; color:#fff; display:flex; align-items:center; gap:7px; }
+    .ai-badge { font-size:8px; font-weight:800; padding:2px 7px; border-radius:10px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; }
+    .ai-desc { font-size:10.5px; color:#9a9aab; line-height:1.45; margin-bottom:11px; }
+    .ai-btn { padding:11px; border-radius:12px; background:linear-gradient(135deg, var(--accent-2), var(--accent)); color:#0a0a0f; font-weight:700; font-size:12.5px; text-align:center; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; }
+    .ai-btn:active { transform:scale(0.98); }
+    .ai-btn svg { width:15px; height:15px; }
+
+    /* Документы (фото/PDF) */
+    .doc-section-title { font-size:11px; font-weight:700; color:var(--accent-2); letter-spacing:0.3px; margin:16px 2px 9px; }
+    .doc-upload-btns { display:flex; gap:8px; margin-bottom:11px; }
+    .doc-up-btn { flex:1; padding:11px; border-radius:12px; font-weight:700; font-size:11px; text-align:center; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:5px; }
+    .doc-up-btn:active { transform:scale(0.97); }
+    .doc-up-btn svg { width:18px; height:18px; }
+    #uploadPhotoBtn { background:rgba(150,170,255,0.1); border:1px dashed rgba(170,185,255,0.4); color:#AAB9FF; }
+    #uploadPhotoBtn svg { color:#AAB9FF; }
+    #uploadPdfBtn { background:rgba(255,138,92,0.1); border:1px dashed rgba(255,138,92,0.4); color:#FF8A5C; }
+    #uploadPdfBtn svg { color:#FF8A5C; }
+    .doc-item { display:flex; align-items:center; gap:11px; background:linear-gradient(135deg, rgba(35,35,46,0.5), rgba(22,22,30,0.5)); border:0.5px solid rgba(var(--accent-rgb),0.12); border-radius:12px; padding:10px 12px; margin-bottom:8px; }
+    .doc-thumb { width:42px; height:42px; border-radius:9px; flex-shrink:0; overflow:hidden; background:rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; }
+    .doc-thumb img { width:100%; height:100%; object-fit:cover; }
+    .doc-thumb svg { width:20px; height:20px; color:#FF8A5C; }
+    .doc-info { flex:1; min-width:0; }
+    .doc-name { font-size:12px; font-weight:600; color:#e8e8ee; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .doc-meta { font-size:9px; color:#8e8e9e; margin-top:1px; }
+    .doc-del { color:#ff6b6b; opacity:0.5; cursor:pointer; flex-shrink:0; }
+    .doc-del svg { width:14px; height:14px; }
+    .ai-disclaimer { font-size:9px; color:#6e6e7e; line-height:1.4; margin-top:10px; padding:9px 11px; background:rgba(255,138,92,0.07); border:0.5px solid rgba(255,138,92,0.18); border-radius:10px; }
+
+    /* Модалка */
+    .modal { position:absolute; inset:0; z-index:400; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); display:none; align-items:center; justify-content:center; border-radius:52px; padding:20px; }
+    .modal.show { display:flex; }
+    .modal-box { background:linear-gradient(165deg, #1c1c26, #15151c); border-radius:22px; width:100%; padding:18px; border:0.5px solid rgba(var(--accent-rgb),0.2); }
+    .modal-title { font-size:15px; font-weight:700; color:var(--accent); margin-bottom:14px; }
+    .field { margin-bottom:11px; }
+    .field label { display:block; font-size:10px; color:#9a9aab; margin-bottom:5px; font-weight:600; }
+    .field input { width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(var(--accent-rgb),0.18); border-radius:11px; padding:11px 12px; color:#fff; font-size:14px; font-family:inherit; outline:none; }
+    .field input:focus { border-color:var(--accent); }
+    .field input::-webkit-outer-spin-button, .field input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+    .field input[type=number] { -moz-appearance:textfield; appearance:textfield; }
+    .field-row { display:flex; gap:8px; }
+    .field-row .field { flex:1; }
+    .modal-btns { display:flex; gap:8px; margin-top:6px; }
+    .modal-btn { flex:1; padding:12px; border-radius:13px; font-size:13px; font-weight:700; cursor:pointer; text-align:center; border:none; }
+    .modal-btn.save { background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; }
+    .modal-btn.cancel { background:rgba(255,255,255,0.06); color:#9a9aab; border:1px solid rgba(255,255,255,0.1); }
+
+    .toast { position:absolute; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,0.9); border:1px solid var(--accent); border-radius:20px; padding:9px 18px; color:var(--accent); font-size:12px; font-weight:600; z-index:500; opacity:0; transition:0.3s ease; pointer-events:none; white-space:nowrap; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* PWA-режим (установлено на телефон): на весь реальный экран, без макетной рамки */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; overflow: hidden !important; }
+    .phone {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding-top: env(safe-area-inset-top) !important;
+        padding-bottom: env(safe-area-inset-bottom) !important;
+        max-width: 100vw !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, #atmos, .atmos-canvas { border-radius: 0 !important; }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important;
+    }
+}
+
+/* Телефоны: приложение на весь экран без макетной рамки (надёжно, не зависит от PWA-режима) */
+@media (max-width: 600px) {
+    * { -webkit-user-select: none !important; user-select: none !important; -webkit-tap-highlight-color: transparent !important; }
+    input, textarea { -webkit-user-select: text !important; user-select: text !important; }
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; height: 100vh; height: 100dvh; display: block !important; }
+    body { display: flex !important; align-items: stretch !important; justify-content: flex-start !important; }
+    .phone {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    /* анимация/фон идут до самого верха под чёлку */
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important; border-radius: 0 !important;
+    }
+    /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
+    .screen, .session-area, .slideshow, .scroll-area {
+        padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+    }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+}
+</style>
+<script src="focus-analytics.js"></script>
+</head>
+<body>
+<div class="phone">
+    <canvas id="atmosCanvas" width="375" height="700" style="width:375px;height:700px;"></canvas>
+    <div class="screen">
+        <div class="header-row">
+            <div class="back-btn" onclick="location.href='fokus_body.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <div class="title">Статистика тела</div>
+            <div class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M8 16v-4M12 16V8M16 16v-6"/></svg></div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="params">Параметры</div>
+            <div class="tab" data-tab="measure">Замеры</div>
+            <div class="tab" data-tab="photo">Фото</div>
+            <div class="tab" data-tab="labs">Анализы</div>
+        </div>
+
+        <div class="tab-content">
+            <!-- ПАРАМЕТРЫ -->
+            <div class="pane active" id="pane-params">
+                <div class="param-card">
+                    <div class="param-card-title">ТЕКУЩИЕ ПАРАМЕТРЫ</div>
+                    <div class="param-grid">
+                        <div class="param">
+                            <div class="param-label">Вес</div>
+                            <div class="param-value"><span id="pWeight">—</span><span class="param-unit"> кг</span></div>
+                        </div>
+                        <div class="param-divider"></div>
+                        <div class="param">
+                            <div class="param-label">Рост</div>
+                            <div class="param-value"><span id="pHeight">—</span><span class="param-unit"> см</span></div>
+                        </div>
+                        <div class="param-divider"></div>
+                        <div class="param">
+                            <div class="param-label">ИМТ</div>
+                            <div class="param-value" id="pBmi">—</div>
+                            <div class="bmi-badge" id="pBmiStatus" style="display:none;">Норма</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-hint">Обнови вес и рост — они используются для расчёта ИМТ и видны в разделе «Тело»</div>
+                <div class="edit-row">
+                    <div class="edit-label"><div class="ic ic-weight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 7h11l1.5 11a2 2 0 0 1-2 2.2H7a2 2 0 0 1-2-2.2L6.5 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></div>Вес</div>
+                    <div class="edit-input-wrap"><input type="number" inputmode="decimal" class="edit-input" id="inWeight" placeholder="0"><span class="edit-unit">кг</span></div>
+                </div>
+                <div class="edit-row">
+                    <div class="edit-label"><div class="ic ic-height"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M8 6l4-3 4 3M8 18l4 3 4-3"/></svg></div>Рост</div>
+                    <div class="edit-input-wrap"><input type="number" inputmode="numeric" class="edit-input" id="inHeight" placeholder="0"><span class="edit-unit">см</span></div>
+                </div>
+                <div class="edit-row">
+                    <div class="edit-label"><div class="ic ic-fat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3 4 5 6.5 5 10a5 5 0 0 1-10 0c0-3.5 2-6 5-10Z"/></svg></div>% жира</div>
+                    <div class="edit-input-wrap"><input type="number" inputmode="decimal" class="edit-input" id="inFat" placeholder="0"><span class="edit-unit">%</span></div>
+                </div>
+                <div class="edit-row">
+                    <div class="edit-label"><div class="ic ic-muscle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13c2-1 3-3 6-3s5 2 8 1c0 4-3 7-7 7s-7-2-7-5ZM5 13c0-2 1-4 3-4"/></svg></div>Мышцы</div>
+                    <div class="edit-input-wrap"><input type="number" inputmode="decimal" class="edit-input" id="inMuscle" placeholder="0"><span class="edit-unit">кг</span></div>
+                </div>
+                <div class="save-btn" id="saveParams">Сохранить параметры</div>
+            </div>
+
+            <!-- ЗАМЕРЫ -->
+            <div class="pane" id="pane-measure">
+                <div class="section-hint">Замеры объёмов тела (см). Сохраняй регулярно — увидишь динамику ниже.</div>
+                <div class="edit-row">
+                    <div class="edit-label"><div class="ic ic-chest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8c0-2 2-3 4-3s4 1 4 3-2 3-4 3-4-1-4-3ZM12 8c0-2 2-3 4-3s4 1 4 3-2 3-4 3-4-1-4-3ZM4 8v6c0 3 4 5 8 5s8-2 8-5V8"/></svg></div>Грудь</div>
+                    <div class="edit-input-wrap"><input type="number" inputmode="decimal" class="edit-input" id="inChest" placeholder="0"><span class="edit-unit">см</span></div>
+                </div>
+                <div class="edit-row">
+                    <div class="edit-label"><div class="ic ic-waist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4c0 3-2 5-2 8s2 5 2 8M17 4c0 3 2 5 2 8s-2 5-2 8M5 12h14"/></svg></div>Талия</div>
+                    <div class="edit-input-wrap"><input type="number" inputmode="decimal" class="edit-input" id="inWaist" placeholder="0"><span class="edit-unit">см</span></div>
+                </div>
+                <div class="edit-row">
+                    <div class="edit-label"><div class="ic ic-hip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4c0 3-1 4-1 7 0 4 2 6 5 6s5-2 5-6c0-3-1-4-1-7M6 11h12"/></svg></div>Бёдра</div>
+                    <div class="edit-input-wrap"><input type="number" inputmode="decimal" class="edit-input" id="inHip" placeholder="0"><span class="edit-unit">см</span></div>
+                </div>
+                <div class="edit-row">
+                    <div class="edit-label"><div class="ic ic-bicep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13c2-1 3-3 6-3s5 2 8 1c0 4-3 7-7 7s-7-2-7-5ZM5 13c0-2 1-4 3-4"/></svg></div>Бицепс</div>
+                    <div class="edit-input-wrap"><input type="number" inputmode="decimal" class="edit-input" id="inBicep" placeholder="0"><span class="edit-unit">см</span></div>
+                </div>
+                <div class="save-btn" id="saveMeasure">Сохранить замеры</div>
+
+                <div class="param-card-title" style="margin:18px 2px 10px;">ДИНАМИКА ЗАМЕРОВ</div>
+                <div id="measureHistory"></div>
+            </div>
+
+            <!-- ФОТО -->
+            <div class="pane" id="pane-photo">
+                <div class="section-hint">Периоды трансформации: фото «До» в начале, «После» в конце срока. До 3 активных — старые уходят в архив. Фото на устройстве, облако — с серверной частью.</div>
+                <div class="new-period-btn" id="newPeriodBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                    Новый период
+                </div>
+                <div id="periodsList"></div>
+                <div class="archive-toggle" id="archiveToggle" style="display:none;"></div>
+                <div class="archive-list hidden" id="archiveList"></div>
+                <input type="file" id="photoInput" accept="image/*" style="display:none;">
+            </div>
+
+            <!-- АНАЛИЗЫ -->
+            <div class="pane" id="pane-labs">
+                <!-- AI-консультант -->
+                <div class="ai-card">
+                    <div class="ai-head">
+                        <div class="ai-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3c1.7 0 3 1.3 3 3 0 .5-.1 1-.3 1.4A3 3 0 0 1 18 15a3 3 0 0 1-3 3 3 3 0 0 1-6 0 3 3 0 0 1-3-3 3 3 0 0 1 .3-4.6A3 3 0 0 1 6 8c0-1.7 1.3-3 3-3a3 3 0 0 1 3-3Z"/><path d="M12 8v8M9 11h6" stroke-width="1.4"/></svg></div>
+                        <div class="ai-title">AI-консультант <span class="ai-badge">AI</span></div>
+                    </div>
+                    <div class="ai-desc">Загрузи фото или PDF анализов из лаборатории и поставленные диагнозы — AI разберёт показатели, объяснит простым языком и подскажет, на что обратить внимание.</div>
+                    <div class="ai-btn" id="aiConsultBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
+                        Разобрать мои анализы
+                    </div>
+                    <div class="ai-disclaimer">⚠️ AI-консультант не заменяет врача и не ставит диагнозы. Это вспомогательный разбор для понимания. При проблемах со здоровьем обращайся к специалисту.</div>
+                </div>
+
+                <!-- Документы лабораторий и больниц -->
+                <div class="doc-section-title">ДОКУМЕНТЫ (анализы, диагнозы)</div>
+                <div class="doc-upload-btns">
+                    <div class="doc-up-btn" id="uploadPhotoBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-4l-1.5-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>
+                        Фото
+                    </div>
+                    <div class="doc-up-btn" id="uploadPdfBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>
+                        PDF документ
+                    </div>
+                </div>
+                <div id="docsList"></div>
+                <input type="file" id="docPhotoInput" accept="image/*" style="display:none;">
+                <input type="file" id="docPdfInput" accept="application/pdf" style="display:none;">
+
+                <!-- Показатели вручную -->
+                <div class="doc-section-title">ПОКАЗАТЕЛИ ВРУЧНУЮ</div>
+                <div class="analysis-add-btn" id="addAnalysisBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                    Добавить показатель
+                </div>
+                <div id="analysisList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка выбора соцсети для шаринга -->
+    <div class="modal" id="shareModal">
+        <div class="modal-box">
+            <div class="modal-title">Поделиться результатом</div>
+            <div class="section-hint" style="margin:0 0 12px;">Выбери площадку — картинка сгенерится в идеальном формате под ленту.</div>
+            <div class="share-grid">
+                <div class="share-opt" data-fmt="insta_post">
+                    <div class="share-ic" style="background:linear-gradient(135deg,#feda75,#d62976,#962fbf);"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></div>
+                    <div class="share-name">Instagram</div>
+                    <div class="share-sub">Пост 4:5</div>
+                </div>
+                <div class="share-opt" data-fmt="story">
+                    <div class="share-ic" style="background:linear-gradient(135deg,#962fbf,#d62976);"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M12 18h.01"/></svg></div>
+                    <div class="share-name">Stories / Reels</div>
+                    <div class="share-sub">Вертикаль 9:16</div>
+                </div>
+                <div class="share-opt" data-fmt="vk">
+                    <div class="share-ic" style="background:linear-gradient(135deg,#4a76a8,#5181b8);"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12.8 16.5c-5 0-8.4-3.5-8.5-9.3h2.6c.1 4.3 2.1 6.1 3.6 6.5V7.2h2.5v3.8c1.5-.2 3-1.8 3.5-3.8h2.5c-.4 2.4-2 4-3.1 4.7 1.1.5 2.9 2 3.6 4.6h-2.7c-.5-1.7-1.9-3-3.3-3.2v3.2h-.2Z"/></svg></div>
+                    <div class="share-name">ВКонтакте</div>
+                    <div class="share-sub">Квадрат 1:1</div>
+                </div>
+                <div class="share-opt" data-fmt="tg">
+                    <div class="share-ic" style="background:linear-gradient(135deg,#2aabee,#229ed9);"><svg viewBox="0 0 24 24" fill="#fff"><path d="M21 4 3 11l5 2 2 6 3-4 4 3 4-14Z"/></svg></div>
+                    <div class="share-name">Telegram</div>
+                    <div class="share-sub">Квадрат 1:1</div>
+                </div>
+                <div class="share-opt" data-fmt="tiktok" style="grid-column:1 / -1; flex-direction:row; justify-content:center; gap:12px;">
+                    <div class="share-ic" style="background:linear-gradient(135deg,#25F4EE,#000,#FE2C55);"><svg viewBox="0 0 24 24" fill="#fff"><path d="M16.5 3c.3 2.1 1.5 3.5 3.5 3.7v2.4c-1.3.1-2.5-.3-3.5-1v6.3c0 3.5-2.6 5.6-5.6 5.6-2.9 0-5.4-2.1-5.4-5.3 0-3 2.3-5.2 5.3-5.2.4 0 .8 0 1.2.1v2.6c-.4-.1-.7-.2-1.1-.2-1.4 0-2.5 1-2.5 2.6 0 1.5 1.1 2.6 2.6 2.6 1.5 0 2.6-1.1 2.6-2.9V3h2.9Z"/></svg></div>
+                    <div style="text-align:left;"><div class="share-name">TikTok</div><div class="share-sub">Вертикаль 9:16</div></div>
+                </div>
+            </div>
+            <div class="modal-btns">
+                <button class="modal-btn cancel" id="cancelShare">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка нового периода -->
+    <div class="modal" id="periodModal">
+        <div class="modal-box">
+            <div class="modal-title">Новый период</div>
+            <div class="field">
+                <label>Название (напр. Сушка, Набор массы)</label>
+                <input type="text" id="prTitle" placeholder="Моя трансформация" autocomplete="off">
+            </div>
+            <div class="field">
+                <label>Срок — дата окончания</label>
+                <input type="date" id="prEnd">
+            </div>
+            <div class="param-card-title" style="margin:6px 2px 10px;">ПОКАЗАТЕЛИ «ДО» (необязательно)</div>
+            <div class="field-row">
+                <div class="field"><label>Вес, кг</label><input type="number" inputmode="decimal" id="prBWeight" placeholder="0"></div>
+                <div class="field"><label>% жира</label><input type="number" inputmode="decimal" id="prBFat" placeholder="0"></div>
+            </div>
+            <div class="field-row">
+                <div class="field"><label>Мышцы, кг</label><input type="number" inputmode="decimal" id="prBMuscle" placeholder="0"></div>
+                <div class="field"><label>Талия, см</label><input type="number" inputmode="decimal" id="prBWaist" placeholder="0"></div>
+            </div>
+            <div class="modal-btns">
+                <button class="modal-btn cancel" id="cancelPeriod">Отмена</button>
+                <button class="modal-btn save" id="savePeriod">Создать</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка завершения периода (показатели ПОСЛЕ) -->
+    <div class="modal" id="finishPeriodModal">
+        <div class="modal-box">
+            <div class="modal-title">Завершить период</div>
+            <div class="section-hint" style="margin:0 0 12px;">Введи итоговые показатели «После» — увидишь свой результат и сможешь поделиться.</div>
+            <div class="field-row">
+                <div class="field"><label>Вес, кг</label><input type="number" inputmode="decimal" id="prAWeight" placeholder="0"></div>
+                <div class="field"><label>% жира</label><input type="number" inputmode="decimal" id="prAFat" placeholder="0"></div>
+            </div>
+            <div class="field-row">
+                <div class="field"><label>Мышцы, кг</label><input type="number" inputmode="decimal" id="prAMuscle" placeholder="0"></div>
+                <div class="field"><label>Талия, см</label><input type="number" inputmode="decimal" id="prAWaist" placeholder="0"></div>
+            </div>
+            <div class="modal-btns">
+                <button class="modal-btn cancel" id="cancelFinish">Отмена</button>
+                <button class="modal-btn save" id="saveFinish">Сохранить результат</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка анализа -->
+    <div class="modal" id="analysisModal">
+        <div class="modal-box">
+            <div class="modal-title">Добавить показатель</div>
+            <div class="field">
+                <label>Название (напр. Гемоглобин, Холестерин)</label>
+                <input type="text" id="anName" placeholder="Гемоглобин" autocomplete="off">
+            </div>
+            <div class="field-row">
+                <div class="field"><label>Значение</label><input type="number" inputmode="decimal" id="anValue" placeholder="0"></div>
+                <div class="field"><label>Единицы</label><input type="text" id="anUnit" placeholder="г/л" autocomplete="off"></div>
+            </div>
+            <div class="field">
+                <label>Норма (необязательно)</label>
+                <input type="text" id="anNorm" placeholder="120–160" autocomplete="off">
+            </div>
+            <div class="modal-btns">
+                <button class="modal-btn cancel" id="cancelAnalysis">Отмена</button>
+                <button class="modal-btn save" id="saveAnalysis">Добавить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+</div>
+<script src="focus-storage.js"></script>
+<script src="focus-ai.js"></script>
+<script type="module" src="firebase-auth-helper.js"></script>
+<script src="focus-core.js"></script>
+<script>
+    if (typeof FocusStorage === 'undefined') {
+        window.FocusStorage = {
+            _key:'focus_user',
+            getUser(){ try { return JSON.parse(localStorage.getItem(this._key)) || {}; } catch(e){ return {}; } },
+            saveUser(p){ const c=this.getUser(); localStorage.setItem(this._key, JSON.stringify({...c,...p})); return {...c,...p}; },
+            getTheme(){ return this.getUser().theme || 'original'; },
+            setTheme(id){ this.saveUser({ theme:id }); }
+        };
+    }
+    if (typeof FocusCore === 'undefined') {
+        window.FocusCore = {
+            applyStoredTheme(){ (document.getElementById('htmlRoot')||document.documentElement).setAttribute('data-theme', FocusStorage.getTheme()); },
+initAtmosphere(canvasId) {
+                const ac = document.getElementById(canvasId || 'atmosCanvas');
+                if (!ac) return;
+                const actx = ac.getContext('2d');
+                ac.width = 375; ac.height = 700;
+                let tronPulses=[], mkEmbers=[], mkDrips=[], mkFlash=0, mkBolt=null, matrixDrops=null, matrixColumns=0;
+                let predatorRadarAngle=0, predatorScanY=0, predatorT=0, predatorBlips=[{a:1.2,r:0.7},{a:3.8,r:0.5}], predatorReticle=null;
+                const matrixChars = 'アイウエオカキクケコサシスセソ0123456789ABCDEF'.split('');
+                let lastTheme=null, lastTrigger=0, washT=0;
+                function currentTheme() { const r = document.getElementById('htmlRoot') || document.documentElement; return r.getAttribute('data-theme') || 'original'; }
+                function cssColor(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function cssColorRgb(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function drawFullScreenWash() {
+                    washT += 0.008;
+                    const accRgb = cssColorRgb('--accent-rgb'), acc2Rgb = cssColorRgb('--accent-2-rgb');
+                    const x = ac.width*(0.5+Math.sin(washT)*0.5), y = ac.height*(0.5+Math.cos(washT*0.7)*0.5);
+                    const grad = actx.createRadialGradient(x,y,0,ac.width/2,ac.height/2,Math.max(ac.width,ac.height)*0.9);
+                    grad.addColorStop(0,'rgba('+accRgb+',0.05)'); grad.addColorStop(0.5,'rgba('+acc2Rgb+',0.035)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+                    actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                }
+                function drawTron() {
+                    if (Math.random() > 0.93) {
+                        const vertical = Math.random() > 0.5;
+                        tronPulses.push({ vertical, pos: Math.floor(Math.random()*(vertical?ac.width:ac.height)), t:-40, speed:3+Math.random()*2, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2'), len:60 });
+                    }
+                    tronPulses.forEach(p => {
+                        p.t += p.speed;
+                        const grad = p.vertical ? actx.createLinearGradient(p.pos,p.t-p.len,p.pos,p.t) : actx.createLinearGradient(p.t-p.len,p.pos,p.t,p.pos);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,p.color);
+                        actx.strokeStyle = grad; actx.lineWidth=2; actx.shadowBlur=8; actx.shadowColor=p.color;
+                        actx.beginPath();
+                        if (p.vertical) { actx.moveTo(p.pos,p.t-p.len); actx.lineTo(p.pos,p.t); } else { actx.moveTo(p.t-p.len,p.pos); actx.lineTo(p.t,p.pos); }
+                        actx.stroke();
+                    });
+                    actx.shadowBlur=0;
+                    tronPulses = tronPulses.filter(p => p.t < Math.max(ac.width,ac.height)+40);
+                }
+                function drawPredator() {
+                    predatorT += 0.01;
+                    for (let i=0;i<5;i++) {
+                        const x = ac.width/2+Math.sin(predatorT+i*2)*ac.width*0.35, y = ac.height/2+Math.cos(predatorT*0.7+i*1.7)*ac.height*0.4;
+                        const r = 60+Math.sin(predatorT*2+i)*20;
+                        const grad = actx.createRadialGradient(x,y,0,x,y,r);
+                        grad.addColorStop(0,'rgba('+cssColorRgb('--accent-rgb')+',0.05)'); grad.addColorStop(1,'rgba('+cssColorRgb('--accent-rgb')+',0)');
+                        actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                    }
+                    predatorScanY += 1.8; if (predatorScanY > ac.height+20) predatorScanY=-20;
+                    const acc2 = cssColorRgb('--accent-2-rgb');
+                    const lineGrad = actx.createLinearGradient(0,predatorScanY-15,0,predatorScanY+15);
+                    lineGrad.addColorStop(0,'rgba('+acc2+',0)'); lineGrad.addColorStop(0.5,'rgba('+acc2+',0.35)'); lineGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.fillStyle = lineGrad; actx.fillRect(0,predatorScanY-15,ac.width,30);
+                    actx.strokeStyle='rgba('+acc2+',0.5)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.moveTo(0,predatorScanY); actx.lineTo(ac.width,predatorScanY); actx.stroke();
+                    const rcx=ac.width-46, rcy=64, rr=34;
+                    actx.save();
+                    actx.strokeStyle='rgba('+acc2+',0.4)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.arc(rcx,rcy,rr,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.arc(rcx,rcy,rr*0.6,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx-rr,rcy); actx.lineTo(rcx+rr,rcy); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx,rcy-rr); actx.lineTo(rcx,rcy+rr); actx.stroke();
+                    predatorRadarAngle += 0.05;
+                    const sweepGrad = actx.createLinearGradient(rcx,rcy,rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr);
+                    sweepGrad.addColorStop(0,'rgba('+acc2+',0.6)'); sweepGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.strokeStyle = sweepGrad; actx.lineWidth=2;
+                    actx.beginPath(); actx.moveTo(rcx,rcy); actx.lineTo(rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr); actx.stroke();
+                    predatorBlips.forEach(b => {
+                        const bx=rcx+Math.cos(b.a)*rr*b.r, by=rcy+Math.sin(b.a)*rr*b.r;
+                        const diff = Math.abs(((predatorRadarAngle%(Math.PI*2))-b.a+Math.PI*3)%(Math.PI*2)-Math.PI);
+                        const blipAlpha = diff<0.5 ? 1-diff/0.5 : 0;
+                        if (blipAlpha>0) { actx.fillStyle='rgba('+acc2+','+blipAlpha+')'; actx.beginPath(); actx.arc(bx,by,2,0,Math.PI*2); actx.fill(); }
+                    });
+                    actx.restore();
+                    if (Math.random()>0.992 && !predatorReticle) predatorReticle = { x:40+Math.random()*(ac.width-80), y:90+Math.random()*(ac.height-220), life:1 };
+                    if (predatorReticle) {
+                        predatorReticle.life -= 0.012;
+                        if (predatorReticle.life<=0) predatorReticle=null;
+                        else {
+                            const a = Math.min(predatorReticle.life>0.85?(1-predatorReticle.life)/0.15:1,1) * Math.min(predatorReticle.life/0.15,1);
+                            const size = 22+(1-Math.min(predatorReticle.life,1))*6;
+                            actx.save(); actx.globalAlpha=a; actx.strokeStyle=cssColor('--accent'); actx.lineWidth=1.3;
+                            actx.beginPath(); actx.arc(predatorReticle.x,predatorReticle.y,size,0,Math.PI*2); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x-size-6,predatorReticle.y); actx.lineTo(predatorReticle.x-size+4,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x+size-4,predatorReticle.y); actx.lineTo(predatorReticle.x+size+6,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y-size-6); actx.lineTo(predatorReticle.x,predatorReticle.y-size+4); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y+size-4); actx.lineTo(predatorReticle.x,predatorReticle.y+size+6); actx.stroke();
+                            actx.font='8px monospace'; actx.fillStyle=cssColor('--accent'); actx.fillText('LOCKED', predatorReticle.x-16, predatorReticle.y+size+14);
+                            actx.restore();
+                        }
+                    }
+                }
+                function drawMK() {
+                    const phoneEl = document.querySelector('.phone');
+                    if (Math.random()>0.4) mkEmbers.push({ x:Math.random()*ac.width, y:ac.height+10, vx:(Math.random()-0.5)*0.6, vy:-0.6-Math.random()*1.2, size:1+Math.random()*2, life:1, decay:0.004+Math.random()*0.006, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2') });
+                    mkEmbers.forEach(e => {
+                        e.x+=e.vx; e.y+=e.vy; e.life-=e.decay;
+                        const fade=Math.max(e.life,0); actx.globalAlpha=fade; actx.fillStyle=e.color; actx.shadowBlur=6; actx.shadowColor=e.color;
+                        actx.beginPath(); actx.arc(e.x,e.y,e.size,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1; actx.shadowBlur=0;
+                    mkEmbers = mkEmbers.filter(e=>e.life>0 && e.y>-10);
+                    if (Math.random()>0.96) mkDrips.push({ x:20+Math.random()*(ac.width-40), y:-10, len:8+Math.random()*10, speed:1.2+Math.random()*1.5, life:1 });
+                    mkDrips.forEach(d => {
+                        d.y+=d.speed; d.life-=0.004;
+                        const fade=Math.max(d.life,0); actx.globalAlpha=fade;
+                        const grad = actx.createLinearGradient(d.x,d.y-d.len,d.x,d.y);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,cssColor('--accent'));
+                        actx.strokeStyle=grad; actx.lineWidth=2;
+                        actx.beginPath(); actx.moveTo(d.x,d.y-d.len); actx.lineTo(d.x,d.y); actx.stroke();
+                        actx.fillStyle=cssColor('--accent'); actx.beginPath(); actx.arc(d.x,d.y,1.4,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1;
+                    mkDrips = mkDrips.filter(d=>d.life>0 && d.y<ac.height+10);
+                    if (Date.now()-lastTrigger>6000 && Math.random()>0.5) {
+                        lastTrigger = Date.now(); mkFlash=1;
+                        const startX = 30+Math.random()*(ac.width-60);
+                        const points=[{x:startX,y:-5}]; let x=startX;
+                        for (let i=1;i<=9;i++) { const y=(ac.height/9)*i; x+=(Math.random()-0.5)*50; x=Math.max(10,Math.min(ac.width-10,x)); points.push({x,y}); }
+                        mkBolt = { points, life:1 };
+                        if (phoneEl) { phoneEl.classList.add('mk-shake'); setTimeout(()=>phoneEl.classList.remove('mk-shake'),280); }
+                    }
+                    if (mkBolt) {
+                        mkBolt.life -= 0.05;
+                        if (mkBolt.life<=0) mkBolt=null;
+                        else {
+                            actx.save(); actx.globalAlpha=Math.min(mkBolt.life*2,1);
+                            actx.strokeStyle='#7CD9FF'; actx.shadowBlur=14; actx.shadowColor='#3AB8FF'; actx.lineWidth=2;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.strokeStyle='#FFFFFF'; actx.lineWidth=0.8; actx.shadowBlur=4;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.restore();
+                        }
+                    }
+                    if (mkFlash>0) { actx.fillStyle='rgba(124,217,255,'+(mkFlash*0.16)+')'; actx.fillRect(0,0,ac.width,ac.height); mkFlash -= 0.08; }
+                }
+                function drawMatrix() {
+                    if (!matrixDrops) { matrixColumns = Math.floor(ac.width/13); matrixDrops = Array(matrixColumns).fill(0).map(()=>Math.random()*-30); }
+                    actx.fillStyle='rgba(0,0,0,0.08)'; actx.fillRect(0,0,ac.width,ac.height); actx.font='13px monospace';
+                    for (let i=0;i<matrixColumns;i++) {
+                        const text = matrixChars[Math.floor(Math.random()*matrixChars.length)];
+                        const y = matrixDrops[i]*13;
+                        const isHead = Math.random()>0.92;
+                        actx.fillStyle = isHead ? '#cfffd9' : 'rgba('+cssColorRgb('--accent-rgb')+',0.55)';
+                        actx.fillText(text, i*13, y);
+                        if (y>ac.height && Math.random()>0.975) matrixDrops[i]=0;
+                        matrixDrops[i]++;
+                    }
+                }
+                function loop() {
+                    const theme = currentTheme();
+                    if (theme !== lastTheme) {
+                        actx.clearRect(0,0,ac.width,ac.height);
+                        tronPulses=[]; mkEmbers=[]; mkDrips=[]; mkBolt=null; matrixDrops=null; predatorReticle=null;
+                        lastTheme = theme;
+                    }
+                    if (theme !== 'matrix') actx.clearRect(0,0,ac.width,ac.height);
+                    drawFullScreenWash();
+                    if (theme==='tron') drawTron();
+                    else if (theme==='predator') drawPredator();
+                    else if (theme==='mk') drawMK();
+                    else if (theme==='matrix') drawMatrix();
+                    requestAnimationFrame(loop);
+                }
+                loop();
+            }        };
+    }
+
+    FocusCore.applyStoredTheme();
+    FocusCore.initAtmosphere('atmosCanvas');
+
+    function toast(msg){
+        const t=document.getElementById('toast');
+        t.innerText=msg; t.classList.add('show');
+        clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'), 1600);
+    }
+    function escapeHtml(s){ const d=document.createElement('div'); d.innerText=String(s); return d.innerHTML; }
+    function num(v){ const n=parseFloat(v); return isNaN(n)?null:n; }
+    const today = new Date().toISOString().slice(0,10);
+    function dateShort(iso){ const d=new Date(iso+'T00:00:00'); const m=['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек']; return d.getDate()+' '+m[d.getMonth()]; }
+
+    // ===== Вкладки =====
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+        });
+    });
+
+    // ===== Данные тела =====
+    // focus_body_stats = { weight, height, chest, waist, hip, bicep }  (последние значения, читает хаб Тело)
+    // focus_body_measure_history = [{ date, weight, chest, waist, hip, bicep }]
+    const STATS_KEY = 'focus_body_stats';
+    const MHIST_KEY = 'focus_body_measure_history';
+    let stats = {};
+    try { stats = JSON.parse(localStorage.getItem(STATS_KEY)) || {}; } catch(e){ stats = {}; }
+    // подтянуть вес/рост из анкеты, если в статистике пусто
+    const user = FocusStorage.getUser();
+    if (stats.weight == null && user.weight) stats.weight = user.weight;
+    if (stats.height == null && user.height) stats.height = user.height;
+
+    function saveStats(){ localStorage.setItem(STATS_KEY, JSON.stringify(stats)); }
+    function getMHist(){ try { return JSON.parse(localStorage.getItem(MHIST_KEY)) || []; } catch(e){ return []; } }
+    function saveMHist(arr){ localStorage.setItem(MHIST_KEY, JSON.stringify(arr)); }
+
+    // ===== Параметры (вес/рост/ИМТ) =====
+    function renderParams(){
+        document.getElementById('pWeight').innerText = stats.weight != null ? stats.weight : '—';
+        document.getElementById('pHeight').innerText = stats.height != null ? stats.height : '—';
+        const badge = document.getElementById('pBmiStatus');
+        if (stats.weight && stats.height && stats.height > 0) {
+            const hM = stats.height / 100;
+            const bmi = (stats.weight / (hM*hM)).toFixed(1);
+            document.getElementById('pBmi').innerText = bmi;
+            let status='Норма', color='#78DC96', bg='rgba(120,220,150,0.18)';
+            if (bmi < 18.5) { status='Дефицит'; color='#AAB9FF'; bg='rgba(150,170,255,0.18)'; }
+            else if (bmi < 25) { status='Норма'; }
+            else if (bmi < 30) { status='Избыток'; color='#FF9C64'; bg='rgba(255,156,100,0.18)'; }
+            else { status='Ожирение'; color='#FF6B5C'; bg='rgba(255,107,92,0.18)'; }
+            badge.innerText = status; badge.style.color = color; badge.style.background = bg; badge.style.display = 'inline-block';
+        } else {
+            document.getElementById('pBmi').innerText = '—';
+            badge.style.display = 'none';
+        }
+        // заполнить поля ввода текущими значениями
+        if (stats.weight != null) document.getElementById('inWeight').value = stats.weight;
+        if (stats.height != null) document.getElementById('inHeight').value = stats.height;
+        if (stats.fat != null) document.getElementById('inFat').value = stats.fat;
+        if (stats.muscle != null) document.getElementById('inMuscle').value = stats.muscle;
+    }
+
+    document.getElementById('saveParams').addEventListener('click', () => {
+        const w = num(document.getElementById('inWeight').value);
+        const h = num(document.getElementById('inHeight').value);
+        const f = num(document.getElementById('inFat').value);
+        const m = num(document.getElementById('inMuscle').value);
+        if (w != null) stats.weight = w;
+        if (h != null) stats.height = h;
+        if (f != null) stats.fat = f;
+        if (m != null) stats.muscle = m;
+        saveStats();
+        renderParams();
+        toast('Параметры сохранены');
+    });
+
+    // ===== Замеры =====
+    function renderMeasureInputs(){
+        ['chest','waist','hip','bicep'].forEach(k => {
+            const el = document.getElementById('in' + k.charAt(0).toUpperCase() + k.slice(1));
+            if (el && stats[k] != null) el.value = stats[k];
+        });
+    }
+    function renderMeasureHistory(){
+        const hist = getMHist().slice().reverse();
+        const cont = document.getElementById('measureHistory');
+        if (hist.length === 0) { cont.innerHTML = '<div class="empty-mini">Пока нет сохранённых замеров.<br>Сохрани первый — и здесь появится динамика.</div>'; return; }
+        cont.innerHTML = '';
+        hist.forEach((h, idx) => {
+            // тренд по талии (если есть предыдущая запись)
+            let trend = '';
+            const prev = hist[idx+1];
+            if (prev && h.waist != null && prev.waist != null) {
+                const diff = h.waist - prev.waist;
+                if (diff !== 0) {
+                    const cls = diff < 0 ? 'down' : 'up';
+                    trend = `<span class="trend ${cls}">${diff < 0 ? '▼' : '▲'} ${Math.abs(diff).toFixed(1)}</span>`;
+                }
+            }
+            const parts = [];
+            if (h.chest != null) parts.push(`<span class="lbl">Гр</span> <b>${h.chest}</b>`);
+            if (h.waist != null) parts.push(`<span class="lbl">Та</span> <b>${h.waist}</b>${trend}`);
+            if (h.hip != null) parts.push(`<span class="lbl">Бё</span> <b>${h.hip}</b>`);
+            if (h.bicep != null) parts.push(`<span class="lbl">Би</span> <b>${h.bicep}</b>`);
+            const row = document.createElement('div');
+            row.className = 'history-item';
+            row.innerHTML = `<div class="history-date">${dateShort(h.date)}</div><div class="history-vals">${parts.join('')}</div>`;
+            cont.appendChild(row);
+        });
+    }
+
+    document.getElementById('saveMeasure').addEventListener('click', () => {
+        const c = num(document.getElementById('inChest').value);
+        const wa = num(document.getElementById('inWaist').value);
+        const hp = num(document.getElementById('inHip').value);
+        const b = num(document.getElementById('inBicep').value);
+        if (c==null && wa==null && hp==null && b==null) { toast('Заполни хотя бы один замер'); return; }
+        if (c!=null) stats.chest=c; if (wa!=null) stats.waist=wa; if (hp!=null) stats.hip=hp; if (b!=null) stats.bicep=b;
+        saveStats();
+        // в историю (одна запись на день — обновляем если уже есть сегодня)
+        const hist = getMHist();
+        const todayEntry = { date: today, chest:stats.chest, waist:stats.waist, hip:stats.hip, bicep:stats.bicep };
+        const existIdx = hist.findIndex(h => h.date === today);
+        if (existIdx >= 0) hist[existIdx] = todayEntry; else hist.push(todayEntry);
+        saveMHist(hist);
+        renderMeasureHistory();
+        toast('Замеры сохранены');
+    });
+
+    // ===== Периоды трансформации =====
+    // focus_body_periods = [{ id, title, startDate, endDate, beforePhoto, afterPhoto,
+    //                         beforeWeight, afterWeight, beforeWaist, afterWaist, status }]
+    const PERIODS_KEY = 'focus_body_periods';
+    const MAX_ACTIVE = 3;
+    let periods = [];
+    try { periods = JSON.parse(localStorage.getItem(PERIODS_KEY)) || []; } catch(e){ periods = []; }
+    function savePeriods(){ localStorage.setItem(PERIODS_KEY, JSON.stringify(periods)); }
+
+    let photoTarget = null; // { periodId, which: 'before'|'after' }
+
+    // Автозавершение по дате + перевод старых в архив
+    function updatePeriodStatuses(){
+        const todayD = new Date(today + 'T00:00:00');
+        periods.forEach(p => {
+            if (p.status !== 'archived') {
+                if (p.endDate && new Date(p.endDate + 'T00:00:00') <= todayD) p.status = 'done';
+                else p.status = 'active';
+            }
+        });
+        // не больше MAX_ACTIVE активных/завершённых на виду — старые в архив
+        const visible = periods.filter(p => p.status !== 'archived').sort((a,b) => (b.startDate||'').localeCompare(a.startDate||''));
+        visible.slice(MAX_ACTIVE).forEach(p => p.status = 'archived');
+        savePeriods();
+    }
+
+    function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso+'T00:00:00'); return d.getDate()+' '+['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'][d.getMonth()]+' '+d.getFullYear(); }
+
+    function deltaHtml(before, after, unit, lowerIsBetter){
+        if (before == null || after == null) return '';
+        const diff = +(after - before).toFixed(1);
+        if (diff === 0) return `<span class="chg">0</span>`;
+        const good = lowerIsBetter ? diff < 0 : diff > 0;
+        const cls = diff < 0 ? 'down' : 'up';
+        return `<span class="chg ${cls}">${diff < 0 ? '−' : '+'}${Math.abs(diff)}${unit}</span>`;
+    }
+
+    function periodCardHtml(p, isArchive){
+        const before = p.beforePhoto, after = p.afterPhoto;
+        const statusLabel = p.status === 'done' ? '<span class="period-status done">завершён</span>' : (p.status === 'active' ? '<span class="period-status active">идёт</span>' : '');
+        const deltas = [];
+        if (p.beforeWeight != null || p.afterWeight != null)
+            deltas.push(`<div class="pdelta">Вес <b>${p.beforeWeight??'—'}→${p.afterWeight??'—'}</b>${deltaHtml(p.beforeWeight, p.afterWeight, 'кг', true)}</div>`);
+        if (p.beforeFat != null || p.afterFat != null)
+            deltas.push(`<div class="pdelta">Жир <b>${p.beforeFat??'—'}→${p.afterFat??'—'}%</b>${deltaHtml(p.beforeFat, p.afterFat, '%', true)}</div>`);
+        if (p.beforeMuscle != null || p.afterMuscle != null)
+            deltas.push(`<div class="pdelta">Мышцы <b>${p.beforeMuscle??'—'}→${p.afterMuscle??'—'}</b>${deltaHtml(p.beforeMuscle, p.afterMuscle, 'кг', false)}</div>`);
+        if (p.beforeWaist != null || p.afterWaist != null)
+            deltas.push(`<div class="pdelta">Талия <b>${p.beforeWaist??'—'}→${p.afterWaist??'—'}</b>${deltaHtml(p.beforeWaist, p.afterWaist, 'см', true)}</div>`);
+        return `
+            <div class="period-card" data-period="${p.id}">
+                <div class="period-head">
+                    <div class="period-title">${escapeHtml(p.title)}${statusLabel}</div>
+                    <div class="period-actions">
+                        <div class="period-act share" data-share="${p.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5 15.4 17.5M15.4 6.5 8.6 10.5"/></svg></div>
+                        <div class="period-act del" data-delp="${p.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></div>
+                    </div>
+                </div>
+                <div class="period-dates">${fmtDate(p.startDate)} → ${fmtDate(p.endDate)}</div>
+                <div class="period-photos">
+                    <div class="pslot" data-photo="${p.id}|before">
+                        <div class="pl">До</div>
+                        ${before ? `<img src="${before}">` : '<div class="pa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-4l-1.5-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>Фото</div>'}
+                    </div>
+                    <div class="pslot" data-photo="${p.id}|after">
+                        <div class="pl">После</div>
+                        ${after ? `<img src="${after}">` : '<div class="pa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-4l-1.5-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>Фото</div>'}
+                    </div>
+                </div>
+                ${deltas.length ? `<div class="period-deltas">${deltas.join('')}</div>` : ''}
+                ${!isArchive ? `<div class="period-finish-btn" data-finish="${p.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> ${p.afterWeight!=null||p.afterFat!=null||p.afterMuscle!=null||p.afterWaist!=null ? 'Изменить результат' : 'Ввести результат «После»'}</div>` : ''}
+            </div>`;
+    }
+
+    function renderPeriods(){
+        updatePeriodStatuses();
+        const active = periods.filter(p => p.status !== 'archived').sort((a,b) => (b.startDate||'').localeCompare(a.startDate||''));
+        const archived = periods.filter(p => p.status === 'archived').sort((a,b) => (b.startDate||'').localeCompare(a.startDate||''));
+        const list = document.getElementById('periodsList');
+        if (active.length === 0) {
+            list.innerHTML = '<div class="empty-mini">Нет активных периодов.<br>Создай первый — зафиксируй «До» и отслеживай трансформацию.</div>';
+        } else {
+            list.innerHTML = active.map(p => periodCardHtml(p, false)).join('');
+        }
+        // архив
+        const archToggle = document.getElementById('archiveToggle');
+        const archList = document.getElementById('archiveList');
+        if (archived.length > 0) {
+            archToggle.style.display = 'block';
+            archToggle.innerText = (archList.classList.contains('hidden') ? '▾ Архив' : '▴ Скрыть архив') + ' (' + archived.length + ')';
+            archList.innerHTML = archived.map(p => periodCardHtml(p, true)).join('');
+        } else {
+            archToggle.style.display = 'none';
+            archList.innerHTML = '';
+        }
+        bindPeriodEvents();
+    }
+
+    function bindPeriodEvents(){
+        document.querySelectorAll('[data-photo]').forEach(slot => {
+            slot.addEventListener('click', () => {
+                const [pid, which] = slot.dataset.photo.split('|');
+                photoTarget = { periodId: pid, which };
+                document.getElementById('photoInput').click();
+            });
+        });
+        document.querySelectorAll('[data-delp]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                periods = periods.filter(p => String(p.id) !== String(el.dataset.delp));
+                savePeriods(); renderPeriods();
+                toast('Период удалён');
+            });
+        });
+        document.querySelectorAll('[data-share]').forEach(el => {
+            el.addEventListener('click', (e) => { e.stopPropagation(); openShareModal(el.dataset.share); });
+        });
+        document.querySelectorAll('[data-finish]').forEach(el => {
+            el.addEventListener('click', (e) => { e.stopPropagation(); openFinish(el.dataset.finish); });
+        });
+    }
+
+    document.getElementById('archiveToggle').addEventListener('click', () => {
+        document.getElementById('archiveList').classList.toggle('hidden');
+        renderPeriods();
+    });
+
+    // Новый период
+    const periodModal = document.getElementById('periodModal');
+    document.getElementById('newPeriodBtn').addEventListener('click', () => {
+        document.getElementById('prTitle').value = '';
+        ['prBWeight','prBFat','prBMuscle','prBWaist'].forEach(id => document.getElementById(id).value = '');
+        // дефолт срок +3 месяца
+        const d = new Date(); d.setMonth(d.getMonth() + 3);
+        document.getElementById('prEnd').value = d.toISOString().slice(0,10);
+        periodModal.classList.add('show');
+        setTimeout(()=>document.getElementById('prTitle').focus(), 100);
+    });
+    document.getElementById('cancelPeriod').addEventListener('click', () => periodModal.classList.remove('show'));
+    document.getElementById('savePeriod').addEventListener('click', () => {
+        const title = document.getElementById('prTitle').value.trim();
+        const endDate = document.getElementById('prEnd').value;
+        if (!title) { toast('Введите название'); return; }
+        if (!endDate) { toast('Выберите срок'); return; }
+        periods.push({
+            id: Date.now(), title, startDate: today, endDate,
+            beforePhoto: null, afterPhoto: null,
+            beforeWeight: num(document.getElementById('prBWeight').value), afterWeight: null,
+            beforeWaist: num(document.getElementById('prBWaist').value), afterWaist: null,
+            beforeFat: num(document.getElementById('prBFat').value), afterFat: null,
+            beforeMuscle: num(document.getElementById('prBMuscle').value), afterMuscle: null,
+            status: 'active'
+        });
+        savePeriods();
+        periodModal.classList.remove('show');
+        renderPeriods();
+        toast('Период создан');
+    });
+
+    // Завершение периода — ввод показателей ПОСЛЕ
+    const finishModal = document.getElementById('finishPeriodModal');
+    let finishPeriodId = null;
+    function openFinish(pid){
+        finishPeriodId = pid;
+        const p = periods.find(x => String(x.id) === String(pid));
+        if (!p) return;
+        document.getElementById('prAWeight').value = p.afterWeight != null ? p.afterWeight : '';
+        document.getElementById('prAFat').value = p.afterFat != null ? p.afterFat : '';
+        document.getElementById('prAMuscle').value = p.afterMuscle != null ? p.afterMuscle : '';
+        document.getElementById('prAWaist').value = p.afterWaist != null ? p.afterWaist : '';
+        finishModal.classList.add('show');
+    }
+    document.getElementById('cancelFinish').addEventListener('click', () => finishModal.classList.remove('show'));
+    document.getElementById('saveFinish').addEventListener('click', () => {
+        const p = periods.find(x => String(x.id) === String(finishPeriodId));
+        if (!p) return;
+        p.afterWeight = num(document.getElementById('prAWeight').value);
+        p.afterFat = num(document.getElementById('prAFat').value);
+        p.afterMuscle = num(document.getElementById('prAMuscle').value);
+        p.afterWaist = num(document.getElementById('prAWaist').value);
+        savePeriods();
+        finishModal.classList.remove('show');
+        renderPeriods();
+        toast('Результат сохранён 💪');
+    });
+
+    // Загрузка фото в слот периода
+    document.getElementById('photoInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file || !photoTarget) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+                const maxW = 600;
+                const scale = Math.min(1, maxW / img.width);
+                const cv = document.createElement('canvas');
+                cv.width = img.width * scale; cv.height = img.height * scale;
+                cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+                const p = periods.find(x => String(x.id) === String(photoTarget.periodId));
+                if (p) {
+                    try {
+                        const dataUrl = cv.toDataURL('image/jpeg', 0.7);
+                        if (photoTarget.which === 'before') p.beforePhoto = dataUrl;
+                        else p.afterPhoto = dataUrl;
+                        savePeriods(); renderPeriods();
+                        toast('Фото добавлено');
+                    } catch(err) { toast('Фото слишком большое'); }
+                }
+                photoTarget = null;
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    });
+
+    // Поделиться: выбор соцсети → генерим картинку в нужном формате
+    const shareModal = document.getElementById('shareModal');
+    let sharePeriodId = null;
+    function openShareModal(pid){
+        sharePeriodId = pid;
+        shareModal.classList.add('show');
+    }
+    document.getElementById('cancelShare').addEventListener('click', () => shareModal.classList.remove('show'));
+    document.querySelectorAll('.share-opt').forEach(opt => {
+        opt.addEventListener('click', () => {
+            shareModal.classList.remove('show');
+            sharePeriod(sharePeriodId, opt.dataset.fmt);
+        });
+    });
+
+    const SHARE_FORMATS = {
+        insta_post: { W:1080, H:1350, name:'Instagram' },
+        story:      { W:1080, H:1920, name:'Stories' },
+        vk:         { W:1080, H:1080, name:'ВКонтакте' },
+        tg:         { W:1080, H:1080, name:'Telegram' },
+        tiktok:     { W:1080, H:1920, name:'TikTok' }
+    };
+
+    function sharePeriod(pid, fmt){
+        const p = periods.find(x => String(x.id) === String(pid));
+        if (!p) return;
+        const F = SHARE_FORMATS[fmt] || SHARE_FORMATS.insta_post;
+        toast('Готовлю картинку...');
+        renderShareImage(p, F);
+    }
+
+    // Генерация брендированной картинки в заданном формате
+    function renderShareImage(p, F){
+        const W = F.W, H = F.H;
+        const cv = document.createElement('canvas');
+        cv.width = W; cv.height = H;
+        const ctx = cv.getContext('2d');
+        const isVert = H / W >= 1.5;
+        const isSquare = Math.abs(W - H) < 5;
+        const S = W / 1080;
+        const pad = 50 * S;
+
+        // Фон: глубокий градиент + свечение
+        const grad = ctx.createLinearGradient(0, 0, W, H);
+        grad.addColorStop(0, '#1a1530'); grad.addColorStop(0.5, '#12121a'); grad.addColorStop(1, '#0a0a0f');
+        ctx.fillStyle = grad; ctx.fillRect(0,0,W,H);
+        const glow = ctx.createRadialGradient(W/2, H*0.12, 0, W/2, H*0.12, W*0.7);
+        glow.addColorStop(0, 'rgba(124,140,255,0.18)'); glow.addColorStop(1, 'rgba(124,140,255,0)');
+        ctx.fillStyle = glow; ctx.fillRect(0,0,W,H);
+        const glow2 = ctx.createRadialGradient(W/2, H*0.95, 0, W/2, H*0.95, W*0.6);
+        glow2.addColorStop(0, 'rgba(255,217,102,0.12)'); glow2.addColorStop(1, 'rgba(255,217,102,0)');
+        ctx.fillStyle = glow2; ctx.fillRect(0,0,W,H);
+
+        function roundRect(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
+
+        let y = (isVert ? 130 : 90) * S;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#fff'; ctx.font = '800 ' + (54*S) + 'px sans-serif';
+        ctx.fillText(p.title.toUpperCase(), W/2, y);
+        y += 34*S;
+        ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = (24*S) + 'px sans-serif';
+        ctx.fillText(fmtDate(p.startDate) + '  -  ' + fmtDate(p.endDate), W/2, y);
+
+        const photoTop = y + 40*S;
+        const photoH = (isVert ? 760 : (isSquare ? 460 : 620)) * S;
+        const gap = 24*S;
+        const photoW = (W - pad*2 - gap) / 2;
+
+        function drawSlot(x, label, im){
+            ctx.save();
+            roundRect(ctx, x, photoTop, photoW, photoH, 24*S);
+            ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fill();
+            ctx.clip();
+            if (im) {
+                const ratio = Math.max(photoW/im.width, photoH/im.height);
+                const dw = im.width*ratio, dh = im.height*ratio;
+                ctx.drawImage(im, x+(photoW-dw)/2, photoTop+(photoH-dh)/2, dw, dh);
+            } else {
+                ctx.fillStyle = '#2a2a38'; ctx.textAlign = 'center'; ctx.font = (22*S) + 'px sans-serif';
+                ctx.fillText('фото', x+photoW/2, photoTop+photoH/2);
+            }
+            ctx.restore();
+            roundRect(ctx, x, photoTop, photoW, photoH, 24*S);
+            ctx.lineWidth = 2*S; ctx.strokeStyle = label==='ДО' ? 'rgba(124,140,255,0.5)' : 'rgba(255,217,102,0.6)'; ctx.stroke();
+            const bw = (label==='ДО'?90:130)*S, bh = 42*S;
+            roundRect(ctx, x+16*S, photoTop+16*S, bw, bh, 12*S);
+            const bdg = ctx.createLinearGradient(x, 0, x+bw, 0);
+            if (label==='ДО') { bdg.addColorStop(0,'#7C8CFF'); bdg.addColorStop(1,'#5a6cff'); }
+            else { bdg.addColorStop(0,'#FFD966'); bdg.addColorStop(1,'#FFB347'); }
+            ctx.fillStyle = bdg; ctx.fill();
+            ctx.fillStyle = '#0a0a0f'; ctx.font = '800 ' + (22*S) + 'px sans-serif'; ctx.textAlign = 'left';
+            ctx.fillText(label, x+30*S, photoTop+44*S);
+        }
+
+        function mainResult(){
+            const cands = [
+                { b:p.beforeWeight, a:p.afterWeight, u:'кг', lower:true },
+                { b:p.beforeFat, a:p.afterFat, u:'%', lower:true },
+                { b:p.beforeWaist, a:p.afterWaist, u:'см', lower:true },
+                { b:p.beforeMuscle, a:p.afterMuscle, u:'кг мышц', lower:false }
+            ];
+            for (const c of cands) {
+                if (c.b!=null && c.a!=null && c.a!==c.b) {
+                    const d = +(c.a-c.b).toFixed(1);
+                    return { text:(d<0?'−':'+')+Math.abs(d)+' '+c.u, good:(c.lower?d<0:d>0) };
+                }
+            }
+            return null;
+        }
+
+        function finishShare(){
+            let by = photoTop + photoH + (isVert? 70:50)*S;
+            const mr = mainResult();
+            if (mr) {
+                ctx.textAlign = 'center';
+                ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '600 ' + (24*S) + 'px sans-serif';
+                ctx.fillText('РЕЗУЛЬТАТ', W/2, by);
+                by += (isVert?90:74)*S;
+                ctx.fillStyle = mr.good ? '#78DC96' : '#FF9C64';
+                ctx.font = '900 ' + ((isVert?130:100)*S) + 'px sans-serif';
+                ctx.fillText(mr.text, W/2, by);
+                by += 50*S;
+            }
+            const lines = [];
+            const fmtChg = (b,a,lower) => { if(b==null||a==null)return null; const d=+(a-b).toFixed(1); return {d, good:(lower?d<0:d>0)}; };
+            [['Вес',p.beforeWeight,p.afterWeight,'кг',true],['Жир',p.beforeFat,p.afterFat,'%',true],['Мышцы',p.beforeMuscle,p.afterMuscle,'кг',false],['Талия',p.beforeWaist,p.afterWaist,'см',true]].forEach(m=>{
+                if (m[1]!=null||m[2]!=null) lines.push({ name:m[0], val:(m[1]==null?'—':m[1])+'→'+(m[2]==null?'—':m[2])+' '+m[3], chg:fmtChg(m[1],m[2],m[4]) });
+            });
+            if (lines.length) {
+                const colW = (W - pad*2) / lines.length;
+                ctx.textAlign = 'center';
+                lines.forEach((ln,i)=>{
+                    const cx = pad + colW*i + colW/2;
+                    ctx.fillStyle='rgba(255,255,255,0.45)'; ctx.font='600 ' + (20*S) + 'px sans-serif';
+                    ctx.fillText(ln.name, cx, by+26*S);
+                    ctx.fillStyle='#fff'; ctx.font='700 ' + (24*S) + 'px sans-serif';
+                    ctx.fillText(ln.val, cx, by+56*S);
+                    if (ln.chg && ln.chg.d!==0){ ctx.fillStyle=ln.chg.good?'#78DC96':'#FF9C64'; ctx.font='800 ' + (20*S) + 'px sans-serif'; ctx.fillText((ln.chg.d<0?'−':'+')+Math.abs(ln.chg.d), cx, by+82*S); }
+                });
+                by += 110*S;
+            }
+            const logoY = H - (isVert?100:70)*S;
+            ctx.textAlign = 'center';
+            const lg = ctx.createLinearGradient(W/2-100*S, 0, W/2+100*S, 0);
+            lg.addColorStop(0,'#FFD966'); lg.addColorStop(1,'#FFB347');
+            ctx.fillStyle = lg; ctx.font = '900 ' + (44*S) + 'px sans-serif';
+            ctx.fillText('FOCUS', W/2, logoY);
+            ctx.fillStyle = 'rgba(124,140,255,0.85)'; ctx.font = (22*S) + 'px sans-serif';
+            ctx.fillText('6 сфер твоей жизни — в одном приложении', W/2, logoY + 32*S);
+
+            cv.toBlob(async (blob) => {
+                const file = new File([blob], 'focus-' + (F.name||'progress') + '.jpg', { type: 'image/jpeg' });
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try { await navigator.share({ files: [file], title: p.title, text: 'Моя трансформация в FOCUS' }); }
+                    catch(e) {}
+                } else {
+                    const a = document.createElement('a');
+                    a.href = cv.toDataURL('image/jpeg', 0.9);
+                    a.download = 'focus-' + (F.name||'progress') + '.jpg';
+                    a.click();
+                    toast('Картинка сохранена (' + F.name + ')');
+                }
+            }, 'image/jpeg', 0.92);
+        }
+
+        const slots = [
+            { x: pad, label:'ДО', src:p.beforePhoto },
+            { x: pad + photoW + gap, label:'ПОСЛЕ', src:p.afterPhoto }
+        ];
+        let pending = slots.filter(s=>s.src).length, done = 0;
+        if (pending === 0) {
+            slots.forEach(s => drawSlot(s.x, s.label, null));
+            finishShare();
+        } else {
+            slots.forEach(s => {
+                if (!s.src) { drawSlot(s.x, s.label, null); return; }
+                const im = new Image();
+                im.onload = () => { drawSlot(s.x, s.label, im); done++; if (done===pending) finishShare(); };
+                im.onerror = () => { drawSlot(s.x, s.label, null); done++; if (done===pending) finishShare(); };
+                im.src = s.src;
+            });
+        }
+    }
+    async function shareText(p){
+        let text = '💪 ' + p.title + ' (FOCUS)\n';
+        if (p.beforeWeight != null && p.afterWeight != null) text += `Вес: ${p.beforeWeight} → ${p.afterWeight} кг\n`;
+        if (p.beforeFat != null && p.afterFat != null) text += `Жир: ${p.beforeFat} → ${p.afterFat} %\n`;
+        if (p.beforeMuscle != null && p.afterMuscle != null) text += `Мышцы: ${p.beforeMuscle} → ${p.afterMuscle} кг\n`;
+        if (p.beforeWaist != null && p.afterWaist != null) text += `Талия: ${p.beforeWaist} → ${p.afterWaist} см\n`;
+        text += '\nВеду в приложении FOCUS — 6 сфер твоей жизни';
+        if (navigator.share) { try { await navigator.share({ title: p.title, text }); } catch(e){} }
+        else if (navigator.clipboard) { try { await navigator.clipboard.writeText(text); toast('Скопировано'); } catch(e){} }
+    }
+
+    // ===== Анализы =====
+    const LABS_KEY = 'focus_body_labs'; // [{ id, name, value, unit, norm, date }]
+    let labs = [];
+    try { labs = JSON.parse(localStorage.getItem(LABS_KEY)) || []; } catch(e){ labs = []; }
+    function saveLabs(){ localStorage.setItem(LABS_KEY, JSON.stringify(labs)); }
+
+    function renderLabs(){
+        const cont = document.getElementById('analysisList');
+        if (labs.length === 0) { cont.innerHTML = '<div class="empty-mini">Нет показателей.<br>Добавь результаты анализов — гемоглобин, холестерин, глюкозу и др.</div>'; return; }
+        cont.innerHTML = '';
+        labs.slice().reverse().forEach(lab => {
+            const item = document.createElement('div');
+            item.className = 'analysis-item';
+            item.innerHTML = `
+                <div class="analysis-head">
+                    <div class="analysis-name">${escapeHtml(lab.name)}</div>
+                    <div class="analysis-del" data-del="${lab.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></div>
+                </div>
+                <div class="analysis-val-row">
+                    <span class="analysis-val">${lab.value}</span>
+                    <span class="analysis-unit">${escapeHtml(lab.unit||'')}</span>
+                    <span class="analysis-date">${dateShort(lab.date)}</span>
+                </div>
+                ${lab.norm ? `<div class="analysis-norm">Норма: ${escapeHtml(lab.norm)}</div>` : ''}`;
+            cont.appendChild(item);
+        });
+        cont.querySelectorAll('[data-del]').forEach(el => {
+            el.addEventListener('click', () => {
+                labs = labs.filter(l => String(l.id) !== String(el.dataset.del));
+                saveLabs(); renderLabs();
+            });
+        });
+    }
+
+    const analysisModal = document.getElementById('analysisModal');
+    document.getElementById('addAnalysisBtn').addEventListener('click', () => {
+        ['anName','anValue','anUnit','anNorm'].forEach(id => document.getElementById(id).value = '');
+        analysisModal.classList.add('show');
+        setTimeout(()=>document.getElementById('anName').focus(), 100);
+    });
+    document.getElementById('cancelAnalysis').addEventListener('click', () => analysisModal.classList.remove('show'));
+    document.getElementById('saveAnalysis').addEventListener('click', () => {
+        const name = document.getElementById('anName').value.trim();
+        const value = document.getElementById('anValue').value.trim();
+        if (!name) { toast('Введите название'); return; }
+        if (!value) { toast('Введите значение'); return; }
+        labs.push({
+            id: Date.now(),
+            name,
+            value,
+            unit: document.getElementById('anUnit').value.trim(),
+            norm: document.getElementById('anNorm').value.trim(),
+            date: today
+        });
+        saveLabs();
+        analysisModal.classList.remove('show');
+        renderLabs();
+        toast('Показатель добавлен');
+    });
+
+    // ===== Документы (фото/PDF анализов и диагнозов) =====
+    const DOCS_KEY = 'focus_body_docs'; // [{ id, type:'image'|'pdf', name, data, date }]
+    let docs = [];
+    try { docs = JSON.parse(localStorage.getItem(DOCS_KEY)) || []; } catch(e){ docs = []; }
+    function saveDocs(){ localStorage.setItem(DOCS_KEY, JSON.stringify(docs)); }
+
+    function renderDocs(){
+        const cont = document.getElementById('docsList');
+        if (docs.length === 0) { cont.innerHTML = '<div class="empty-mini">Нет документов.<br>Загрузи фото или PDF анализов и диагнозов.</div>'; return; }
+        cont.innerHTML = '';
+        docs.slice().reverse().forEach(doc => {
+            const item = document.createElement('div');
+            item.className = 'doc-item';
+            const thumb = doc.type === 'image'
+                ? `<img src="${doc.data}">`
+                : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"/><path d="M14 2v6h6"/></svg>`;
+            item.innerHTML = `
+                <div class="doc-thumb">${thumb}</div>
+                <div class="doc-info">
+                    <div class="doc-name">${escapeHtml(doc.name)}</div>
+                    <div class="doc-meta">${doc.type === 'pdf' ? 'PDF' : 'Фото'} · ${dateShort(doc.date)}</div>
+                </div>
+                <div class="doc-del" data-deldoc="${doc.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></div>`;
+            cont.appendChild(item);
+        });
+        cont.querySelectorAll('[data-deldoc]').forEach(el => {
+            el.addEventListener('click', () => {
+                docs = docs.filter(d => String(d.id) !== String(el.dataset.deldoc));
+                saveDocs(); renderDocs();
+            });
+        });
+    }
+
+    // Загрузка фото документа (сжимаем)
+    document.getElementById('uploadPhotoBtn').addEventListener('click', () => document.getElementById('docPhotoInput').click());
+    document.getElementById('docPhotoInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+                const maxW = 800;
+                const scale = Math.min(1, maxW / img.width);
+                const cv = document.createElement('canvas');
+                cv.width = img.width * scale; cv.height = img.height * scale;
+                cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+                try {
+                    docs.push({ id: Date.now(), type: 'image', name: file.name || 'Фото анализа', data: cv.toDataURL('image/jpeg', 0.7), date: today });
+                    saveDocs(); renderDocs();
+                    toast('Документ добавлен');
+                } catch(err) { toast('Файл слишком большой'); }
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    });
+
+    // Загрузка PDF (храним метаданные; сам файл тяжёлый — для облака нужен бэкенд)
+    document.getElementById('uploadPdfBtn').addEventListener('click', () => document.getElementById('docPdfInput').click());
+    document.getElementById('docPdfInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        // PDF может быть большим — пробуем сохранить, при переполнении храним только имя
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const sizeKb = Math.round(file.size / 1024);
+                // если меньше ~1.5МБ — сохраняем data, иначе только метаданные
+                if (file.size < 1.5 * 1024 * 1024) {
+                    docs.push({ id: Date.now(), type: 'pdf', name: file.name, data: ev.target.result, date: today });
+                } else {
+                    docs.push({ id: Date.now(), type: 'pdf', name: file.name + ' (' + sizeKb + ' КБ)', data: null, date: today });
+                    toast('PDF большой — сохранено имя. Полное хранение с серверной частью');
+                }
+                saveDocs(); renderDocs();
+                if (file.size < 1.5 * 1024 * 1024) toast('PDF добавлен');
+            } catch(err) {
+                docs.push({ id: Date.now(), type: 'pdf', name: file.name, data: null, date: today });
+                saveDocs(); renderDocs();
+                toast('PDF добавлен (имя)');
+            }
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    });
+
+    // AI-консультант (заработает с бэкендом)
+    document.getElementById('aiConsultBtn').addEventListener('click', async () => {
+        if (docs.length === 0 && labs.length === 0) {
+            toast('Сначала загрузи анализы или добавь показатели');
+            return;
+        }
+        if (!window.fbAskAI) { toast('ИИ недоступен, обнови страницу'); return; }
+
+        let resBox = document.getElementById('aiLabResult');
+        if (!resBox) {
+            resBox = document.createElement('div');
+            resBox.id = 'aiLabResult';
+            resBox.style.cssText = 'margin-top:12px;padding:14px;background:rgba(124,140,255,0.08);border:1px solid rgba(124,140,255,0.25);border-radius:14px;font-size:13px;color:#e8e8ee;line-height:1.6;';
+            document.getElementById('aiConsultBtn').after(resBox);
+        }
+
+        // есть ли фото-анализы для vision-разбора?
+        const photoDoc = docs.find(d => d.type === 'image' && d.data);
+
+        if (photoDoc && window.fbAskAIVision) {
+            // РАЗБОР ФОТО через vision
+            resBox.innerHTML = '🧠 ИИ распознаёт фото анализов...';
+            const prompt = [
+                { role:'system', content:'Ты — медицинский ИИ-консультант в приложении FOCUS. На фото — результаты лабораторных анализов или медицинские документы. Распознай показатели, разбери простым языком на русском: что в норме, что отклонено, на что обратить внимание. НЕ ставь диагнозы. В конце напомни про консультацию врача. Если на фото не анализы — честно скажи что видишь.' },
+                { role:'user', content: 'Разбери мои анализы с этого фото' }
+            ];
+            const res = await window.fbAskAIVision(prompt, photoDoc.data, 700);
+            if (res.ok) {
+                resBox.innerHTML = '🧠 ' + res.reply.replace(/</g,'&lt;').replace(/\n/g,'<br>') + '<br><br><span style="font-size:11px;color:#9a9aab;">⚠️ Не заменяет врача. При проблемах обратись к специалисту.</span>';
+            } else {
+                // vision не сработал — покажем причину + предложим текстовый ввод
+                let msg = '⚠️ Не удалось разобрать фото: ' + (res.error||'ошибка');
+                if (res.hint) msg += '<br><span style="font-size:11px;color:#9a9aab;">' + res.hint + '. Пока введи показатели вручную (кнопка добавить значение) — разберу текстом.</span>';
+                resBox.innerHTML = msg;
+            }
+            return;
+        }
+
+        // ТЕКСТОВЫЕ показатели
+        if (labs.length === 0) {
+            resBox.innerHTML = '<span style="color:#9a9aab;">Загрузи фото анализов или добавь показатели значениями — тогда разберу.</span>';
+            return;
+        }
+        resBox.innerHTML = '🧠 ИИ разбирает показатели...';
+        const labsStr = labs.map(l => `${l.name}: ${l.value}${l.unit||''}${l.norm?' (норма '+l.norm+')':''}`).join('; ');
+        const prompt = [
+            { role:'system', content:'Ты — медицинский ИИ-консультант в приложении FOCUS. Разбери показатели анализов простым языком на русском: что в норме, что отклонено, на что обратить внимание. НЕ ставь диагнозы. В конце напомни про консультацию врача. 4-6 предложений.' },
+            { role:'user', content:'Мои показатели: ' + labsStr }
+        ];
+        const res = await window.fbAskAI(prompt, 500);
+        if (res.ok) {
+            resBox.innerHTML = '🧠 ' + res.reply.replace(/</g,'&lt;').replace(/\n/g,'<br>') + '<br><br><span style="font-size:11px;color:#9a9aab;">⚠️ Не заменяет врача.</span>';
+        } else {
+            resBox.innerHTML = '⚠️ ИИ недоступен: ' + (res.error||'ошибка');
+        }
+    });
+
+    // ===== Инициализация =====
+    renderParams();
+    renderMeasureInputs();
+    renderMeasureHistory();
+    renderPeriods();
+    renderLabs();
+    renderDocs();
+</script>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+    }
+</script>
+    <script src="focus-chat-fab.js"></script>
+</body>
+</html>

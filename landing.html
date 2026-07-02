@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="original" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FOCUS">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>FOCUS — управляй своей жизнью</title>
+<link rel="stylesheet" href="focus-theme.css">
+<style>
+    :root, [data-theme="original"] {
+        --accent: #FFD966; --accent-rgb: 255,217,102;
+        --accent-2: #7C8CFF; --accent-2-rgb: 124,140,255;
+        --accent-light: #FFE9A8; --accent-dark: #C9952E;
+        --bg-1: #131319; --bg-2: #0d0d12; --text-strong: #FFFFFF;
+    }
+    [data-theme="tron"] {
+        --accent: #FF3B2E; --accent-rgb: 255,59,46;
+        --accent-2: #00E5FF; --accent-2-rgb: 0,229,255;
+        --accent-light: #FF8A6B; --accent-dark: #B8201A;
+        --bg-1: #0a0a0d; --bg-2: #000000; --text-strong: #FFFFFF;
+    }
+    [data-theme="predator"] {
+        --accent: #FF7A1A; --accent-rgb: 255,122,26;
+        --accent-2: #39FF6A; --accent-2-rgb: 57,255,106;
+        --accent-light: #FFB347; --accent-dark: #B84D00;
+        --bg-1: #0d120d; --bg-2: #050705; --text-strong: #FFFFFF;
+    }
+    [data-theme="mk"] {
+        --accent: #FF1A2E; --accent-rgb: 255,26,46;
+        --accent-2: #FFD700; --accent-2-rgb: 255,215,0;
+        --accent-light: #FF6B5C; --accent-dark: #8A0000;
+        --bg-1: #14080a; --bg-2: #050202; --text-strong: #FFFFFF;
+    }
+    [data-theme="matrix"] {
+        --accent: #00FF41; --accent-rgb: 0,255,65;
+        --accent-2: #39FF6A; --accent-2-rgb: 57,255,106;
+        --accent-light: #7FFF9E; --accent-dark: #008F25;
+        --bg-1: #050505; --bg-2: #000000; --text-strong: #FFFFFF;
+    }
+    .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
+    @keyframes mkShake {
+        0%, 100% { transform: translate(0,0); }
+        15% { transform: translate(-4px,2px) rotate(-0.4deg); }
+        30% { transform: translate(4px,-2px) rotate(0.4deg); }
+        45% { transform: translate(-3px,1px); }
+        60% { transform: translate(3px,-1px); }
+        75% { transform: translate(-2px,0); }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif;
+        background: #060608;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 12px;
+        position: relative;
+        overflow: hidden;
+    }
+    body::before {
+        content: '';
+        position: fixed;
+        width: 600px; height: 600px;
+        background: radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%);
+        top: 10%; left: 50%;
+        transform: translateX(-50%);
+        pointer-events: none;
+        animation: ambientDrift 12s ease-in-out infinite;
+    }
+    @keyframes ambientDrift {
+        0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+        50% { opacity: 1; transform: translateX(-50%) scale(1.15); }
+    }
+    .phone {
+        width: 375px;
+        height: 700px;
+        background: linear-gradient(165deg, var(--bg-1) 0%, var(--bg-2) 100%);
+        border-radius: 52px;
+        box-shadow:
+            0 40px 80px rgba(0,0,0,0.6),
+            0 0 0 1px rgba(var(--accent-rgb),0.06),
+            0 0 0 8px #1c1c24,
+            0 0 0 9px rgba(var(--accent-rgb),0.08),
+            0 0 60px rgba(var(--accent-rgb),0.04);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+    .phone::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        opacity: 0.1;
+        pointer-events: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    .phone::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 6%; right: 6%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.3), transparent);
+        z-index: 0;
+    }
+    .screen {
+        flex: 1;
+        padding: 16px 20px 16px;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow-y: auto;
+        scrollbar-width: none;
+        position: relative;
+        z-index: 1;
+    }
+    .screen::-webkit-scrollbar { display: none; }
+
+    /* Логотип */
+    .logo { text-align: center; margin-bottom: 10px; margin-top: 2px; }
+    .logo-badge {
+        width: 44px;
+        height: 44px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 24px;
+        background: rgba(var(--accent-rgb),0.07);
+        border: 1px solid rgba(var(--accent-rgb),0.25);
+        animation: logoPulse 2.4s ease-in-out infinite;
+        margin: 0 auto 6px;
+    }
+    @keyframes logoPulse {
+        0%, 100% { box-shadow: 0 0 6px rgba(var(--accent-rgb),0.15); }
+        50% { box-shadow: 0 0 26px rgba(var(--accent-rgb),0.65); }
+    }
+    .logo-badge.cosmic-active {
+        animation: logoShake 0.25s ease-in-out infinite, logoPulseIntense 0.6s ease-in-out infinite;
+        box-shadow: 0 0 40px rgba(var(--accent-rgb),1), 0 0 80px rgba(var(--accent-rgb),0.5);
+        border-color: var(--accent-light);
+    }
+    @keyframes logoShake {
+        0%, 100% { transform: translate(0,0) rotate(0deg); }
+        20% { transform: translate(-1.5px,1px) rotate(-2deg); }
+        40% { transform: translate(1.5px,-1px) rotate(2deg); }
+        60% { transform: translate(-1px,-1.5px) rotate(-1deg); }
+        80% { transform: translate(1px,1.5px) rotate(1deg); }
+    }
+    @keyframes logoPulseIntense {
+        0%, 100% { box-shadow: 0 0 20px rgba(var(--accent-rgb),0.6), 0 0 50px rgba(var(--accent-rgb),0.25); }
+        50% { box-shadow: 0 0 50px rgba(var(--accent-rgb),1), 0 0 100px rgba(var(--accent-rgb),0.6); }
+    }
+    #cosmicCanvas {
+        position: absolute;
+        inset: 0;
+        z-index: 150;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.4s ease;
+        border-radius: 52px;
+    }
+    #cosmicCanvas.show { opacity: 1; }
+    .logo { cursor: pointer; }
+    .logo-icon { width: 30px; height: 30px; display: block; }
+    .logo-text {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        background: linear-gradient(135deg, #FFFFFF 20%, var(--accent) 70%, var(--accent-dark) 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    .logo-sub { font-size: 11px; color: #8e8e9e; margin-top: 1px; }
+
+    /* AI-демо крючок */
+    .ai-demo-card {
+        background: linear-gradient(135deg, rgba(var(--accent-2-rgb),0.1), rgba(var(--accent-rgb),0.06));
+        border: 1.5px solid rgba(var(--accent-2-rgb),0.3);
+        border-radius: 20px;
+        padding: 16px 16px 14px;
+        margin-bottom: 16px;
+        position: relative;
+        min-height: 130px;
+        box-shadow: 0 0 30px rgba(var(--accent-2-rgb),0.08);
+    }
+    .ai-demo-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0;
+        width: 36px; height: 3px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        border-radius: 0 0 6px 0;
+    }
+    .ai-demo-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .ai-demo-label { font-size: 10px; color: var(--accent-2); letter-spacing: 0.6px; text-transform: uppercase; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .ai-demo-label .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-2); animation: pulseDot 1.4s ease-in-out infinite; }
+    .mic-badge {
+        width: 30px; height: 30px; border-radius: 50%;
+        background: linear-gradient(135deg, rgba(var(--accent-rgb),0.18), rgba(var(--accent-2-rgb),0.18));
+        border: 1px solid rgba(var(--accent-2-rgb),0.4);
+        display: flex; align-items: center; justify-content: center;
+        animation: micPulse 1.8s ease-in-out infinite;
+    }
+    @keyframes micPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-2-rgb),0.3); } 50% { box-shadow: 0 0 0 6px rgba(var(--accent-2-rgb),0); } }
+    .mic-badge svg { width: 15px; height: 15px; color: var(--accent); }
+    @keyframes pulseDot { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+    .ai-demo-hint { font-size: 10.5px; color: #9a9aab; margin-bottom: 10px; line-height: 1.4; }
+    .ai-demo-hint b { color: var(--accent); font-weight: 600; }
+    .chat-bubble-user, .chat-bubble-ai {
+        font-size: 12.5px; padding: 8px 12px; border-radius: 13px; max-width: 86%; margin-bottom: 7px;
+        opacity: 0; transform: translateY(6px);
+    }
+    .chat-bubble-user { background: rgba(255,255,255,0.07); color: #ECECF5; margin-left: auto; border-bottom-right-radius: 4px; }
+    .chat-bubble-ai { background: rgba(var(--accent-2-rgb),0.18); color: #fff; border-bottom-left-radius: 4px; display: flex; align-items: center; gap: 6px; font-weight: 500; }
+    .chat-bubble-ai .check { color: #7CFFA0; font-weight: 700; }
+
+    /* Секция иконок сфер — компактная сетка, как в оригинале */
+    .spheres {
+        background: rgba(30,30,42,0.4);
+        border: 1px solid rgba(var(--accent-rgb),0.08);
+        border-radius: 18px;
+        padding: 14px;
+        margin-bottom: 14px;
+        text-align: center;
+    }
+    .spheres-title { font-size: 14px; color: var(--accent); margin-bottom: 12px; font-weight: 600; letter-spacing: 0.2px; }
+    .spheres-icons { display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
+    .sphere-item { flex: 1; text-align: center; min-width: 45px; }
+    .sphere-icon {
+        width: 36px; height: 36px; margin: 0 auto 4px;
+        border-radius: 11px;
+        background: radial-gradient(circle at 35% 30%, rgba(var(--accent-rgb),0.16), rgba(var(--accent-rgb),0.04));
+        border: 0.5px solid rgba(var(--accent-rgb),0.2);
+        display: flex; align-items: center; justify-content: center;
+    }
+    .sphere-icon svg { width: 18px; height: 18px; }
+    .sphere-item[data-sphere="body"] .sphere-icon { background: radial-gradient(circle at 35% 30%, rgba(255,140,80,0.32), rgba(var(--accent-rgb),0.05)); border-color: rgba(255,160,100,0.4); }
+    .sphere-item[data-sphere="mental"] .sphere-icon { background: radial-gradient(circle at 35% 30%, rgba(150,170,255,0.28), rgba(var(--accent-rgb),0.05)); border-color: rgba(170,185,255,0.4); }
+    .sphere-item[data-sphere="relations"] .sphere-icon { background: radial-gradient(circle at 35% 30%, rgba(255,150,180,0.28), rgba(var(--accent-rgb),0.05)); border-color: rgba(255,170,195,0.4); }
+    .sphere-item[data-sphere="faith"] .sphere-icon { background: radial-gradient(circle at 35% 30%, rgba(255,120,80,0.32), rgba(var(--accent-rgb),0.05)); border-color: rgba(255,150,110,0.4); }
+    .sphere-item[data-sphere="reward"] .sphere-icon { background: radial-gradient(circle at 35% 30%, rgba(190,150,255,0.28), rgba(var(--accent-rgb),0.05)); border-color: rgba(200,170,255,0.4); }
+    .sphere-item[data-sphere="energy"] .sphere-icon { background: radial-gradient(circle at 35% 30%, rgba(var(--accent-rgb),0.36), rgba(var(--accent-rgb),0.05)); }
+    .sphere-item[data-sphere="body"] svg { stroke: #FF9C64; }
+    .sphere-item[data-sphere="mental"] svg { stroke: #AAB9FF; }
+    .sphere-item[data-sphere="relations"] svg { stroke: #FFAAC9; }
+    .sphere-item[data-sphere="faith"] svg { stroke: #FF9668; }
+    .sphere-item[data-sphere="reward"] svg { stroke: #C8AAFF; }
+    .sphere-name { font-size: 9px; color: #aaa; }
+
+    /* Преимущества — восстановлены, как в оригинале */
+    .benefits {
+        background: rgba(30,30,42,0.4);
+        border: 1px solid rgba(var(--accent-rgb),0.08);
+        border-radius: 18px;
+        padding: 16px;
+        margin-bottom: 14px;
+    }
+    .benefit-item { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .benefit-item:last-child { margin-bottom: 0; }
+    .benefit-icon {
+        width: 44px; height: 44px; flex-shrink: 0;
+        border-radius: 12px;
+        background: radial-gradient(circle at 35% 30%, rgba(var(--accent-rgb),0.16), rgba(var(--accent-rgb),0.04));
+        border: 0.5px solid rgba(var(--accent-rgb),0.2);
+        display: flex; align-items: center; justify-content: center;
+    }
+    .benefit-icon svg { width: 20px; height: 20px; }
+    .benefit-item[data-benefit="coins"] .benefit-icon { background: radial-gradient(circle at 35% 30%, rgba(var(--accent-rgb),0.36), rgba(var(--accent-rgb),0.05)); border-color: rgba(var(--accent-rgb),0.4); }
+    .benefit-item[data-benefit="coins"] svg { stroke: var(--accent); }
+    .benefit-item[data-benefit="friends"] .benefit-icon { background: radial-gradient(circle at 35% 30%, rgba(150,170,255,0.3), rgba(var(--accent-rgb),0.05)); border-color: rgba(170,185,255,0.4); }
+    .benefit-item[data-benefit="friends"] svg { stroke: #AAB9FF; }
+    .benefit-item[data-benefit="free"] .benefit-icon { background: radial-gradient(circle at 35% 30%, rgba(124,255,160,0.3), rgba(var(--accent-rgb),0.05)); border-color: rgba(124,255,160,0.4); }
+    .benefit-item[data-benefit="free"] svg { stroke: #7CFFA0; }
+    .benefit-text { flex: 1; }
+    .benefit-title { font-size: 14px; font-weight: 600; color: #fff; }
+    .benefit-desc { font-size: 11px; color: #8e8e9e; margin-top: 1px; }
+
+    /* Кнопки */
+    .buttons { display: flex; flex-direction: column; gap: 7px; margin-bottom: 8px; margin-top: auto; }
+    .btn-primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        border: none;
+        border-radius: 16px;
+        padding: 10px;
+        color: #0a0a0f;
+        font-weight: 700;
+        font-size: 13.5px;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+        transition: 0.3s cubic-bezier(.2,.8,.2,1);
+        box-shadow: 0 6px 20px rgba(var(--accent-2-rgb),0.35), 0 0 0 1px rgba(255,255,255,0.08) inset;
+        display: block;
+        position: relative;
+        overflow: hidden;
+    }
+    .btn-primary::after {
+        content: '';
+        position: absolute;
+        top: 0; left: -120%;
+        width: 60%; height: 100%;
+        background: linear-gradient(100deg, transparent, rgba(255,255,255,0.25), transparent);
+        transition: left 0.7s ease;
+    }
+    .btn-primary:hover::after { left: 130%; }
+    .btn-primary:active { transform: scale(0.97); }
+    .btn-secondary {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        opacity: 0.85;
+        border: none;
+        border-radius: 16px;
+        padding: 10px;
+        color: #0a0a0f;
+        font-weight: 700;
+        font-size: 13.5px;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+        transition: 0.3s cubic-bezier(.2,.8,.2,1);
+        display: block;
+        box-shadow: 0 4px 14px rgba(var(--accent-2-rgb),0.25), 0 0 0 1px rgba(255,255,255,0.06) inset;
+    }
+    .btn-secondary:hover { opacity: 1; }
+    .btn-secondary:active { transform: scale(0.97); }
+
+    /* Футер */
+    .footer { text-align: center; font-size: 10px; color: #6e6e7e; }
+
+/* PWA-режим (установлено на телефон): на весь реальный экран, без макетной рамки */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; overflow: hidden !important; }
+    .phone {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding-top: env(safe-area-inset-top) !important;
+        padding-bottom: env(safe-area-inset-bottom) !important;
+        max-width: 100vw !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, #atmos, .atmos-canvas { border-radius: 0 !important; }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important;
+    }
+}
+
+/* Телефоны: приложение на весь экран без макетной рамки (надёжно, не зависит от PWA-режима) */
+@media (max-width: 600px) {
+    * { -webkit-user-select: none !important; user-select: none !important; -webkit-tap-highlight-color: transparent !important; }
+    input, textarea { -webkit-user-select: text !important; user-select: text !important; }
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; height: 100vh; height: 100dvh; display: block !important; }
+    body { display: flex !important; align-items: stretch !important; justify-content: flex-start !important; }
+    .phone {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    /* анимация/фон идут до самого верха под чёлку */
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important; border-radius: 0 !important;
+    }
+    /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
+    .screen, .session-area, .slideshow, .scroll-area {
+        padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+    }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+}
+</style>
+<script src="focus-analytics.js"></script>
+</head>
+<body>
+<div class="phone">
+    <div class="screen">
+        <!-- Логотип -->
+        <div class="logo" id="logoTrigger">
+            <div class="logo-badge">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="lg1" x1="0" y1="0" x2="100" y2="100">
+                                <stop offset="0%" style="stop-color:var(--accent-light)"/><stop offset="55%" style="stop-color:var(--accent)"/><stop offset="100%" stop-color="#B8862A"/>
+                            </linearGradient>
+                            <linearGradient id="lring" x1="0" y1="0" x2="100" y2="100">
+                                <stop offset="0%" style="stop-color:var(--accent)"/><stop offset="100%" style="stop-color:var(--accent-2)"/>
+                            </linearGradient>
+                        </defs>
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent-2)" stroke-width="1.5" opacity="0.4"/>
+                        <circle cx="50" cy="50" r="32" fill="none" stroke="url(#lring)" stroke-width="5"/>
+                        <g fill="url(#lg1)">
+                            <rect x="38" y="34" width="26" height="9" rx="4.5"/>
+                            <rect x="38" y="34" width="9" height="33" rx="4.5"/>
+                            <rect x="38" y="47" width="19" height="8" rx="4"/>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+            <div class="logo-text">FOCUS</div>
+            <div class="logo-sub">управляй своей жизнью</div>
+        </div>
+
+        <!-- AI-демо крючок -->
+        <div class="ai-demo-card">
+            <div class="ai-demo-top">
+                <div class="ai-demo-label"><span class="pulse-dot"></span>ИИ ФОКУСА</div>
+                <div class="mic-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg>
+                </div>
+            </div>
+            <div class="ai-demo-hint"><b>Говори или пиши</b> — ИИ сам поймёт, что ты сделал, и заполнит нужный раздел</div>
+            <div class="chat-bubble-user">"Сделал зарядку, 20 минут"</div>
+            <div class="chat-bubble-ai"><span class="check">✓</span> Записал в Физическое тело</div>
+        </div>
+
+        <!-- 6 сфер -->
+        <div class="spheres">
+            <div class="spheres-title">6 сфер твоей жизни</div>
+            <div class="spheres-icons">
+                <div class="sphere-item" data-sphere="body">
+                    <div class="sphere-icon"><svg viewBox="0 0 24 24" fill="none" style="stroke:var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 9.5 4 12l2.5 2.5M17.5 9.5 20 12l-2.5 2.5M9 9l-1.5 3L9 15M15 9l1.5 3L15 15M10 12h4"/></svg></div>
+                    <div class="sphere-name">Тело</div>
+                </div>
+                <div class="sphere-item" data-sphere="mental">
+                    <div class="sphere-icon"><svg viewBox="0 0 24 24" fill="none" style="stroke:var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4.5a3.5 3.5 0 0 0-3.5 3.5v.2A3 3 0 0 0 4 11v1a3 3 0 0 0 1.7 2.7v.3a3.5 3.5 0 0 0 3.5 3.5h.3M9 4.5v14.5M15 4.5a3.5 3.5 0 0 1 3.5 3.5v.2A3 3 0 0 1 20 11v1a3 3 0 0 1-1.7 2.7v.3a3.5 3.5 0 0 1-3.5 3.5h-.3M15 4.5v14.5"/></svg></div>
+                    <div class="sphere-name">Менталка</div>
+                </div>
+                <div class="sphere-item" data-sphere="relations">
+                    <div class="sphere-icon"><svg viewBox="0 0 24 24" fill="none" style="stroke:var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.3"/><path d="M15.5 13.2c1.9.3 4.5 1.7 4.5 6.8"/></svg></div>
+                    <div class="sphere-name">Отношения</div>
+                </div>
+                <div class="sphere-item" data-sphere="faith">
+                    <div class="sphere-icon"><svg viewBox="0 0 24 24" fill="none" style="stroke:var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4-2.6 6-5.6 6-9 0-2-1-3.7-2.3-5 .2 1.5-.4 2.6-1.2 3.4.3-2.5-1-4.6-2.5-6.2-.2 2-1 3.4-2.3 4.6C8.2 10.2 7 11.8 7 13.8c0 .5.05 1 .15 1.5"/></svg></div>
+                    <div class="sphere-name">Вера</div>
+                </div>
+                <div class="sphere-item" data-sphere="reward">
+                    <div class="sphere-icon"><svg viewBox="0 0 24 24" fill="none" style="stroke:var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="11" rx="1.5"/><path d="M3 13h18"/><path d="M12 9v11"/></svg></div>
+                    <div class="sphere-name">Награды</div>
+                </div>
+                <div class="sphere-item" data-sphere="energy">
+                    <div class="sphere-icon"><svg viewBox="0 0 24 24" style="fill:var(--accent); stroke:var(--accent)" stroke-width="0.5" stroke-linejoin="round"><path d="M13 2 4.5 13.5h6L10 22l9.5-12.5h-6.2L13 2Z"/></svg></div>
+                    <div class="sphere-name">Энергия</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Преимущества -->
+        <div class="benefits">
+            <div class="benefit-item" data-benefit="coins">
+                <div class="benefit-icon"><svg viewBox="0 0 24 24" fill="none" style="stroke:var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5c0-1.4 1.3-2.5 3-2.5s3 1.1 3 2.5-1.3 2-3 2.5-3 1.1-3 2.5 1.3 2.5 3 2.5 3-1.1 3-2.5"/></svg></div>
+                <div class="benefit-text">
+                    <div class="benefit-title">Зарабатывай монеты</div>
+                    <div class="benefit-desc">За реальные дела и приглашения друзей</div>
+                </div>
+            </div>
+            <div class="benefit-item" data-benefit="friends">
+                <div class="benefit-icon"><svg viewBox="0 0 24 24" fill="none" style="stroke:var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3"/><path d="M2 20c0-3 2.7-5.5 6-5.5s6 2.5 6 5.5"/><circle cx="17" cy="9" r="2.3"/><path d="M15.5 14.2c1.9.3 4.5 1.7 4.5 5.8"/></svg></div>
+                <div class="benefit-text">
+                    <div class="benefit-title">Приглашай друзей</div>
+                    <div class="benefit-desc">Получай бонусы за каждого активного друга</div>
+                </div>
+            </div>
+            <div class="benefit-item" data-benefit="free">
+                <div class="benefit-icon"><svg viewBox="0 0 24 24" fill="none" style="stroke:var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+                <div class="benefit-text">
+                    <div class="benefit-title">Пользуйся бесплатно</div>
+                    <div class="benefit-desc">Выполняй условия — не плати ни копейки</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Кнопки -->
+        <div class="buttons">
+            <a href="register.html" class="btn-primary">Регистрация</a>
+            <a href="login.html" class="btn-secondary">Войти</a>
+        </div>
+
+        <!-- Футер -->
+        <div class="footer">FOCUS — твой путь к осознанной жизни</div>
+    </div>
+    <canvas id="cosmicCanvas" width="375" height="700" style="width:375px;height:700px;"></canvas>
+</div>
+<script src="focus-storage.js"></script>
+<script type="module" src="firebase-auth-helper.js"></script>
+<script src="focus-core.js"></script>
+<script>
+    // Самодостаточный режим: если общие файлы (focus-core.js/focus-storage.js)
+    // не подгрузились (например, файл открыт по одному, не из папки) —
+    // используем встроенный запасной вариант той же логики, чтобы анимации
+    // и темы всегда работали.
+    if (typeof FocusStorage === 'undefined') {
+        window.FocusStorage = {
+            getTheme() { return localStorage.getItem('focus_theme') || 'original'; },
+            setTheme(id) { localStorage.setItem('focus_theme', id); }
+        };
+    }
+    if (typeof FocusCore === 'undefined') {
+        window.FocusCore = {
+            applyStoredTheme() {
+                const theme = FocusStorage.getTheme();
+                const root = document.getElementById('htmlRoot') || document.documentElement;
+                root.setAttribute('data-theme', theme);
+            },
+            renderTempThemeSwitcher() {
+                const themes = [
+                    { id: 'original', color: '#FFD966' },
+                    { id: 'tron', color: '#FF3B2E' },
+                    { id: 'predator', color: '#FF7A1A' },
+                    { id: 'mk', color: '#FF1A2E' },
+                    { id: 'matrix', color: '#00FF41' }
+                ];
+                const wrap = document.createElement('div');
+                wrap.style.cssText = 'position:fixed; top:30px; left:50%; transform:translateX(-200px); z-index:300; display:flex; gap:5px; background:rgba(0,0,0,0.6); padding:5px; border-radius:20px;';
+                themes.forEach(t => {
+                    const dot = document.createElement('div');
+                    dot.style.cssText = `width:18px;height:18px;border-radius:50%;background:${t.color};cursor:pointer;border:1px solid #fff;`;
+                    dot.addEventListener('click', () => {
+                        document.getElementById('htmlRoot').setAttribute('data-theme', t.id);
+                        FocusStorage.setTheme(t.id);
+                    });
+                    wrap.appendChild(dot);
+                });
+                document.body.appendChild(wrap);
+            },
+            initParticleSystem(config) {
+                const cosmicCanvas = document.getElementById(config.canvasId || 'cosmicCanvas');
+                if (!cosmicCanvas) return;
+                const ctx = cosmicCanvas.getContext('2d');
+                cosmicCanvas.width = 375; cosmicCanvas.height = 700;
+                let particles = [];
+                let isLoopRunning = false;
+                const states = config.triggers.map(t => ({ ...t, isSpawning: false, holdTimer: null, suppressTap: false }));
+                function spawnFrom(el) {
+                    const r = el.getBoundingClientRect();
+                    const c = cosmicCanvas.getBoundingClientRect();
+                    const cx = r.left - c.left + r.width / 2, cy = r.top - c.top + r.height / 2;
+                    const angle = Math.random() * Math.PI * 2, speed = 1 + Math.random() * 4;
+                    const rs = getComputedStyle(document.documentElement);
+                    const colors = [rs.getPropertyValue('--accent').trim(), rs.getPropertyValue('--accent-light').trim(), '#FFFFFF', rs.getPropertyValue('--accent-dark').trim()];
+                    particles.push({ x: cx, y: cy, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 1, size: 1+Math.random()*2.5, color: colors[Math.floor(Math.random()*colors.length)] });
+                }
+                function loop() {
+                    ctx.clearRect(0, 0, cosmicCanvas.width, cosmicCanvas.height);
+                    let anySpawning = false;
+                    states.forEach(s => { if (s.isSpawning) { anySpawning = true; for (let i=0;i<4;i++) spawnFrom(s.el); } });
+                    particles.forEach(p => {
+                        p.x+=p.vx; p.y+=p.vy; p.life-=0.012;
+                        ctx.globalAlpha = Math.max(p.life,0); ctx.fillStyle = p.color;
+                        ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill();
+                        ctx.shadowBlur=8; ctx.shadowColor=p.color;
+                    });
+                    ctx.globalAlpha=1; ctx.shadowBlur=0;
+                    particles = particles.filter(p=>p.life>0);
+                    if (anySpawning || particles.length>0) requestAnimationFrame(loop);
+                    else { isLoopRunning=false; cosmicCanvas.classList.remove('show'); }
+                }
+                function ensureLoop() { cosmicCanvas.classList.add('show'); if (!isLoopRunning) { isLoopRunning=true; loop(); } }
+                states.forEach(s => {
+                    if (!s.el) return;
+                    s.el.addEventListener('pointerdown', () => { s.holdTimer = setTimeout(() => { s.isSpawning=true; s.suppressTap=true; if (s.shakeClass) s.el.classList.add('cosmic-active'); ensureLoop(); }, 220); });
+                    const end = () => { clearTimeout(s.holdTimer); if (s.isSpawning) { s.isSpawning=false; if (s.shakeClass) s.el.classList.remove('cosmic-active'); setTimeout(()=>{s.suppressTap=false;},50); } };
+                    s.el.addEventListener('pointerup', end); s.el.addEventListener('pointerleave', end); s.el.addEventListener('pointercancel', end);
+                    if (s.onTap) s.el.addEventListener('click', (e) => { e.stopPropagation(); if (s.suppressTap) { s.suppressTap=false; return; } s.onTap(); });
+                });
+            },
+            initAtmosphere() {}
+        };
+    }
+
+    FocusCore.applyStoredTheme();
+    FocusCore.initParticleSystem({
+        canvasId: 'cosmicCanvas',
+        triggers: [
+            { el: document.querySelector('.logo-badge'), shakeClass: true }
+        ]
+    });
+    const demoExamples = [
+        { user: '"Сделал зарядку, 20 минут"', ai: 'Записал в Физическое тело' },
+        { user: '"Съел гречку с курицей"', ai: 'Посчитал БЖУ и сохранил' },
+        { user: '"Сегодня было тревожно"', ai: 'Добавил в Дневник эмоций' },
+        { user: '"Позвонить Маше про ДР"', ai: 'Создал задачу с напоминанием' }
+    ];
+    let demoIndex = 0;
+    const userBubble = document.querySelector('.chat-bubble-user');
+    const aiBubble = document.querySelector('.chat-bubble-ai');
+    function playDemo() {
+        userBubble.style.transition = 'none';
+        aiBubble.style.transition = 'none';
+        userBubble.style.opacity = 0;
+        aiBubble.style.opacity = 0;
+        userBubble.style.transform = 'translateY(6px)';
+        aiBubble.style.transform = 'translateY(6px)';
+        const ex = demoExamples[demoIndex];
+        userBubble.textContent = ex.user;
+        aiBubble.innerHTML = '<span class="check">✓</span> ' + ex.ai;
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                userBubble.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                userBubble.style.opacity = 1;
+                userBubble.style.transform = 'translateY(0)';
+            }, 200);
+            setTimeout(() => {
+                aiBubble.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                aiBubble.style.opacity = 1;
+                aiBubble.style.transform = 'translateY(0)';
+            }, 1100);
+        });
+        demoIndex = (demoIndex + 1) % demoExamples.length;
+    }
+    playDemo();
+    setInterval(playDemo, 3600);
+
+    // Автовход: если сессия Firebase восстановилась (юзер уже входил и подтвердил почту)
+    // — сразу пускаем в приложение, минуя landing (не надо вводить пароль каждый раз)
+    (function(){
+        function checkSession(){
+            const user = window.fbCurrentUser && window.fbCurrentUser();
+            if (user && user.emailVerified) {
+                // проверяем заполнена ли анкета — решаем куда вести
+                const u = FocusStorage.getUser();
+                const done = u && ((u.flags && u.flags.profileCompleted) || u.profileCompleted);
+                if (done) {
+                    location.replace('index.html');
+                } else {
+                    location.replace('profile-form.html');
+                }
+            }
+        }
+        // ждём восстановления сессии Firebase
+        if (window.FB_AUTH_READY) checkSession();
+        else window.addEventListener('fb-auth-ready', checkSession);
+        // подстраховка через момент (сессия может восстановиться с задержкой)
+        setTimeout(checkSession, 1500);
+    })();
+</script>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        });
+    }
+</script>
+</body>
+</html>

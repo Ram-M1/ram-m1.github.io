@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="original" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FOCUS">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Награды — FOCUS</title>
+<style>
+    :root, [data-theme="original"] { --accent:#FFD966; --accent-rgb:255,217,102; --accent-2:#7C8CFF; --accent-2-rgb:124,140,255; --accent-light:#FFE9A8; --accent-dark:#C9952E; --bg-1:#131319; --bg-2:#0d0d12; --text-strong:#FFFFFF; }
+    [data-theme="tron"] { --accent:#FF3B2E; --accent-rgb:255,59,46; --accent-2:#00E5FF; --accent-2-rgb:0,229,255; --accent-light:#FF8A6B; --accent-dark:#B8201A; --bg-1:#0a0a0d; --bg-2:#000000; --text-strong:#FFFFFF; }
+    [data-theme="predator"] { --accent:#FF7A1A; --accent-rgb:255,122,26; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#FFB347; --accent-dark:#B84D00; --bg-1:#0d120d; --bg-2:#050705; --text-strong:#FFFFFF; }
+    [data-theme="mk"] { --accent:#FF1A2E; --accent-rgb:255,26,46; --accent-2:#FFD700; --accent-2-rgb:255,215,0; --accent-light:#FF6B5C; --accent-dark:#8A0000; --bg-1:#14080a; --bg-2:#050202; --text-strong:#FFFFFF; }
+    [data-theme="matrix"] { --accent:#00FF41; --accent-rgb:0,255,65; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#7FFF9E; --accent-dark:#008F25; --bg-1:#050505; --bg-2:#000000; --text-strong:#FFFFFF; }
+    .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
+    @keyframes mkShake { 0%,100%{transform:translate(0,0);} 15%{transform:translate(-4px,2px) rotate(-0.4deg);} 30%{transform:translate(4px,-2px) rotate(0.4deg);} 45%{transform:translate(-3px,1px);} 60%{transform:translate(3px,-1px);} 75%{transform:translate(-2px,0);} }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif; background:#060608; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:12px; position:relative; overflow:hidden; }
+    body::before { content:''; position:fixed; width:600px; height:600px; background:radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%); top:10%; left:50%; transform:translateX(-50%); pointer-events:none; animation:ambientDrift 12s ease-in-out infinite; }
+    @keyframes ambientDrift { 0%,100%{opacity:.6;transform:translateX(-50%) scale(1);} 50%{opacity:1;transform:translateX(-50%) scale(1.15);} }
+    .phone { width:375px; height:700px; background:linear-gradient(165deg, var(--bg-1) 0%, var(--bg-2) 100%); border-radius:52px; box-shadow:0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--accent-rgb),0.06), 0 0 0 8px #1c1c24, 0 0 0 9px rgba(var(--accent-rgb),0.08), 0 0 60px rgba(var(--accent-rgb),0.04); overflow:hidden; display:flex; flex-direction:column; position:relative; }
+    .phone::before { content:''; position:absolute; inset:0; z-index:0; opacity:0.1; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    .phone::after { content:''; position:absolute; top:0; left:6%; right:6%; height:1px; background:linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.3), transparent); z-index:0; }
+    #atmosCanvas { position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:52px; }
+    .screen { flex:1; padding:18px 16px 12px; display:flex; flex-direction:column; height:100%; overflow:hidden; position:relative; z-index:1; }
+    .header-row { display:flex; align-items:center; gap:12px; margin-bottom:13px; }
+    .back-btn { width:36px; height:36px; border-radius:30px; background:rgba(var(--accent-rgb),0.07); border:1px solid rgba(var(--accent-rgb),0.2); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:0.3s ease; flex-shrink:0; }
+    .back-btn:active { transform:scale(0.92); }
+    .back-btn svg { width:16px; height:16px; color:var(--accent); }
+    .title { font-size:20px; font-weight:700; letter-spacing:0.2px; background:linear-gradient(135deg, var(--text-strong) 20%, var(--accent) 70%, var(--accent-dark) 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .title-icon { width:30px; height:30px; flex-shrink:0; border-radius:9px; background:radial-gradient(circle at 35% 30%, rgba(200,170,255,0.3), rgba(200,170,255,0.06)); border:0.5px solid rgba(200,170,255,0.4); display:flex; align-items:center; justify-content:center; margin-left:auto; }
+    .title-icon svg { width:17px; height:17px; color:#C8AAFF; }
+
+    .scroll-area { flex:1; overflow-y:auto; scrollbar-width:none; }
+    .scroll-area::-webkit-scrollbar { display:none; }
+
+    /* Карточка дня */
+    .today-card { background:linear-gradient(135deg, rgba(255,138,92,0.1), rgba(var(--accent-rgb),0.05)); border:1px solid rgba(255,138,92,0.2); border-radius:18px; padding:16px; margin-bottom:14px; position:relative; overflow:hidden; }
+    .today-card::before { content:''; position:absolute; top:0; left:0; width:50px; height:3px; background:linear-gradient(90deg, #FF8A5C, var(--accent)); border-radius:18px 0 7px 0; }
+    .today-head { display:flex; align-items:center; gap:9px; margin-bottom:6px; }
+    .today-title { font-size:14px; font-weight:700; color:#fff; }
+    .today-sub { font-size:11px; color:#b8b8c8; line-height:1.5; margin-bottom:14px; }
+    .grat-input-row { margin-bottom:10px; }
+    .grat-input-label { font-size:10px; color:#FF8A5C; font-weight:700; margin-bottom:5px; display:flex; align-items:center; gap:6px; }
+    .grat-input-num { width:18px; height:18px; border-radius:50%; background:rgba(255,138,92,0.2); display:flex; align-items:center; justify-content:center; font-size:10px; }
+    .grat-input { width:100%; background:rgba(0,0,0,0.28); border:1px solid rgba(255,138,92,0.16); border-radius:12px; padding:11px 13px; color:#fff; font-size:13.5px; font-family:inherit; outline:none; resize:none; min-height:46px; line-height:1.4; transition:0.2s ease; }
+    .grat-input:focus { border-color:#FF8A5C; }
+    .grat-input::placeholder { color:#6e6e7e; }
+    .save-btn { padding:14px; border-radius:15px; background:linear-gradient(135deg, var(--accent), #FF8A5C); color:#0a0a0f; font-weight:700; font-size:14px; text-align:center; cursor:pointer; box-shadow:0 4px 16px rgba(255,138,92,0.3); display:flex; align-items:center; justify-content:center; gap:7px; margin-top:6px; }
+    .save-btn:active { transform:scale(0.98); }
+    .save-btn svg { width:16px; height:16px; }
+    .saved-badge { text-align:center; font-size:11px; color:#78DC96; margin-top:10px; font-weight:600; display:none; }
+    .saved-badge.show { display:block; }
+
+    /* Стрик */
+    .streak-card { display:flex; align-items:center; gap:12px; background:linear-gradient(135deg, rgba(255,217,102,0.1), rgba(255,138,92,0.05)); border:1px solid rgba(255,217,102,0.2); border-radius:15px; padding:13px 15px; margin-bottom:16px; }
+    .streak-flame { font-size:26px; }
+    .streak-info { flex:1; }
+    .streak-num { font-size:18px; font-weight:700; color:#fff; }
+    .streak-lbl { font-size:10px; color:#b8b8c8; }
+
+    .section-label { font-size:11px; font-weight:700; color:var(--accent-2); letter-spacing:0.3px; margin:4px 2px 10px; display:flex; align-items:center; justify-content:space-between; }
+    .section-label .cnt { color:#8e8e9e; font-weight:600; }
+
+    /* Архив */
+    .arch-day { background:linear-gradient(135deg, rgba(35,35,46,0.5), rgba(22,22,30,0.5)); border:0.5px solid rgba(var(--accent-rgb),0.1); border-radius:14px; padding:13px 15px; margin-bottom:9px; }
+    .arch-date { font-size:10px; color:#FF8A5C; font-weight:700; margin-bottom:8px; }
+    .arch-line { display:flex; gap:8px; font-size:12.5px; color:#e8e8ee; line-height:1.45; margin-bottom:6px; }
+    .arch-line:last-child { margin-bottom:0; }
+    .arch-bullet { color:#FF8A5C; flex-shrink:0; }
+    .arch-del { float:right; color:#ff6b6b; opacity:0.4; cursor:pointer; }
+    .arch-del svg { width:13px; height:13px; }
+    .empty-mini { text-align:center; color:#6e6e7e; font-size:11px; padding:24px 12px; line-height:1.5; }
+
+
+    /* Баланс монет вверху */
+    .coins-card { background:linear-gradient(135deg, rgba(255,217,102,0.12), rgba(200,170,255,0.06)); border:1px solid rgba(255,217,102,0.25); border-radius:18px; padding:16px; margin-bottom:14px; display:flex; align-items:center; gap:14px; position:relative; overflow:hidden; }
+    .coins-card::before { content:''; position:absolute; top:0; left:0; width:50px; height:3px; background:linear-gradient(90deg, var(--accent), #C8AAFF); border-radius:18px 0 7px 0; }
+    .coin-big { width:50px; height:50px; flex-shrink:0; }
+    .coins-info { flex:1; }
+    .coins-amount { font-size:26px; font-weight:700; color:#fff; line-height:1; }
+    .coins-label { font-size:11px; color:#9a9aab; margin-top:3px; }
+    .shop-link { font-size:11px; font-weight:700; color:var(--accent); background:rgba(255,217,102,0.12); padding:8px 14px; border-radius:11px; cursor:pointer; }
+    .shop-link:active { transform:scale(0.95); }
+
+    /* Вкладки */
+    .mode-tabs { display:flex; gap:6px; background:rgba(0,0,0,0.25); border-radius:13px; padding:4px; margin-bottom:14px; }
+    .mode-tab { flex:1; text-align:center; padding:10px 4px; border-radius:10px; font-size:12px; font-weight:700; color:#8e8e9e; cursor:pointer; transition:0.2s ease; }
+    .mode-tab.active { background:linear-gradient(135deg, var(--accent), #C8AAFF); color:#0a0a0f; }
+    .mode-pane { display:none; }
+    .mode-pane.active { display:block; }
+
+    /* Достижения */
+    .ach-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-bottom:10px; }
+    .ach-cell { aspect-ratio:1; border-radius:14px; background:linear-gradient(135deg, rgba(35,35,46,0.6), rgba(22,22,30,0.6)); border:0.5px solid rgba(var(--accent-rgb),0.12); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; padding:8px; text-align:center; position:relative; }
+    .ach-cell.unlocked { border-color:rgba(200,170,255,0.4); background:linear-gradient(135deg, rgba(200,170,255,0.12), rgba(35,35,46,0.6)); }
+    .ach-cell.locked { opacity:0.45; }
+    .ach-emoji { font-size:26px; filter:grayscale(0.2); }
+    .ach-cell.locked .ach-emoji { filter:grayscale(1); }
+    .ach-name { font-size:8.5px; color:#c8c8d0; font-weight:600; line-height:1.2; }
+    .ach-cell.unlocked .ach-name { color:#C8AAFF; }
+    .ach-lock { position:absolute; top:6px; right:6px; font-size:9px; }
+
+    /* Награды (личные поощрения) */
+    .reward-item { display:flex; align-items:center; gap:11px; background:linear-gradient(135deg, rgba(35,35,46,0.5), rgba(22,22,30,0.5)); border:0.5px solid rgba(var(--accent-rgb),0.1); border-radius:13px; padding:12px 13px; margin-bottom:9px; }
+    .reward-emoji { font-size:24px; flex-shrink:0; }
+    .reward-info { flex:1; min-width:0; }
+    .reward-name { font-size:14px; font-weight:700; color:#fff; }
+    .reward-limit { font-size:10px; color:#9a9aab; margin-top:2px; }
+    .reward-claim { padding:8px 14px; border-radius:11px; font-size:11px; font-weight:700; cursor:pointer; flex-shrink:0; background:linear-gradient(135deg, var(--accent), #C8AAFF); color:#0a0a0f; }
+    .reward-claim:active { transform:scale(0.95); }
+    .reward-claim.maxed { background:rgba(255,255,255,0.08); color:#8e8e9e; }
+    .reward-del { color:#ff6b6b; opacity:0.4; cursor:pointer; flex-shrink:0; }
+    .reward-del svg { width:13px; height:13px; }
+    .reward-progress { display:flex; gap:3px; margin-top:5px; }
+    .rp-dot { width:14px; height:5px; border-radius:3px; background:rgba(255,255,255,0.12); }
+    .rp-dot.used { background:#C8AAFF; }
+    .add-btn { padding:14px; border-radius:15px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; font-weight:700; font-size:14px; text-align:center; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; margin-top:6px; }
+    .add-btn:active { transform:scale(0.98); }
+    .add-btn svg { width:16px; height:16px; }
+
+    .modal { position:absolute; inset:0; z-index:400; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); display:none; align-items:center; justify-content:center; border-radius:52px; padding:18px; }
+    .modal.show { display:flex; }
+    .modal-box { background:linear-gradient(165deg, #1c1c26, #15151c); border-radius:22px; width:100%; padding:18px; border:0.5px solid rgba(var(--accent-rgb),0.2); }
+    .modal-title { font-size:16px; font-weight:700; color:var(--accent); margin-bottom:14px; }
+    .modal-box input { width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(var(--accent-rgb),0.16); border-radius:11px; padding:11px 12px; color:#fff; font-size:14px; font-family:inherit; outline:none; margin-bottom:10px; }
+    .modal-box input:focus { border-color:var(--accent-2); }
+    .modal-box input::placeholder { color:#6e6e7e; }
+    .field-label { font-size:10px; color:#9a9aab; margin-bottom:5px; font-weight:600; }
+    .emoji-pick { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+    .emoji-opt { width:38px; height:38px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid transparent; display:flex; align-items:center; justify-content:center; font-size:20px; cursor:pointer; }
+    .emoji-opt.on { background:rgba(200,170,255,0.2); border-color:rgba(200,170,255,0.5); }
+    .modal-btns { display:flex; gap:8px; }
+    .modal-btn { flex:1; padding:12px; border-radius:13px; font-size:13px; font-weight:700; cursor:pointer; text-align:center; border:none; }
+    .modal-btn.save { background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; }
+    .modal-btn.cancel { background:rgba(255,255,255,0.06); color:#9a9aab; border:1px solid rgba(255,255,255,0.1); }
+    .empty-mini { text-align:center; color:#6e6e7e; font-size:11px; padding:20px 12px; line-height:1.5; }
+    .toast { position:absolute; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,0.9); border:1px solid var(--accent); border-radius:20px; padding:9px 18px; color:var(--accent); font-size:12px; font-weight:600; z-index:500; opacity:0; transition:0.3s ease; pointer-events:none; white-space:nowrap; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* PWA-режим (установлено на телефон): на весь реальный экран, без макетной рамки */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; overflow: hidden !important; }
+    .phone {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding-top: env(safe-area-inset-top) !important;
+        padding-bottom: env(safe-area-inset-bottom) !important;
+        max-width: 100vw !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, #atmos, .atmos-canvas { border-radius: 0 !important; }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important;
+    }
+}
+
+/* Телефоны: приложение на весь экран без макетной рамки (надёжно, не зависит от PWA-режима) */
+@media (max-width: 600px) {
+    * { -webkit-user-select: none !important; user-select: none !important; -webkit-tap-highlight-color: transparent !important; }
+    input, textarea { -webkit-user-select: text !important; user-select: text !important; }
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; height: 100vh; height: 100dvh; display: block !important; }
+    body { display: flex !important; align-items: stretch !important; justify-content: flex-start !important; }
+    .phone {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    /* анимация/фон идут до самого верха под чёлку */
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important; border-radius: 0 !important;
+    }
+    /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
+    .screen, .session-area, .slideshow, .scroll-area {
+        padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+    }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+}
+</style>
+<script src="focus-analytics.js"></script>
+</head>
+<body>
+<div class="phone">
+    <canvas id="atmosCanvas" width="375" height="700" style="width:375px;height:700px;"></canvas>
+    <div class="screen">
+        <div class="header-row">
+            <div class="back-btn" onclick="location.href='index.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <div class="title">Награды</div>
+            <div class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a7 7 0 0 0 7-7V3H5v5a7 7 0 0 0 7 7ZM12 15v4M8 21h8M5 6H2v2a3 3 0 0 0 3 3M19 6h3v2a3 3 0 0 1-3 3"/></svg></div>
+        </div>
+
+        <div class="coins-card">
+            <svg class="coin-big" viewBox="0 0 40 40"><defs><radialGradient id="cg" cx="38%" cy="32%" r="70%"><stop offset="0%" stop-color="#FFE9A8"/><stop offset="55%" stop-color="#FFD966"/><stop offset="100%" stop-color="#C9952E"/></radialGradient></defs><circle cx="20" cy="20" r="18" fill="url(#cg)" stroke="#C9952E" stroke-width="1.5"/><circle cx="20" cy="20" r="14" fill="none" stroke="#C9952E" stroke-width="1" opacity="0.5"/><path d="M15 12h10M15 12v16M15 20h7" stroke="#C9952E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+            <div class="coins-info">
+                <div class="coins-amount" id="coinsAmount">0</div>
+                <div class="coins-label">F-coins на балансе</div>
+            </div>
+            <div class="shop-link" id="shopLink">Магазин →</div>
+        </div>
+
+        <div class="mode-tabs">
+            <div class="mode-tab active" data-mode="ach">🏆 Достижения</div>
+            <div class="mode-tab" data-mode="rewards">🎁 Мои награды</div>
+        </div>
+
+        <div class="scroll-area">
+            <!-- Достижения -->
+            <div class="mode-pane active" id="pane-ach">
+                <div class="ach-grid" id="achGrid"></div>
+                <div class="empty-mini">Достижения открываются за активность по сферам и стрики 🔥</div>
+            </div>
+
+            <!-- Личные награды -->
+            <div class="mode-pane" id="pane-rewards">
+                <div style="font-size:11px;color:#9a9aab;line-height:1.5;margin-bottom:12px;padding:0 2px;">Назначь себе награды за дисциплину — то, что позволишь себе, когда заслужил. С недельным лимитом, чтобы не перебарщивать.</div>
+                <div id="rewardsList"></div>
+                <div class="add-btn" id="addRewardBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                    Добавить награду
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="rewardModal">
+        <div class="modal-box">
+            <div class="modal-title" id="rewardModalTitle">➕ Новая награда</div>
+            <div class="field-label">Что за награда</div>
+            <input type="text" id="rewardName" placeholder="Например: Пицца, сериал, выходной">
+            <div class="field-label">Иконка</div>
+            <div class="emoji-pick" id="emojiPick"></div>
+            <div class="field-label">Лимит в неделю (сколько раз можно)</div>
+            <input type="number" id="rewardLimit" placeholder="Например: 2" value="2">
+            <div class="modal-btns">
+                <button class="modal-btn cancel" id="cancelReward">Отмена</button>
+                <button class="modal-btn save" id="saveReward">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+</div>
+<script src="focus-storage.js"></script>
+<script type="module" src="firebase-auth-helper.js"></script>
+<script src="focus-core.js"></script>
+<script>
+    if (typeof FocusStorage === 'undefined') {
+        window.FocusStorage = {
+            _key:'focus_user',
+            getUser(){ try { return JSON.parse(localStorage.getItem(this._key)) || {}; } catch(e){ return {}; } },
+            saveUser(p){ const c=this.getUser(); localStorage.setItem(this._key, JSON.stringify({...c,...p})); return {...c,...p}; },
+            addCoins(n){ const c=this.getUser().coins||0; this.saveUser({coins:c+n}); return c+n; },
+            addActivity(sphere, action){ const u=this.getUser(); const d=new Date().toISOString().slice(0,10); u.activity=u.activity||{}; u.activity[d]=u.activity[d]||[]; u.activity[d].push({sphere,action,t:Date.now()}); this.saveUser({activity:u.activity}); },
+            getTheme(){ return this.getUser().theme || 'original'; },
+            setTheme(id){ this.saveUser({ theme:id }); }
+        };
+    }
+    if (typeof FocusCore === 'undefined') {
+        window.FocusCore = {
+            applyStoredTheme(){ (document.getElementById('htmlRoot')||document.documentElement).setAttribute('data-theme', FocusStorage.getTheme()); },
+            coinBurst(config) {
+        const amount = config.amount || 0;
+        const reason = config.reason || '';
+        const count = Math.min(Math.max(Math.round(amount), 8), 24);
+
+        const rootStyle = getComputedStyle(document.documentElement);
+        const accent = rootStyle.getPropertyValue('--accent').trim() || '#FFD966';
+        const accentLight = rootStyle.getPropertyValue('--accent-light').trim() || '#FFE9A8';
+        const accentDark = rootStyle.getPropertyValue('--accent-dark').trim() || '#C9952E';
+
+        // Контейнер монет вкладываем В РАМКУ телефона (не в body),
+        // чтобы анимация не вылетала за пределы экрана. overflow:hidden обрежет лишнее.
+        const phone = document.querySelector('.phone') || document.body;
+        const phoneRect = phone.getBoundingClientRect();
+        const phoneW = phoneRect.width, phoneH = phoneRect.height;
+
+        // Точка назначения — карточка баланса (координаты ОТНОСИТЕЛЬНО рамки телефона)
+        let targetX = phoneW / 2, targetY = 70;
+        const target = document.querySelector(config.targetSelector || '.balance-value, .balance-coins, .balance-block');
+        if (target) {
+            const r = target.getBoundingClientRect();
+            targetX = r.left - phoneRect.left + r.width / 2;
+            targetY = r.top - phoneRect.top + r.height / 2;
+        }
+
+        const startX = phoneW / 2;
+        const startY = phoneH / 2;
+        let originX = startX, originY = startY;
+        // Если передан элемент-источник (кнопка) — монеты вылетают из него
+        if (config.sourceEl) {
+            const sr = config.sourceEl.getBoundingClientRect();
+            originX = sr.left - phoneRect.left + sr.width / 2;
+            originY = sr.top - phoneRect.top + sr.height / 2;
+        }
+
+        // Контейнер для монет — absolute внутри .phone, обрезается рамкой
+        const layer = document.createElement('div');
+        layer.style.cssText = 'position:absolute; inset:0; z-index:2000; pointer-events:none; overflow:hidden; border-radius:52px;';
+        phone.appendChild(layer);
+
+        // SVG-монета с буквой F (data-uri, окрашенная под тему)
+        function coinSVG(rot) {
+            return `<svg width="34" height="34" viewBox="0 0 40 40" style="transform:scaleX(${rot});">
+                <defs>
+                    <radialGradient id="cg" cx="38%" cy="32%" r="70%">
+                        <stop offset="0%" stop-color="${accentLight}"/>
+                        <stop offset="55%" stop-color="${accent}"/>
+                        <stop offset="100%" stop-color="${accentDark}"/>
+                    </radialGradient>
+                </defs>
+                <circle cx="20" cy="20" r="18" fill="url(#cg)" stroke="${accentDark}" stroke-width="1.5"/>
+                <circle cx="20" cy="20" r="14" fill="none" stroke="${accentDark}" stroke-width="1" opacity="0.5"/>
+                <path d="M15 12h10M15 12v16M15 20h7" stroke="${accentDark}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>`;
+        }
+
+        const coins = [];
+        for (let i = 0; i < count; i++) {
+            const el = document.createElement('div');
+            el.style.cssText = `position:absolute; left:${originX}px; top:${originY}px; will-change:transform,opacity; filter:drop-shadow(0 0 6px rgba(255,200,80,0.6));`;
+            el.innerHTML = coinSVG(1);
+            layer.appendChild(el);
+            const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.6;
+            const power = 7 + Math.random() * 7;
+            coins.push({
+                el,
+                x: 0, y: 0,
+                vx: Math.cos(angle) * power,
+                vy: Math.sin(angle) * power - 9,   // подброс вверх
+                rot: Math.random() * 360,
+                vrot: (Math.random() - 0.5) * 40,
+                phase: 'burst',
+                delay: Math.random() * 6,
+                life: 0
+            });
+        }
+
+        // Всплывающая надпись "+N F-coins" — тоже внутри рамки телефона
+        const note = document.createElement('div');
+        note.style.cssText = `position:absolute; left:50%; top:38%; transform:translate(-50%,-50%) scale(0.6); z-index:2001;
+            background:rgba(0,0,0,0.88); border:1.5px solid ${accent}; border-radius:22px; padding:12px 26px;
+            color:${accent}; font-weight:800; font-size:17px; text-align:center; pointer-events:none;
+            box-shadow:0 0 30px rgba(255,200,80,0.4); opacity:0; transition:all 0.4s cubic-bezier(.2,1.4,.4,1); font-family:inherit; white-space:nowrap;`;
+        note.innerHTML = `+${this.formatCoins(amount)} F-coins` + (reason ? `<br><span style="font-size:11px;font-weight:600;opacity:0.85;">${reason}</span>` : '');
+        layer.appendChild(note);
+        requestAnimationFrame(() => { note.style.opacity = '1'; note.style.transform = 'translate(-50%,-50%) scale(1)'; });
+
+        try {
+            const actx = new (window.AudioContext || window.webkitAudioContext)();
+            [880, 1100, 1320].forEach((freq, i) => {
+                const osc = actx.createOscillator(), g = actx.createGain();
+                osc.connect(g); g.connect(actx.destination);
+                osc.frequency.value = freq; osc.type = 'triangle';
+                g.gain.setValueAtTime(0.0001, actx.currentTime + i * 0.08);
+                g.gain.exponentialRampToValueAtTime(0.12, actx.currentTime + i * 0.08 + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + i * 0.08 + 0.3);
+                osc.start(actx.currentTime + i * 0.08);
+                osc.stop(actx.currentTime + i * 0.08 + 0.3);
+            });
+        } catch (e) {}
+
+        const gravity = 0.45;
+        const floorY = phoneH - originY - 30;
+        let frame = 0;
+
+        const animate = () => {
+            frame++;
+            if (frame > 150) { layer.remove(); return; }
+            let alive = false;
+            coins.forEach((c) => {
+                if (c.delay > 0) { c.delay--; alive = true; return; }
+                c.life++;
+                c.rot += c.vrot;
+
+                if (c.phase === 'burst') {
+                    c.vy += gravity;
+                    c.x += c.vx;
+                    c.y += c.vy;
+                    if (c.y > floorY) { c.y = floorY; c.vy *= -0.5; c.vx *= 0.7; }
+                    // через ~45 кадров — переход к полёту на баланс
+                    if (c.life > 45) { c.phase = 'fly'; c.flyT = 0; c.sx = c.x; c.sy = c.y; }
+                    alive = true;
+                } else if (c.phase === 'fly') {
+                    c.flyT += 0.045;
+                    const t = c.flyT < 1 ? c.flyT : 1;
+                    const ease = 1 - Math.pow(1 - t, 3);
+                    const destX = targetX - originX;
+                    const destY = targetY - originY;
+                    c.x = c.sx + (destX - c.sx) * ease;
+                    c.y = c.sy + (destY - c.sy) * ease;
+                    const scale = 1 - t * 0.55;
+                    c.el.style.opacity = t > 0.85 ? (1 - (t - 0.85) / 0.15) : 1;
+                    c.el.firstChild.style.transform = `scaleX(${Math.cos(c.rot * Math.PI / 180)}) scale(${scale})`;
+                    if (t >= 1) { c.el.remove(); c.done = true; }
+                    else alive = true;
+                }
+                if (!c.done) {
+                    c.el.style.transform = `translate(${c.x}px, ${c.y}px)`;
+                    if (c.phase === 'burst') c.el.firstChild.style.transform = `scaleX(${Math.cos(c.rot * Math.PI / 180)})`;
+                }
+            });
+
+            if (alive) requestAnimationFrame(animate);
+            else layer.remove();
+        };
+        requestAnimationFrame(animate);
+
+        // Страховка от зависания: гарантированно убрать слой через 2.5с
+        setTimeout(() => { if (layer && layer.parentNode) layer.remove(); }, 2500);
+
+        setTimeout(() => {
+            note.style.opacity = '0';
+            note.style.transform = 'translate(-50%,-90%) scale(0.85)';
+            setTimeout(() => note.remove(), 400);
+        }, 1500);
+    },
+initAtmosphere(canvasId) {
+                const ac = document.getElementById(canvasId || 'atmosCanvas');
+                if (!ac) return;
+                const actx = ac.getContext('2d');
+                ac.width = 375; ac.height = 700;
+                let tronPulses=[], mkEmbers=[], mkDrips=[], mkFlash=0, mkBolt=null, matrixDrops=null, matrixColumns=0;
+                let predatorRadarAngle=0, predatorScanY=0, predatorT=0, predatorBlips=[{a:1.2,r:0.7},{a:3.8,r:0.5}], predatorReticle=null;
+                const matrixChars = 'アイウエオカキクケコサシスセソ0123456789ABCDEF'.split('');
+                let lastTheme=null, lastTrigger=0, washT=0;
+                function currentTheme() { const r = document.getElementById('htmlRoot') || document.documentElement; return r.getAttribute('data-theme') || 'original'; }
+                function cssColor(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function cssColorRgb(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function drawFullScreenWash() {
+                    washT += 0.008;
+                    const accRgb = cssColorRgb('--accent-rgb'), acc2Rgb = cssColorRgb('--accent-2-rgb');
+                    const x = ac.width*(0.5+Math.sin(washT)*0.5), y = ac.height*(0.5+Math.cos(washT*0.7)*0.5);
+                    const grad = actx.createRadialGradient(x,y,0,ac.width/2,ac.height/2,Math.max(ac.width,ac.height)*0.9);
+                    grad.addColorStop(0,'rgba('+accRgb+',0.05)'); grad.addColorStop(0.5,'rgba('+acc2Rgb+',0.035)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+                    actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                }
+                function drawTron() {
+                    if (Math.random() > 0.93) {
+                        const vertical = Math.random() > 0.5;
+                        tronPulses.push({ vertical, pos: Math.floor(Math.random()*(vertical?ac.width:ac.height)), t:-40, speed:3+Math.random()*2, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2'), len:60 });
+                    }
+                    tronPulses.forEach(p => {
+                        p.t += p.speed;
+                        const grad = p.vertical ? actx.createLinearGradient(p.pos,p.t-p.len,p.pos,p.t) : actx.createLinearGradient(p.t-p.len,p.pos,p.t,p.pos);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,p.color);
+                        actx.strokeStyle = grad; actx.lineWidth=2; actx.shadowBlur=8; actx.shadowColor=p.color;
+                        actx.beginPath();
+                        if (p.vertical) { actx.moveTo(p.pos,p.t-p.len); actx.lineTo(p.pos,p.t); } else { actx.moveTo(p.t-p.len,p.pos); actx.lineTo(p.t,p.pos); }
+                        actx.stroke();
+                    });
+                    actx.shadowBlur=0;
+                    tronPulses = tronPulses.filter(p => p.t < Math.max(ac.width,ac.height)+40);
+                }
+                function drawPredator() {
+                    predatorT += 0.01;
+                    for (let i=0;i<5;i++) {
+                        const x = ac.width/2+Math.sin(predatorT+i*2)*ac.width*0.35, y = ac.height/2+Math.cos(predatorT*0.7+i*1.7)*ac.height*0.4;
+                        const r = 60+Math.sin(predatorT*2+i)*20;
+                        const grad = actx.createRadialGradient(x,y,0,x,y,r);
+                        grad.addColorStop(0,'rgba('+cssColorRgb('--accent-rgb')+',0.05)'); grad.addColorStop(1,'rgba('+cssColorRgb('--accent-rgb')+',0)');
+                        actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                    }
+                    predatorScanY += 1.8; if (predatorScanY > ac.height+20) predatorScanY=-20;
+                    const acc2 = cssColorRgb('--accent-2-rgb');
+                    const lineGrad = actx.createLinearGradient(0,predatorScanY-15,0,predatorScanY+15);
+                    lineGrad.addColorStop(0,'rgba('+acc2+',0)'); lineGrad.addColorStop(0.5,'rgba('+acc2+',0.35)'); lineGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.fillStyle = lineGrad; actx.fillRect(0,predatorScanY-15,ac.width,30);
+                    actx.strokeStyle='rgba('+acc2+',0.5)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.moveTo(0,predatorScanY); actx.lineTo(ac.width,predatorScanY); actx.stroke();
+                    const rcx=ac.width-46, rcy=64, rr=34;
+                    actx.save();
+                    actx.strokeStyle='rgba('+acc2+',0.4)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.arc(rcx,rcy,rr,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.arc(rcx,rcy,rr*0.6,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx-rr,rcy); actx.lineTo(rcx+rr,rcy); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx,rcy-rr); actx.lineTo(rcx,rcy+rr); actx.stroke();
+                    predatorRadarAngle += 0.05;
+                    const sweepGrad = actx.createLinearGradient(rcx,rcy,rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr);
+                    sweepGrad.addColorStop(0,'rgba('+acc2+',0.6)'); sweepGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.strokeStyle = sweepGrad; actx.lineWidth=2;
+                    actx.beginPath(); actx.moveTo(rcx,rcy); actx.lineTo(rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr); actx.stroke();
+                    predatorBlips.forEach(b => {
+                        const bx=rcx+Math.cos(b.a)*rr*b.r, by=rcy+Math.sin(b.a)*rr*b.r;
+                        const diff = Math.abs(((predatorRadarAngle%(Math.PI*2))-b.a+Math.PI*3)%(Math.PI*2)-Math.PI);
+                        const blipAlpha = diff<0.5 ? 1-diff/0.5 : 0;
+                        if (blipAlpha>0) { actx.fillStyle='rgba('+acc2+','+blipAlpha+')'; actx.beginPath(); actx.arc(bx,by,2,0,Math.PI*2); actx.fill(); }
+                    });
+                    actx.restore();
+                    if (Math.random()>0.992 && !predatorReticle) predatorReticle = { x:40+Math.random()*(ac.width-80), y:90+Math.random()*(ac.height-220), life:1 };
+                    if (predatorReticle) {
+                        predatorReticle.life -= 0.012;
+                        if (predatorReticle.life<=0) predatorReticle=null;
+                        else {
+                            const a = Math.min(predatorReticle.life>0.85?(1-predatorReticle.life)/0.15:1,1) * Math.min(predatorReticle.life/0.15,1);
+                            const size = 22+(1-Math.min(predatorReticle.life,1))*6;
+                            actx.save(); actx.globalAlpha=a; actx.strokeStyle=cssColor('--accent'); actx.lineWidth=1.3;
+                            actx.beginPath(); actx.arc(predatorReticle.x,predatorReticle.y,size,0,Math.PI*2); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x-size-6,predatorReticle.y); actx.lineTo(predatorReticle.x-size+4,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x+size-4,predatorReticle.y); actx.lineTo(predatorReticle.x+size+6,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y-size-6); actx.lineTo(predatorReticle.x,predatorReticle.y-size+4); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y+size-4); actx.lineTo(predatorReticle.x,predatorReticle.y+size+6); actx.stroke();
+                            actx.font='8px monospace'; actx.fillStyle=cssColor('--accent'); actx.fillText('LOCKED', predatorReticle.x-16, predatorReticle.y+size+14);
+                            actx.restore();
+                        }
+                    }
+                }
+                function drawMK() {
+                    const phoneEl = document.querySelector('.phone');
+                    if (Math.random()>0.4) mkEmbers.push({ x:Math.random()*ac.width, y:ac.height+10, vx:(Math.random()-0.5)*0.6, vy:-0.6-Math.random()*1.2, size:1+Math.random()*2, life:1, decay:0.004+Math.random()*0.006, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2') });
+                    mkEmbers.forEach(e => {
+                        e.x+=e.vx; e.y+=e.vy; e.life-=e.decay;
+                        const fade=Math.max(e.life,0); actx.globalAlpha=fade; actx.fillStyle=e.color; actx.shadowBlur=6; actx.shadowColor=e.color;
+                        actx.beginPath(); actx.arc(e.x,e.y,e.size,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1; actx.shadowBlur=0;
+                    mkEmbers = mkEmbers.filter(e=>e.life>0 && e.y>-10);
+                    if (Math.random()>0.96) mkDrips.push({ x:20+Math.random()*(ac.width-40), y:-10, len:8+Math.random()*10, speed:1.2+Math.random()*1.5, life:1 });
+                    mkDrips.forEach(d => {
+                        d.y+=d.speed; d.life-=0.004;
+                        const fade=Math.max(d.life,0); actx.globalAlpha=fade;
+                        const grad = actx.createLinearGradient(d.x,d.y-d.len,d.x,d.y);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,cssColor('--accent'));
+                        actx.strokeStyle=grad; actx.lineWidth=2;
+                        actx.beginPath(); actx.moveTo(d.x,d.y-d.len); actx.lineTo(d.x,d.y); actx.stroke();
+                        actx.fillStyle=cssColor('--accent'); actx.beginPath(); actx.arc(d.x,d.y,1.4,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1;
+                    mkDrips = mkDrips.filter(d=>d.life>0 && d.y<ac.height+10);
+                    if (Date.now()-lastTrigger>6000 && Math.random()>0.5) {
+                        lastTrigger = Date.now(); mkFlash=1;
+                        const startX = 30+Math.random()*(ac.width-60);
+                        const points=[{x:startX,y:-5}]; let x=startX;
+                        for (let i=1;i<=9;i++) { const y=(ac.height/9)*i; x+=(Math.random()-0.5)*50; x=Math.max(10,Math.min(ac.width-10,x)); points.push({x,y}); }
+                        mkBolt = { points, life:1 };
+                        if (phoneEl) { phoneEl.classList.add('mk-shake'); setTimeout(()=>phoneEl.classList.remove('mk-shake'),280); }
+                    }
+                    if (mkBolt) {
+                        mkBolt.life -= 0.05;
+                        if (mkBolt.life<=0) mkBolt=null;
+                        else {
+                            actx.save(); actx.globalAlpha=Math.min(mkBolt.life*2,1);
+                            actx.strokeStyle='#7CD9FF'; actx.shadowBlur=14; actx.shadowColor='#3AB8FF'; actx.lineWidth=2;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.strokeStyle='#FFFFFF'; actx.lineWidth=0.8; actx.shadowBlur=4;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.restore();
+                        }
+                    }
+                    if (mkFlash>0) { actx.fillStyle='rgba(124,217,255,'+(mkFlash*0.16)+')'; actx.fillRect(0,0,ac.width,ac.height); mkFlash -= 0.08; }
+                }
+                function drawMatrix() {
+                    if (!matrixDrops) { matrixColumns = Math.floor(ac.width/13); matrixDrops = Array(matrixColumns).fill(0).map(()=>Math.random()*-30); }
+                    actx.fillStyle='rgba(0,0,0,0.08)'; actx.fillRect(0,0,ac.width,ac.height); actx.font='13px monospace';
+                    for (let i=0;i<matrixColumns;i++) {
+                        const text = matrixChars[Math.floor(Math.random()*matrixChars.length)];
+                        const y = matrixDrops[i]*13;
+                        const isHead = Math.random()>0.92;
+                        actx.fillStyle = isHead ? '#cfffd9' : 'rgba('+cssColorRgb('--accent-rgb')+',0.55)';
+                        actx.fillText(text, i*13, y);
+                        if (y>ac.height && Math.random()>0.975) matrixDrops[i]=0;
+                        matrixDrops[i]++;
+                    }
+                }
+                function loop() {
+                    const theme = currentTheme();
+                    if (theme !== lastTheme) {
+                        actx.clearRect(0,0,ac.width,ac.height);
+                        tronPulses=[]; mkEmbers=[]; mkDrips=[]; mkBolt=null; matrixDrops=null; predatorReticle=null;
+                        lastTheme = theme;
+                    }
+                    if (theme !== 'matrix') actx.clearRect(0,0,ac.width,ac.height);
+                    drawFullScreenWash();
+                    if (theme==='tron') drawTron();
+                    else if (theme==='predator') drawPredator();
+                    else if (theme==='mk') drawMK();
+                    else if (theme==='matrix') drawMatrix();
+                    requestAnimationFrame(loop);
+                }
+                loop();
+            }        };
+    }
+
+    FocusCore.applyStoredTheme();
+    FocusCore.initAtmosphere('atmosCanvas');
+
+    function toast(msg){
+        const t=document.getElementById('toast');
+        t.innerText=msg; t.classList.add('show');
+        clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'), 1600);
+    }
+    function escapeHtml(s){ const d=document.createElement('div'); d.innerText=String(s==null?'':s); return d.innerHTML; }
+
+    // баланс монет
+    const user = FocusStorage.getUser();
+    document.getElementById('coinsAmount').innerText = (user.coins || 0).toLocaleString('ru-RU');
+    document.getElementById('shopLink').addEventListener('click', () => location.href = 'shop.html');
+
+    // вкладки
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.mode-pane').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('pane-' + tab.dataset.mode).classList.add('active');
+        });
+    });
+
+    // ===== ДОСТИЖЕНИЯ =====
+    // считаем активность по сферам из focus_activity_days (центральная система) + старый focus_user.activity
+    function getActivityDays(){
+        try {
+            const a = JSON.parse(localStorage.getItem('focus_activity_days')) || {};
+            return a;
+        } catch(e){ return {}; }
+    }
+    function totalActivityCount(){
+        const a = getActivityDays();
+        let total = 0;
+        Object.keys(a).forEach(k => { if (k !== '_all' && Array.isArray(a[k])) total += a[k].length; });
+        return total;
+    }
+    function sphereStreak(sphere){
+        const a = getActivityDays();
+        const days = a[sphere] || [];
+        if (!days.length) return 0;
+        const set = new Set(days);
+        let s = 0; let d = new Date();
+        if (!set.has(d.toISOString().slice(0,10))) d.setDate(d.getDate()-1);
+        while (set.has(d.toISOString().slice(0,10))) { s++; d.setDate(d.getDate()-1); }
+        return s;
+    }
+    function allStreak(){
+        const a = getActivityDays();
+        const days = a['_all'] || [];
+        if (!days.length) return 0;
+        const set = new Set(days);
+        let s = 0; let d = new Date();
+        if (!set.has(d.toISOString().slice(0,10))) d.setDate(d.getDate()-1);
+        while (set.has(d.toISOString().slice(0,10))) { s++; d.setDate(d.getDate()-1); }
+        return s;
+    }
+
+    // определения достижений
+    const ACHIEVEMENTS = [
+        { id:'first',   emoji:'🌱', name:'Первый шаг',    check:() => totalActivityCount() >= 1 },
+        { id:'week3',   emoji:'🔥', name:'Стрик 3 дня',   check:() => allStreak() >= 3 },
+        { id:'week7',   emoji:'⚡', name:'Неделя подряд',  check:() => allStreak() >= 7 },
+        { id:'body',    emoji:'💪', name:'Тело: 5 дней',   check:() => (getActivityDays()['body']||[]).length >= 5 },
+        { id:'mental',  emoji:'🧠', name:'Менталка: 5',    check:() => (getActivityDays()['mental']||[]).length >= 5 },
+        { id:'energy',  emoji:'🔋', name:'Энергия: 5',     check:() => (getActivityDays()['energy']||[]).length >= 5 },
+        { id:'faith',   emoji:'🕊️', name:'Вера: 5 дней',   check:() => (getActivityDays()['faith']||[]).length >= 5 },
+        { id:'rel',     emoji:'💞', name:'Связи: 3',       check:() => (getActivityDays()['relationships']||[]).length >= 3 },
+        { id:'month',   emoji:'👑', name:'Стрик 30',       check:() => allStreak() >= 30 },
+        { id:'total30', emoji:'⭐', name:'30 активностей',  check:() => totalActivityCount() >= 30 },
+        { id:'total100',emoji:'💎', name:'100 активностей', check:() => totalActivityCount() >= 100 },
+        { id:'allspheres', emoji:'🌟', name:'Все сферы',   check:() => { const a=getActivityDays(); return ['body','mental','energy','faith','relationships'].every(s => (a[s]||[]).length > 0); } }
+    ];
+
+    function renderAchievements(){
+        const grid = document.getElementById('achGrid');
+        grid.innerHTML = '';
+        ACHIEVEMENTS.forEach(ach => {
+            const unlocked = ach.check();
+            const cell = document.createElement('div');
+            cell.className = 'ach-cell ' + (unlocked ? 'unlocked' : 'locked');
+            cell.innerHTML = `
+                ${unlocked ? '' : '<div class="ach-lock">🔒</div>'}
+                <div class="ach-emoji">${ach.emoji}</div>
+                <div class="ach-name">${ach.name}</div>`;
+            grid.appendChild(cell);
+        });
+    }
+
+    // ===== ЛИЧНЫЕ НАГРАДЫ =====
+    const KEY = 'focus_personal_rewards'; // [{id,name,emoji,limit,used:[],weekStart}]
+    const REWARD_EMOJIS = ['🍕','🍔','🍷','🥃','🎬','🎮','🍫','🛍️','😴','🏖️','🎁','☕'];
+    let rewards = [];
+    try {
+        rewards = JSON.parse(localStorage.getItem(KEY)) || [];
+        // миграция старого ls_control_rewards
+        if (rewards.length === 0) {
+            const old = JSON.parse(localStorage.getItem('ls_control_rewards') || '[]');
+            if (old.length) rewards = old.map(r => ({ id:r.id||Date.now()+Math.random(), name:r.name||r.text||'Награда', emoji:r.emoji||'🎁', limit:r.limit||r.weeklyLimit||2, used:[], weekStart:weekStartISO() }));
+        }
+    } catch(e){ rewards = []; }
+    function save(){ localStorage.setItem(KEY, JSON.stringify(rewards)); }
+
+    function weekStartISO(){
+        const d = new Date(); const day = d.getDay() || 7; // Пн=1
+        d.setDate(d.getDate() - day + 1); return d.toISOString().slice(0,10);
+    }
+    // сброс счётчика на новой неделе
+    function ensureWeek(r){
+        const ws = weekStartISO();
+        if (r.weekStart !== ws) { r.weekStart = ws; r.used = []; }
+    }
+
+    let editingReward = null, pickedEmoji = '🎁';
+
+    function renderRewards(){
+        const list = document.getElementById('rewardsList');
+        if (rewards.length === 0) {
+            list.innerHTML = '<div class="empty-mini">Пока нет наград.<br>Добавь то, чем себя поощришь за дисциплину 🎁</div>';
+            return;
+        }
+        list.innerHTML = '';
+        rewards.forEach(r => {
+            ensureWeek(r);
+            const usedCount = (r.used || []).length;
+            const maxed = usedCount >= r.limit;
+            let dots = '';
+            for (let i=0;i<r.limit;i++) dots += `<div class="rp-dot ${i<usedCount?'used':''}"></div>`;
+            const item = document.createElement('div');
+            item.className = 'reward-item';
+            item.innerHTML = `
+                <div class="reward-emoji">${r.emoji||'🎁'}</div>
+                <div class="reward-info">
+                    <div class="reward-name">${escapeHtml(r.name)}</div>
+                    <div class="reward-limit">${usedCount} из ${r.limit} в неделю</div>
+                    <div class="reward-progress">${dots}</div>
+                </div>
+                <div class="reward-claim ${maxed?'maxed':''}" data-claim="${r.id}">${maxed?'Лимит':'Заслужил!'}</div>
+                <div class="reward-del" data-del="${r.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></div>`;
+            list.appendChild(item);
+        });
+        list.querySelectorAll('[data-claim]').forEach(el => el.addEventListener('click', () => {
+            const r = rewards.find(x => String(x.id) === String(el.dataset.claim));
+            ensureWeek(r);
+            if ((r.used||[]).length >= r.limit) { toast('Недельный лимит исчерпан 😌'); return; }
+            r.used.push(Date.now()); save(); renderRewards();
+            toast('🎉 Ты заслужил: ' + r.name + '!');
+        }));
+        list.querySelectorAll('[data-del]').forEach(el => el.addEventListener('click', () => {
+            rewards = rewards.filter(r => String(r.id) !== String(el.dataset.del)); save(); renderRewards();
+        }));
+    }
+
+    document.getElementById('addRewardBtn').addEventListener('click', () => {
+        editingReward = null; pickedEmoji = '🎁';
+        document.getElementById('rewardModalTitle').innerText = '➕ Новая награда';
+        document.getElementById('rewardName').value = '';
+        document.getElementById('rewardLimit').value = 2;
+        const ep = document.getElementById('emojiPick'); ep.innerHTML = '';
+        REWARD_EMOJIS.forEach(em => {
+            const o = document.createElement('div');
+            o.className = 'emoji-opt' + (em===pickedEmoji?' on':'');
+            o.innerText = em;
+            o.addEventListener('click', () => { pickedEmoji = em; document.querySelectorAll('.emoji-opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); });
+            ep.appendChild(o);
+        });
+        document.getElementById('rewardModal').classList.add('show');
+    });
+    document.getElementById('cancelReward').addEventListener('click', () => document.getElementById('rewardModal').classList.remove('show'));
+    document.getElementById('saveReward').addEventListener('click', () => {
+        const name = document.getElementById('rewardName').value.trim();
+        if (!name) { toast('Введите название'); return; }
+        const limit = parseInt(document.getElementById('rewardLimit').value) || 1;
+        rewards.push({ id: Date.now(), name, emoji: pickedEmoji, limit, used: [], weekStart: weekStartISO() });
+        save();
+        document.getElementById('rewardModal').classList.remove('show');
+        renderRewards();
+        toast('Награда добавлена 🎁');
+    });
+    document.getElementById('rewardModal').addEventListener('click', (e) => { if (e.target.id === 'rewardModal') e.currentTarget.classList.remove('show'); });
+
+    // Инициализация
+    renderAchievements();
+    renderRewards();
+</script>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+    }
+</script>
+    <script src="focus-chat-fab.js"></script>
+</body>
+</html>

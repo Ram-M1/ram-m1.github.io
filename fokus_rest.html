@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="original" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FOCUS">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Отдых и медитация — FOCUS</title>
+<style>
+    :root, [data-theme="original"] { --accent:#FFD966; --accent-rgb:255,217,102; --accent-2:#7C8CFF; --accent-2-rgb:124,140,255; --accent-light:#FFE9A8; --accent-dark:#C9952E; --bg-1:#131319; --bg-2:#0d0d12; --text-strong:#FFFFFF; }
+    [data-theme="tron"] { --accent:#FF3B2E; --accent-rgb:255,59,46; --accent-2:#00E5FF; --accent-2-rgb:0,229,255; --accent-light:#FF8A6B; --accent-dark:#B8201A; --bg-1:#0a0a0d; --bg-2:#000000; --text-strong:#FFFFFF; }
+    [data-theme="predator"] { --accent:#FF7A1A; --accent-rgb:255,122,26; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#FFB347; --accent-dark:#B84D00; --bg-1:#0d120d; --bg-2:#050705; --text-strong:#FFFFFF; }
+    [data-theme="mk"] { --accent:#FF1A2E; --accent-rgb:255,26,46; --accent-2:#FFD700; --accent-2-rgb:255,215,0; --accent-light:#FF6B5C; --accent-dark:#8A0000; --bg-1:#14080a; --bg-2:#050202; --text-strong:#FFFFFF; }
+    [data-theme="matrix"] { --accent:#00FF41; --accent-rgb:0,255,65; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#7FFF9E; --accent-dark:#008F25; --bg-1:#050505; --bg-2:#000000; --text-strong:#FFFFFF; }
+    .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
+    @keyframes mkShake { 0%,100%{transform:translate(0,0);} 15%{transform:translate(-4px,2px) rotate(-0.4deg);} 30%{transform:translate(4px,-2px) rotate(0.4deg);} 45%{transform:translate(-3px,1px);} 60%{transform:translate(3px,-1px);} 75%{transform:translate(-2px,0);} }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif; background:#060608; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:12px; position:relative; overflow:hidden; }
+    body::before { content:''; position:fixed; width:600px; height:600px; background:radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%); top:10%; left:50%; transform:translateX(-50%); pointer-events:none; animation:ambientDrift 12s ease-in-out infinite; }
+    @keyframes ambientDrift { 0%,100%{opacity:.6;transform:translateX(-50%) scale(1);} 50%{opacity:1;transform:translateX(-50%) scale(1.15);} }
+    .phone { width:375px; height:700px; background:linear-gradient(165deg, var(--bg-1) 0%, var(--bg-2) 100%); border-radius:52px; box-shadow:0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--accent-rgb),0.06), 0 0 0 8px #1c1c24, 0 0 0 9px rgba(var(--accent-rgb),0.08), 0 0 60px rgba(var(--accent-rgb),0.04); overflow:hidden; display:flex; flex-direction:column; position:relative; }
+    .phone::before { content:''; position:absolute; inset:0; z-index:0; opacity:0.1; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    .phone::after { content:''; position:absolute; top:0; left:6%; right:6%; height:1px; background:linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.3), transparent); z-index:0; }
+    #atmosCanvas { position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:52px; }
+    .screen { flex:1; padding:18px 16px 12px; display:flex; flex-direction:column; height:100%; overflow:hidden; position:relative; z-index:1; }
+    .header-row { display:flex; align-items:center; gap:12px; margin-bottom:13px; }
+    .back-btn { width:36px; height:36px; border-radius:30px; background:rgba(var(--accent-rgb),0.07); border:1px solid rgba(var(--accent-rgb),0.2); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:0.3s ease; flex-shrink:0; }
+    .back-btn:active { transform:scale(0.92); }
+    .back-btn svg { width:16px; height:16px; color:var(--accent); }
+    .title { font-size:18px; font-weight:700; letter-spacing:0.2px; background:linear-gradient(135deg, var(--text-strong) 20%, var(--accent) 70%, var(--accent-dark) 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .title-icon { width:30px; height:30px; flex-shrink:0; border-radius:9px; background:radial-gradient(circle at 35% 30%, rgba(200,170,255,0.28), rgba(200,170,255,0.06)); border:0.5px solid rgba(200,170,255,0.4); display:flex; align-items:center; justify-content:center; margin-left:auto; }
+    .title-icon svg { width:17px; height:17px; color:#C8AAFF; }
+
+    /* Переключатель режимов */
+    .mode-tabs { display:flex; gap:6px; background:rgba(0,0,0,0.25); border-radius:13px; padding:4px; margin-bottom:14px; }
+    .mode-tab { flex:1; text-align:center; padding:10px 4px; border-radius:10px; font-size:12.5px; font-weight:700; color:#8e8e9e; cursor:pointer; transition:0.2s ease; display:flex; align-items:center; justify-content:center; gap:6px; }
+    .mode-tab svg { width:15px; height:15px; }
+    .mode-tab.active { background:linear-gradient(135deg, rgba(200,170,255,0.9), rgba(124,140,255,0.7)); color:#0a0a0f; }
+    .mode-pane { display:none; flex:1; flex-direction:column; overflow:hidden; }
+    .mode-pane.active { display:flex; }
+
+    .scroll-area { flex:1; overflow-y:auto; scrollbar-width:none; }
+    .scroll-area::-webkit-scrollbar { display:none; }
+    .section-label { font-size:11px; font-weight:700; color:var(--accent-2); letter-spacing:0.3px; margin:4px 2px 10px; display:flex; align-items:center; justify-content:space-between; }
+    .section-label .cnt { color:#8e8e9e; font-weight:600; }
+
+    /* Медитация: выбор длительности */
+    .med-hero { background:linear-gradient(135deg, rgba(200,170,255,0.1), rgba(var(--accent-2-rgb),0.05)); border:1px solid rgba(200,170,255,0.2); border-radius:16px; padding:16px; margin-bottom:14px; text-align:center; }
+    .med-hero-txt { font-size:12px; color:#b8b8c8; line-height:1.5; }
+    .dur-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:16px; }
+    .dur { padding:14px 4px; border-radius:13px; background:rgba(35,35,46,0.6); border:1px solid rgba(var(--accent-rgb),0.14); color:#c8c8d0; font-size:14px; font-weight:700; cursor:pointer; text-align:center; transition:0.2s ease; }
+    .dur:active { transform:scale(0.95); }
+    .dur.on { background:rgba(200,170,255,0.16); border-color:rgba(200,170,255,0.5); color:#fff; }
+    .dur span { display:block; font-size:8.5px; color:#8e8e9e; font-weight:600; margin-top:2px; }
+    .dur.on span { color:#C8AAFF; }
+
+    .start-btn { padding:15px; border-radius:15px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; font-weight:700; font-size:15px; text-align:center; cursor:pointer; box-shadow:0 4px 16px rgba(var(--accent-2-rgb),0.3); display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:16px; }
+    .start-btn:active { transform:scale(0.98); }
+    .start-btn svg { width:18px; height:18px; }
+
+    /* Архив медитаций */
+    .arch-item { display:flex; align-items:flex-start; gap:11px; background:linear-gradient(135deg, rgba(35,35,46,0.5), rgba(22,22,30,0.5)); border:0.5px solid rgba(var(--accent-rgb),0.1); border-radius:13px; padding:11px 13px; margin-bottom:8px; }
+    .arch-emoji { font-size:22px; flex-shrink:0; }
+    .arch-body { flex:1; min-width:0; }
+    .arch-top { font-size:12.5px; font-weight:700; color:#fff; }
+    .arch-meta { font-size:9.5px; color:#8e8e9e; margin-top:2px; }
+    .arch-note { font-size:11px; color:#b8b8c0; line-height:1.4; margin-top:5px; word-wrap:break-word; }
+    .arch-del { color:#ff6b6b; opacity:0.45; cursor:pointer; flex-shrink:0; }
+    .arch-del svg { width:13px; height:13px; }
+    .empty-mini { text-align:center; color:#6e6e7e; font-size:11px; padding:18px 0; line-height:1.5; }
+
+    /* Цифровой детокс */
+    .detox-hero { background:linear-gradient(135deg, rgba(120,220,150,0.1), rgba(var(--accent-2-rgb),0.05)); border:1px solid rgba(120,220,150,0.2); border-radius:16px; padding:18px; margin-bottom:14px; text-align:center; position:relative; overflow:hidden; }
+    .detox-big { font-size:40px; font-weight:700; color:#fff; line-height:1; }
+    .detox-big span { font-size:18px; color:#78DC96; }
+    .detox-label { font-size:11px; color:#9a9aab; margin-top:6px; }
+    .detox-timer-display { font-size:34px; font-weight:700; color:#78DC96; font-variant-numeric:tabular-nums; }
+    .detox-hint { font-size:11px; color:#9a9aab; line-height:1.5; margin-bottom:14px; text-align:center; }
+    .detox-btn { padding:15px; border-radius:15px; font-weight:700; font-size:15px; text-align:center; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:14px; }
+    .detox-btn.start { background:linear-gradient(135deg, #78DC96, #5BC47E); color:#0a0a0f; }
+    .detox-btn.stop { background:rgba(255,107,92,0.15); border:1px solid rgba(255,107,92,0.4); color:#FF8A7C; }
+    .detox-btn:active { transform:scale(0.98); }
+    .detox-btn svg { width:18px; height:18px; }
+    .info-note { font-size:10px; color:#6e6e7e; line-height:1.5; padding:10px 12px; background:rgba(200,170,255,0.06); border:0.5px solid rgba(200,170,255,0.16); border-radius:11px; }
+
+    /* Экран сессии медитации */
+    .session-area { position:absolute; inset:0; z-index:300; background:radial-gradient(ellipse at 50% 35%, #0d1020, #04060d 76%); display:none; flex-direction:column; align-items:center; justify-content:flex-start; border-radius:52px; overflow:hidden; }
+    .session-area.show { display:flex; }
+    #medCanvas { position:absolute; inset:0; width:375px; height:700px; z-index:0; }
+    .med-center { position:absolute; top:64px; left:0; right:0; text-align:center; pointer-events:none; z-index:2; }
+    .med-time { font-size:46px; font-weight:700; color:#fff; text-shadow:0 0 30px rgba(140,160,255,0.7); font-variant-numeric:tabular-nums; }
+    .med-sub { font-size:11px; color:#9aa3c8; letter-spacing:4px; margin-top:5px; }
+    .med-stop { position:absolute; bottom:40px; left:50%; transform:translateX(-50%); padding:12px 32px; border-radius:14px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.16); color:#d8d8e0; font-size:13px; font-weight:700; cursor:pointer; z-index:2; backdrop-filter:blur(4px); }
+    .med-stop:active { transform:translateX(-50%) scale(0.96); }
+
+    /* Модалка впечатления */
+    .modal { position:absolute; inset:0; z-index:400; background:rgba(0,0,0,0.88); backdrop-filter:blur(8px); display:none; align-items:center; justify-content:center; border-radius:52px; padding:20px; }
+    .modal.show { display:flex; }
+    .modal-box { background:linear-gradient(165deg, #1c1c26, #15151c); border-radius:22px; width:100%; padding:18px; border:0.5px solid rgba(var(--accent-rgb),0.2); }
+    .modal-title { font-size:16px; font-weight:700; color:#fff; margin-bottom:5px; text-align:center; }
+    .modal-sub { font-size:11px; color:#9a9aab; margin-bottom:15px; text-align:center; line-height:1.4; }
+    .feel-row { display:flex; justify-content:space-between; gap:6px; margin-bottom:14px; }
+    .feel { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:8px 2px; border-radius:12px; border:1.5px solid transparent; transition:0.2s ease; }
+    .feel .emoji { font-size:24px; filter:grayscale(0.4); transition:0.2s ease; }
+    .feel .lbl { font-size:8px; color:#8e8e9e; font-weight:600; }
+    .feel.on { background:rgba(200,170,255,0.14); border-color:rgba(200,170,255,0.5); }
+    .feel.on .emoji { filter:grayscale(0); transform:scale(1.12); }
+    .feel.on .lbl { color:#C8AAFF; }
+    .feel-note { width:100%; min-height:60px; background:rgba(0,0,0,0.3); border:1px solid rgba(var(--accent-rgb),0.16); border-radius:12px; padding:11px 13px; color:#fff; font-size:13px; font-family:inherit; outline:none; resize:none; line-height:1.4; margin-bottom:14px; }
+    .feel-note:focus { border-color:var(--accent-2); }
+    .feel-note::placeholder { color:#6e6e7e; }
+    .modal-btns { display:flex; gap:8px; }
+    .modal-btn { flex:1; padding:13px; border-radius:13px; font-size:13px; font-weight:700; cursor:pointer; text-align:center; border:none; }
+    .modal-btn.save { background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; }
+    .modal-btn.skip { background:rgba(255,255,255,0.06); color:#9a9aab; border:1px solid rgba(255,255,255,0.1); }
+
+    .toast { position:absolute; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,0.9); border:1px solid var(--accent); border-radius:20px; padding:9px 18px; color:var(--accent); font-size:12px; font-weight:600; z-index:500; opacity:0; transition:0.3s ease; pointer-events:none; white-space:nowrap; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* PWA-режим (установлено на телефон): на весь реальный экран, без макетной рамки */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; overflow: hidden !important; }
+    .phone {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding-top: env(safe-area-inset-top) !important;
+        padding-bottom: env(safe-area-inset-bottom) !important;
+        max-width: 100vw !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, #atmos, .atmos-canvas { border-radius: 0 !important; }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important;
+    }
+}
+
+/* Телефоны: приложение на весь экран без макетной рамки (надёжно, не зависит от PWA-режима) */
+@media (max-width: 600px) {
+    * { -webkit-user-select: none !important; user-select: none !important; -webkit-tap-highlight-color: transparent !important; }
+    input, textarea { -webkit-user-select: text !important; user-select: text !important; }
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; height: 100vh; height: 100dvh; display: block !important; }
+    body { display: flex !important; align-items: stretch !important; justify-content: flex-start !important; }
+    .phone {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    /* анимация/фон идут до самого верха под чёлку */
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important; border-radius: 0 !important;
+    }
+    /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
+    .screen, .session-area, .slideshow, .scroll-area {
+        padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+    }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+}
+</style>
+<script src="focus-analytics.js"></script>
+</head>
+<body>
+<div class="phone">
+    <canvas id="atmosCanvas" width="375" height="700" style="width:375px;height:700px;"></canvas>
+    <div class="screen">
+        <div class="header-row">
+            <div class="back-btn" onclick="location.href='fokus_energy.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <div class="title">Отдых и медитация</div>
+            <div class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5M12 12l3 2"/></svg></div>
+        </div>
+
+        <div class="mode-tabs">
+            <div class="mode-tab active" data-mode="med">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                Медитация
+            </div>
+            <div class="mode-tab" data-mode="detox">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M11 18h2M4 8l16 8"/></svg>
+                Детокс
+            </div>
+        </div>
+
+        <!-- Режим Медитация -->
+        <div class="mode-pane active" id="pane-med">
+            <div class="scroll-area">
+                <div class="med-hero">
+                    <div class="med-hero-txt">Сядь удобно, расслабься и дыши спокойно. Отпусти мысли — пусть приходят и уходят. Просто будь здесь и сейчас.</div>
+                </div>
+                <div class="section-label">ДЛИТЕЛЬНОСТЬ</div>
+                <div class="dur-grid" id="durGrid">
+                    <div class="dur on" data-min="5">5<span>мин</span></div>
+                    <div class="dur" data-min="10">10<span>мин</span></div>
+                    <div class="dur" data-min="15">15<span>мин</span></div>
+                    <div class="dur" data-min="20">20<span>мин</span></div>
+                </div>
+                <div class="start-btn" id="startMedBtn">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    Начать медитацию
+                </div>
+                <div class="section-label"><span>АРХИВ МЕДИТАЦИЙ</span><span class="cnt" id="archCnt"></span></div>
+                <div id="archiveList"></div>
+            </div>
+        </div>
+
+        <!-- Режим Детокс -->
+        <div class="mode-pane" id="pane-detox">
+            <div class="scroll-area">
+                <div class="detox-hero">
+                    <div id="detoxIdle">
+                        <div class="detox-big"><span id="detoxTodayH">0</span><span> ч </span><span id="detoxTodayM">0</span><span> мин</span></div>
+                        <div class="detox-label">сегодня без телефона</div>
+                    </div>
+                    <div id="detoxRunning" style="display:none;">
+                        <div class="detox-timer-display" id="detoxTimer">00:00</div>
+                        <div class="detox-label">идёт детокс — отложи телефон 📵</div>
+                    </div>
+                </div>
+                <div class="detox-hint" id="detoxHint">Запусти детокс и отложи телефон. Таймер считает время без экрана. Вернулся — нажми «Завершить», время засчитается.</div>
+                <div class="detox-btn start" id="detoxStartBtn">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    Начать детокс
+                </div>
+                <div class="detox-btn stop" id="detoxStopBtn" style="display:none;">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                    Завершить детокс
+                </div>
+                <div class="section-label"><span>ИСТОРИЯ ДЕТОКСА</span></div>
+                <div id="detoxList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Экран сессии медитации -->
+    <div class="session-area" id="sessionArea">
+        <canvas id="medCanvas" width="375" height="700"></canvas>
+        <div class="med-center">
+            <div class="med-time" id="medTime">5:00</div>
+            <div class="med-sub">МЕДИТАЦИЯ</div>
+        </div>
+        <div class="med-stop" id="medStop">Завершить</div>
+    </div>
+
+    <!-- Модалка впечатления -->
+    <div class="modal" id="feelModal">
+        <div class="modal-box">
+            <div class="modal-title">Как прошло? 🧘</div>
+            <div class="modal-sub">Поделись впечатлением (необязательно)</div>
+            <div class="feel-row" id="feelRow">
+                <div class="feel" data-feel="great"><span class="emoji">😌</span><span class="lbl">Спокойно</span></div>
+                <div class="feel" data-feel="good"><span class="emoji">🙂</span><span class="lbl">Хорошо</span></div>
+                <div class="feel" data-feel="ok"><span class="emoji">😐</span><span class="lbl">Нейтр.</span></div>
+                <div class="feel" data-feel="restless"><span class="emoji">😣</span><span class="lbl">Неспок.</span></div>
+            </div>
+            <textarea class="feel-note" id="feelNote" placeholder="Что почувствовал? Какие были мысли?"></textarea>
+            <div class="modal-btns">
+                <button class="modal-btn skip" id="feelSkip">Пропустить</button>
+                <button class="modal-btn save" id="feelSave">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+</div>
+<script src="focus-storage.js"></script>
+<script src="focus-rewards.js"></script>
+<script type="module" src="firebase-auth-helper.js"></script>
+<script src="focus-core.js"></script>
+<script>
+    if (typeof FocusStorage === 'undefined') {
+        window.FocusStorage = {
+            _key:'focus_user',
+            getUser(){ try { return JSON.parse(localStorage.getItem(this._key)) || {}; } catch(e){ return {}; } },
+            saveUser(p){ const c=this.getUser(); localStorage.setItem(this._key, JSON.stringify({...c,...p})); return {...c,...p}; },
+            addCoins(n){ const c=this.getUser().coins||0; this.saveUser({coins:c+n}); return c+n; },
+            addActivity(sphere, action){ const u=this.getUser(); const d=new Date().toISOString().slice(0,10); u.activity=u.activity||{}; u.activity[d]=u.activity[d]||[]; u.activity[d].push({sphere,action,t:Date.now()}); this.saveUser({activity:u.activity}); },
+            getTheme(){ return this.getUser().theme || 'original'; },
+            setTheme(id){ this.saveUser({ theme:id }); }
+        };
+    }
+    if (typeof FocusCore === 'undefined') {
+        window.FocusCore = {
+            applyStoredTheme(){ (document.getElementById('htmlRoot')||document.documentElement).setAttribute('data-theme', FocusStorage.getTheme()); },
+            celebrate: function(config) {
+                config = config || {};
+                var phrases = ['Огонь','Красава','Так держать','Бомба','Мощь','Зверь','Вот это да','На кураже','Чемпион','Жара','Вперёд','Гордость','Сила','Респект'];
+                var emojis = ['🔥','💪','⚡','💥','🚀','🦁','🌟','😎','🏆','👑'];
+                var text = config.text || phrases[Math.floor(Math.random()*phrases.length)];
+                var emo = config.emoji || emojis[Math.floor(Math.random()*emojis.length)];
+                var big = !!config.big;
+                var rs = getComputedStyle(document.documentElement);
+                var accent = (rs.getPropertyValue('--accent')||'#FFD966').trim();
+                var accent2 = (rs.getPropertyValue('--accent-2')||'#7C8CFF').trim();
+                var palette = [accent, accent2, '#FF6B5C', '#78DC96'];
+                var ox = window.innerWidth/2, oy = window.innerHeight/2;
+                if (config.fromEl && config.fromEl.getBoundingClientRect) { var r=config.fromEl.getBoundingClientRect(); ox=r.left+r.width/2; oy=r.top+r.height/2; }
+                var ov = document.createElement('div');
+                ov.style.cssText = 'position:fixed;inset:0;z-index:99999;pointer-events:none;overflow:hidden;';
+                document.body.appendChild(ov);
+                var ring = document.createElement('div');
+                ring.style.cssText = 'position:absolute;left:'+ox+'px;top:'+oy+'px;width:30px;height:30px;border-radius:50%;border:3px solid '+accent+';transform:translate(-50%,-50%) scale(0);';
+                ov.appendChild(ring);
+                ring.animate([{transform:'translate(-50%,-50%) scale(0)',opacity:1},{transform:'translate(-50%,-50%) scale('+(big?22:16)+')',opacity:0}],{duration:780,easing:'cubic-bezier(.15,.7,.4,1)'});
+                var N = big?38:26;
+                for (var i=0;i<N;i++){ (function(i){
+                    var p=document.createElement('div'); var size=7+Math.random()*10; var col=palette[Math.floor(Math.random()*palette.length)]; var isStar=Math.random()>0.5;
+                    p.style.cssText='position:absolute;left:'+ox+'px;top:'+oy+'px;width:'+size+'px;height:'+size+'px;'+(isStar?'':'border-radius:50%;')+'background:'+col+';box-shadow:0 0 10px '+col+';';
+                    if(isStar)p.style.clipPath='polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)';
+                    ov.appendChild(p);
+                    var ang=(i/N)*Math.PI*2+Math.random()*0.5; var dist=(big?160:120)+Math.random()*(big?220:170);
+                    var dx=Math.cos(ang)*dist, dy=Math.sin(ang)*dist; var rot=Math.random()*540-270;
+                    p.animate([{transform:'translate(-50%,-50%) scale(0.3) rotate(0deg)',opacity:1},{transform:'translate(calc(-50% + '+(dx*0.55)+'px),calc(-50% + '+(dy*0.55)+'px)) scale(1.15) rotate('+(rot*0.5)+'deg)',opacity:1,offset:0.45},{transform:'translate(calc(-50% + '+dx+'px),calc(-50% + '+(dy+45)+'px)) scale(0.2) rotate('+rot+'deg)',opacity:0}],{duration:1150+Math.random()*250,easing:'cubic-bezier(.16,.74,.44,1)'});
+                })(i); }
+                var wrap=document.createElement('div');
+                wrap.style.cssText='position:absolute;left:'+ox+'px;top:'+oy+'px;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;white-space:nowrap;';
+                var em=document.createElement('div'); em.innerText=emo; em.style.cssText='font-size:'+(big?52:42)+'px;line-height:1;';
+                var tx=document.createElement('div'); tx.innerText=text;
+                tx.style.cssText='font-family:-apple-system,system-ui,sans-serif;font-size:'+(big?38:32)+'px;font-weight:900;letter-spacing:1px;background:linear-gradient(135deg,'+accent+',#fff 55%,'+accent2+');-webkit-background-clip:text;background-clip:text;color:transparent;';
+                wrap.appendChild(em); wrap.appendChild(tx); ov.appendChild(wrap);
+                wrap.animate([{transform:'translate(-50%,-50%) scale(0.3)',opacity:0},{transform:'translate(-50%,-120%) scale(1.12)',opacity:1,offset:0.32},{transform:'translate(-50%,-160%) scale(1)',opacity:1,offset:0.72},{transform:'translate(-50%,-200%) scale(1.04)',opacity:0}],{duration:big?1700:1450,easing:'cubic-bezier(.34,1.4,.64,1)'});
+                if(navigator.vibrate){try{navigator.vibrate(big?[20,40,20]:18);}catch(e){}}
+                setTimeout(function(){ov.remove();}, big?1800:1500);
+            },
+
+            coinBurst(config) {
+
+      config = config || {};
+      var amount = config.amount || 1;
+      var reason = config.reason || '';
+      var count = Math.min(Math.max(Math.round(amount), 8), 20);
+
+      var rootStyle = getComputedStyle(document.documentElement);
+      var accent = (rootStyle.getPropertyValue('--accent') || '#FFD966').trim();
+      var accentLight = (rootStyle.getPropertyValue('--accent-light') || '#FFE9A8').trim();
+      var accentDark = (rootStyle.getPropertyValue('--accent-dark') || '#C9952E').trim();
+
+      var phone = document.querySelector('.phone') || document.body;
+      var phoneRect = phone.getBoundingClientRect();
+      var phoneW = phoneRect.width, phoneH = phoneRect.height;
+
+      var originX = phoneW / 2, originY = phoneH / 2;
+      if (config.sourceEl) {
+        try {
+          var sr = config.sourceEl.getBoundingClientRect();
+          originX = sr.left - phoneRect.left + sr.width / 2;
+          originY = sr.top - phoneRect.top + sr.height / 2;
+        } catch (e) {}
+      }
+
+      var layer = document.createElement('div');
+      layer.style.cssText = 'position:absolute; inset:0; z-index:2000; pointer-events:none; overflow:hidden; border-radius:52px;';
+      phone.appendChild(layer);
+
+      function coinSVG() {
+        return '<svg width="30" height="30" viewBox="0 0 40 40">' +
+          '<defs><radialGradient id="cgr" cx="38%" cy="32%" r="70%">' +
+          '<stop offset="0%" stop-color="' + accentLight + '"/>' +
+          '<stop offset="55%" stop-color="' + accent + '"/>' +
+          '<stop offset="100%" stop-color="' + accentDark + '"/></radialGradient></defs>' +
+          '<circle cx="20" cy="20" r="18" fill="url(#cgr)" stroke="' + accentDark + '" stroke-width="1.5"/>' +
+          '<circle cx="20" cy="20" r="14" fill="none" stroke="' + accentDark + '" stroke-width="1" opacity="0.5"/>' +
+          '<path d="M15 12h10M15 12v16M15 20h7" stroke="' + accentDark + '" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
+          '</svg>';
+      }
+
+      var coins = [];
+      for (var i = 0; i < count; i++) {
+        var el = document.createElement('div');
+        el.style.cssText = 'position:absolute; left:' + originX + 'px; top:' + originY + 'px; will-change:transform,opacity; filter:drop-shadow(0 0 5px rgba(255,200,80,0.55));';
+        el.innerHTML = coinSVG();
+        layer.appendChild(el);
+        var angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+        var power = 6 + Math.random() * 6;
+        coins.push({
+          el: el, x: 0, y: 0,
+          vx: Math.cos(angle) * power,
+          vy: Math.sin(angle) * power - 8,
+          rot: Math.random() * 360, vrot: (Math.random() - 0.5) * 30,
+          delay: Math.floor(Math.random() * 5)
+        });
+      }
+
+      // надпись
+      var note = document.createElement('div');
+      note.style.cssText = 'position:absolute; left:50%; top:40%; transform:translate(-50%,-50%) scale(0.6); z-index:2001;' +
+        'background:rgba(0,0,0,0.88); border:1.5px solid ' + accent + '; border-radius:22px; padding:11px 24px;' +
+        'color:' + accent + '; font-weight:800; font-size:16px; text-align:center; pointer-events:none;' +
+        'box-shadow:0 0 30px rgba(255,200,80,0.4); opacity:0; transition:all 0.4s cubic-bezier(.2,1.4,.4,1); font-family:inherit; white-space:nowrap;';
+      note.innerHTML = '+' + amount + ' F-coin' + (reason ? '<br><span style="font-size:11px;font-weight:600;opacity:0.85;">' + reason + '</span>' : '');
+      layer.appendChild(note);
+      requestAnimationFrame(function () { note.style.opacity = '1'; note.style.transform = 'translate(-50%,-50%) scale(1)'; });
+
+      var gravity = 0.4;
+      var floorY = phoneH - originY - 24;
+      var frame = 0;
+      var MAX_FRAMES = 110; // жёсткий предел — гарантия что всё уберётся
+
+      function animate() {
+        frame++;
+        // фейд монет с 60-го кадра
+        var fade = frame > 60 ? Math.max(0, 1 - (frame - 60) / 35) : 1;
+        coins.forEach(function (c) {
+          if (c.delay > 0) { c.delay--; return; }
+          c.vy += gravity;
+          c.x += c.vx; c.y += c.vy;
+          c.rot += c.vrot;
+          if (c.y > floorY) { c.y = floorY; c.vy *= -0.45; c.vx *= 0.7; }
+          c.el.style.opacity = fade;
+          c.el.style.transform = 'translate(' + c.x + 'px,' + c.y + 'px) rotate(' + c.rot + 'deg)';
+        });
+        // надпись исчезает к концу
+        if (frame > 70) {
+          var nf = Math.max(0, 1 - (frame - 70) / 30);
+          note.style.opacity = nf;
+          note.style.transform = 'translate(-50%,-50%) scale(' + (1 + (1 - nf) * 0.3) + ') translateY(' + (-(1 - nf) * 30) + 'px)';
+        }
+        if (frame < MAX_FRAMES) {
+          requestAnimationFrame(animate);
+        } else {
+          layer.remove(); // гарантированная очистка — ничего не зависнет
+        }
+      }
+      requestAnimationFrame(animate);
+            },
+initAtmosphere(canvasId) {
+                const ac = document.getElementById(canvasId || 'atmosCanvas');
+                if (!ac) return;
+                const actx = ac.getContext('2d');
+                ac.width = 375; ac.height = 700;
+                let tronPulses=[], mkEmbers=[], mkDrips=[], mkFlash=0, mkBolt=null, matrixDrops=null, matrixColumns=0;
+                let predatorRadarAngle=0, predatorScanY=0, predatorT=0, predatorBlips=[{a:1.2,r:0.7},{a:3.8,r:0.5}], predatorReticle=null;
+                const matrixChars = 'アイウエオカキクケコサシスセソ0123456789ABCDEF'.split('');
+                let lastTheme=null, lastTrigger=0, washT=0;
+                function currentTheme() { const r = document.getElementById('htmlRoot') || document.documentElement; return r.getAttribute('data-theme') || 'original'; }
+                function cssColor(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function cssColorRgb(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function drawFullScreenWash() {
+                    washT += 0.008;
+                    const accRgb = cssColorRgb('--accent-rgb'), acc2Rgb = cssColorRgb('--accent-2-rgb');
+                    const x = ac.width*(0.5+Math.sin(washT)*0.5), y = ac.height*(0.5+Math.cos(washT*0.7)*0.5);
+                    const grad = actx.createRadialGradient(x,y,0,ac.width/2,ac.height/2,Math.max(ac.width,ac.height)*0.9);
+                    grad.addColorStop(0,'rgba('+accRgb+',0.05)'); grad.addColorStop(0.5,'rgba('+acc2Rgb+',0.035)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+                    actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                }
+                function drawTron() {
+                    if (Math.random() > 0.93) {
+                        const vertical = Math.random() > 0.5;
+                        tronPulses.push({ vertical, pos: Math.floor(Math.random()*(vertical?ac.width:ac.height)), t:-40, speed:3+Math.random()*2, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2'), len:60 });
+                    }
+                    tronPulses.forEach(p => {
+                        p.t += p.speed;
+                        const grad = p.vertical ? actx.createLinearGradient(p.pos,p.t-p.len,p.pos,p.t) : actx.createLinearGradient(p.t-p.len,p.pos,p.t,p.pos);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,p.color);
+                        actx.strokeStyle = grad; actx.lineWidth=2; actx.shadowBlur=8; actx.shadowColor=p.color;
+                        actx.beginPath();
+                        if (p.vertical) { actx.moveTo(p.pos,p.t-p.len); actx.lineTo(p.pos,p.t); } else { actx.moveTo(p.t-p.len,p.pos); actx.lineTo(p.t,p.pos); }
+                        actx.stroke();
+                    });
+                    actx.shadowBlur=0;
+                    tronPulses = tronPulses.filter(p => p.t < Math.max(ac.width,ac.height)+40);
+                }
+                function drawPredator() {
+                    predatorT += 0.01;
+                    for (let i=0;i<5;i++) {
+                        const x = ac.width/2+Math.sin(predatorT+i*2)*ac.width*0.35, y = ac.height/2+Math.cos(predatorT*0.7+i*1.7)*ac.height*0.4;
+                        const r = 60+Math.sin(predatorT*2+i)*20;
+                        const grad = actx.createRadialGradient(x,y,0,x,y,r);
+                        grad.addColorStop(0,'rgba('+cssColorRgb('--accent-rgb')+',0.05)'); grad.addColorStop(1,'rgba('+cssColorRgb('--accent-rgb')+',0)');
+                        actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                    }
+                    predatorScanY += 1.8; if (predatorScanY > ac.height+20) predatorScanY=-20;
+                    const acc2 = cssColorRgb('--accent-2-rgb');
+                    const lineGrad = actx.createLinearGradient(0,predatorScanY-15,0,predatorScanY+15);
+                    lineGrad.addColorStop(0,'rgba('+acc2+',0)'); lineGrad.addColorStop(0.5,'rgba('+acc2+',0.35)'); lineGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.fillStyle = lineGrad; actx.fillRect(0,predatorScanY-15,ac.width,30);
+                    actx.strokeStyle='rgba('+acc2+',0.5)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.moveTo(0,predatorScanY); actx.lineTo(ac.width,predatorScanY); actx.stroke();
+                    const rcx=ac.width-46, rcy=64, rr=34;
+                    actx.save();
+                    actx.strokeStyle='rgba('+acc2+',0.4)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.arc(rcx,rcy,rr,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.arc(rcx,rcy,rr*0.6,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx-rr,rcy); actx.lineTo(rcx+rr,rcy); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx,rcy-rr); actx.lineTo(rcx,rcy+rr); actx.stroke();
+                    predatorRadarAngle += 0.05;
+                    const sweepGrad = actx.createLinearGradient(rcx,rcy,rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr);
+                    sweepGrad.addColorStop(0,'rgba('+acc2+',0.6)'); sweepGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.strokeStyle = sweepGrad; actx.lineWidth=2;
+                    actx.beginPath(); actx.moveTo(rcx,rcy); actx.lineTo(rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr); actx.stroke();
+                    predatorBlips.forEach(b => {
+                        const bx=rcx+Math.cos(b.a)*rr*b.r, by=rcy+Math.sin(b.a)*rr*b.r;
+                        const diff = Math.abs(((predatorRadarAngle%(Math.PI*2))-b.a+Math.PI*3)%(Math.PI*2)-Math.PI);
+                        const blipAlpha = diff<0.5 ? 1-diff/0.5 : 0;
+                        if (blipAlpha>0) { actx.fillStyle='rgba('+acc2+','+blipAlpha+')'; actx.beginPath(); actx.arc(bx,by,2,0,Math.PI*2); actx.fill(); }
+                    });
+                    actx.restore();
+                    if (Math.random()>0.992 && !predatorReticle) predatorReticle = { x:40+Math.random()*(ac.width-80), y:90+Math.random()*(ac.height-220), life:1 };
+                    if (predatorReticle) {
+                        predatorReticle.life -= 0.012;
+                        if (predatorReticle.life<=0) predatorReticle=null;
+                        else {
+                            const a = Math.min(predatorReticle.life>0.85?(1-predatorReticle.life)/0.15:1,1) * Math.min(predatorReticle.life/0.15,1);
+                            const size = 22+(1-Math.min(predatorReticle.life,1))*6;
+                            actx.save(); actx.globalAlpha=a; actx.strokeStyle=cssColor('--accent'); actx.lineWidth=1.3;
+                            actx.beginPath(); actx.arc(predatorReticle.x,predatorReticle.y,size,0,Math.PI*2); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x-size-6,predatorReticle.y); actx.lineTo(predatorReticle.x-size+4,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x+size-4,predatorReticle.y); actx.lineTo(predatorReticle.x+size+6,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y-size-6); actx.lineTo(predatorReticle.x,predatorReticle.y-size+4); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y+size-4); actx.lineTo(predatorReticle.x,predatorReticle.y+size+6); actx.stroke();
+                            actx.font='8px monospace'; actx.fillStyle=cssColor('--accent'); actx.fillText('LOCKED', predatorReticle.x-16, predatorReticle.y+size+14);
+                            actx.restore();
+                        }
+                    }
+                }
+                function drawMK() {
+                    const phoneEl = document.querySelector('.phone');
+                    if (Math.random()>0.4) mkEmbers.push({ x:Math.random()*ac.width, y:ac.height+10, vx:(Math.random()-0.5)*0.6, vy:-0.6-Math.random()*1.2, size:1+Math.random()*2, life:1, decay:0.004+Math.random()*0.006, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2') });
+                    mkEmbers.forEach(e => {
+                        e.x+=e.vx; e.y+=e.vy; e.life-=e.decay;
+                        const fade=Math.max(e.life,0); actx.globalAlpha=fade; actx.fillStyle=e.color; actx.shadowBlur=6; actx.shadowColor=e.color;
+                        actx.beginPath(); actx.arc(e.x,e.y,e.size,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1; actx.shadowBlur=0;
+                    mkEmbers = mkEmbers.filter(e=>e.life>0 && e.y>-10);
+                    if (Math.random()>0.96) mkDrips.push({ x:20+Math.random()*(ac.width-40), y:-10, len:8+Math.random()*10, speed:1.2+Math.random()*1.5, life:1 });
+                    mkDrips.forEach(d => {
+                        d.y+=d.speed; d.life-=0.004;
+                        const fade=Math.max(d.life,0); actx.globalAlpha=fade;
+                        const grad = actx.createLinearGradient(d.x,d.y-d.len,d.x,d.y);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,cssColor('--accent'));
+                        actx.strokeStyle=grad; actx.lineWidth=2;
+                        actx.beginPath(); actx.moveTo(d.x,d.y-d.len); actx.lineTo(d.x,d.y); actx.stroke();
+                        actx.fillStyle=cssColor('--accent'); actx.beginPath(); actx.arc(d.x,d.y,1.4,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1;
+                    mkDrips = mkDrips.filter(d=>d.life>0 && d.y<ac.height+10);
+                    if (Date.now()-lastTrigger>6000 && Math.random()>0.5) {
+                        lastTrigger = Date.now(); mkFlash=1;
+                        const startX = 30+Math.random()*(ac.width-60);
+                        const points=[{x:startX,y:-5}]; let x=startX;
+                        for (let i=1;i<=9;i++) { const y=(ac.height/9)*i; x+=(Math.random()-0.5)*50; x=Math.max(10,Math.min(ac.width-10,x)); points.push({x,y}); }
+                        mkBolt = { points, life:1 };
+                        if (phoneEl) { phoneEl.classList.add('mk-shake'); setTimeout(()=>phoneEl.classList.remove('mk-shake'),280); }
+                    }
+                    if (mkBolt) {
+                        mkBolt.life -= 0.05;
+                        if (mkBolt.life<=0) mkBolt=null;
+                        else {
+                            actx.save(); actx.globalAlpha=Math.min(mkBolt.life*2,1);
+                            actx.strokeStyle='#7CD9FF'; actx.shadowBlur=14; actx.shadowColor='#3AB8FF'; actx.lineWidth=2;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.strokeStyle='#FFFFFF'; actx.lineWidth=0.8; actx.shadowBlur=4;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.restore();
+                        }
+                    }
+                    if (mkFlash>0) { actx.fillStyle='rgba(124,217,255,'+(mkFlash*0.16)+')'; actx.fillRect(0,0,ac.width,ac.height); mkFlash -= 0.08; }
+                }
+                function drawMatrix() {
+                    if (!matrixDrops) { matrixColumns = Math.floor(ac.width/13); matrixDrops = Array(matrixColumns).fill(0).map(()=>Math.random()*-30); }
+                    actx.fillStyle='rgba(0,0,0,0.08)'; actx.fillRect(0,0,ac.width,ac.height); actx.font='13px monospace';
+                    for (let i=0;i<matrixColumns;i++) {
+                        const text = matrixChars[Math.floor(Math.random()*matrixChars.length)];
+                        const y = matrixDrops[i]*13;
+                        const isHead = Math.random()>0.92;
+                        actx.fillStyle = isHead ? '#cfffd9' : 'rgba('+cssColorRgb('--accent-rgb')+',0.55)';
+                        actx.fillText(text, i*13, y);
+                        if (y>ac.height && Math.random()>0.975) matrixDrops[i]=0;
+                        matrixDrops[i]++;
+                    }
+                }
+                function loop() {
+                    const theme = currentTheme();
+                    if (theme !== lastTheme) {
+                        actx.clearRect(0,0,ac.width,ac.height);
+                        tronPulses=[]; mkEmbers=[]; mkDrips=[]; mkBolt=null; matrixDrops=null; predatorReticle=null;
+                        lastTheme = theme;
+                    }
+                    if (theme !== 'matrix') actx.clearRect(0,0,ac.width,ac.height);
+                    drawFullScreenWash();
+                    if (theme==='tron') drawTron();
+                    else if (theme==='predator') drawPredator();
+                    else if (theme==='mk') drawMK();
+                    else if (theme==='matrix') drawMatrix();
+                    requestAnimationFrame(loop);
+                }
+                loop();
+            }        };
+    }
+
+    FocusCore.applyStoredTheme();
+    FocusCore.initAtmosphere('atmosCanvas');
+
+    function toast(msg){
+        const t=document.getElementById('toast');
+        t.innerText=msg; t.classList.add('show');
+        clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'), 1600);
+    }
+    function escapeHtml(s){ const d=document.createElement('div'); d.innerText=String(s); return d.innerHTML; }
+    const today = new Date().toISOString().slice(0,10);
+    function dateShort(iso){ const d=new Date(iso+'T00:00:00'); const m=['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек']; return d.getDate()+' '+m[d.getMonth()]; }
+
+    // ===== Переключение режимов =====
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.mode-pane').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('pane-' + tab.dataset.mode).classList.add('active');
+        });
+    });
+
+    // ============ МЕДИТАЦИЯ ============
+    let medDur = 5;
+    document.querySelectorAll('.dur').forEach(d => {
+        d.addEventListener('click', () => {
+            document.querySelectorAll('.dur').forEach(x => x.classList.remove('on'));
+            d.classList.add('on');
+            medDur = parseInt(d.dataset.min);
+        });
+    });
+
+    const ARCH_KEY = 'focus_meditation_archive'; // [{id, date, min, feel, note}]
+    let archive = [];
+    try { archive = JSON.parse(localStorage.getItem(ARCH_KEY)) || []; } catch(e){ archive = []; }
+    function saveArchive(){ localStorage.setItem(ARCH_KEY, JSON.stringify(archive)); }
+
+    const FEEL_EMOJI = { great:'😌', good:'🙂', ok:'😐', restless:'😣' };
+    const FEEL_LABEL = { great:'Спокойно', good:'Хорошо', ok:'Нейтрально', restless:'Неспокойно' };
+
+    // сессия медитации
+    let medActive = false, medEnd = 0, medRaf = null, medTick = null, medMin = 5;
+    const medCanvas = document.getElementById('medCanvas');
+    const mctx = medCanvas.getContext('2d');
+    const MW = 375, MH = 700;
+
+    // потоки информации, спускающиеся через сетку Акаши к йогу
+    let streams = [];
+    function initStreams(){
+        streams = [];
+        for (let i=0;i<26;i++){
+            streams.push({
+                x: 40 + Math.random()*(MW-80),
+                y: Math.random()*-300,
+                sp: 0.6 + Math.random()*1.4,
+                len: 14 + Math.random()*40,
+                hue: 210 + Math.random()*50,
+                a: 0.3 + Math.random()*0.5
+            });
+        }
+    }
+    // мерцающие узлы сетки Акаши
+    let gridPulse = 0;
+
+    function startMeditation(){
+        medMin = medDur;
+        medActive = true;
+        medEnd = Date.now() + medMin*60*1000;
+        document.getElementById('sessionArea').classList.add('show');
+        initStreams();
+        medDrawLoop();
+        medTick = setInterval(() => {
+            const left = Math.max(0, medEnd - Date.now());
+            const m = Math.floor(left/60000), s = Math.floor((left%60000)/1000);
+            document.getElementById('medTime').innerText = m + ':' + String(s).padStart(2,'0');
+            if (left <= 0) endMeditation(true);
+        }, 250);
+    }
+
+    function drawYogi(cx, cy, now){
+        // силуэт йога в позе лотоса — простые формы, светящийся контур
+        const breath = 0.5 + 0.5*Math.sin(now*0.0007); // дыхание
+        const glow = 0.4 + breath*0.4;
+        mctx.save();
+        mctx.translate(cx, cy);
+
+        // аура вокруг йога
+        const aura = mctx.createRadialGradient(0,-10,0,0,-10,120);
+        aura.addColorStop(0,'rgba(150,170,255,'+(0.10+glow*0.10)+')');
+        aura.addColorStop(0.6,'rgba(124,140,255,'+(0.05+glow*0.04)+')');
+        aura.addColorStop(1,'transparent');
+        mctx.fillStyle=aura; mctx.beginPath(); mctx.arc(0,-10,120,0,Math.PI*2); mctx.fill();
+
+        mctx.strokeStyle='rgba(180,195,255,'+(0.55+glow*0.35)+')';
+        mctx.fillStyle='rgba(40,48,90,0.55)';
+        mctx.lineWidth=2; mctx.lineJoin='round';
+
+        // основание (поза лотоса) — широкое треугольное основание
+        mctx.beginPath();
+        mctx.moveTo(-58, 52);
+        mctx.quadraticCurveTo(0, 30, 58, 52);
+        mctx.quadraticCurveTo(40, 64, 0, 64);
+        mctx.quadraticCurveTo(-40, 64, -58, 52);
+        mctx.closePath(); mctx.fill(); mctx.stroke();
+
+        // скрещенные ноги (две дуги)
+        mctx.beginPath();
+        mctx.moveTo(-50, 48); mctx.quadraticCurveTo(0, 20, 50, 48);
+        mctx.stroke();
+
+        // торс
+        mctx.beginPath();
+        mctx.moveTo(-26, 40);
+        mctx.quadraticCurveTo(-30, -6, -16, -26);
+        mctx.quadraticCurveTo(0, -34, 16, -26);
+        mctx.quadraticCurveTo(30, -6, 26, 40);
+        mctx.quadraticCurveTo(0, 30, -26, 40);
+        mctx.closePath(); mctx.fill(); mctx.stroke();
+
+        // руки на коленях (дуги вниз к основанию)
+        mctx.beginPath();
+        mctx.moveTo(-22, -14); mctx.quadraticCurveTo(-52, 16, -44, 46);
+        mctx.moveTo(22, -14); mctx.quadraticCurveTo(52, 16, 44, 46);
+        mctx.stroke();
+
+        // голова
+        mctx.beginPath(); mctx.arc(0, -44, 14, 0, Math.PI*2);
+        mctx.fill(); mctx.stroke();
+
+        // точка третьего глаза (пульсирует, принимает информацию)
+        const tg = 0.5 + 0.5*Math.sin(now*0.003);
+        mctx.beginPath(); mctx.arc(0, -46, 2.5+tg*1.5, 0, Math.PI*2);
+        mctx.fillStyle='rgba(200,215,255,'+(0.6+tg*0.4)+')';
+        mctx.shadowColor='rgba(160,180,255,0.9)'; mctx.shadowBlur=12;
+        mctx.fill(); mctx.shadowBlur=0;
+
+        mctx.restore();
+    }
+
+    function drawAkashicGrid(now){
+        // сетка Акаши в небе — изометрическая перспективная сетка, мерцающие узлы
+        gridPulse += 0.01;
+        const topY = 70, botY = 300, cx = MW/2;
+        const cols = 9, rows = 7;
+        mctx.save();
+        mctx.lineWidth = 0.6;
+        // горизонтальные линии (сужаются к горизонту = перспектива)
+        for (let r=0;r<=rows;r++){
+            const t = r/rows;
+            const y = topY + (botY-topY)*t*t; // нелинейно — перспектива
+            const spread = 30 + 150*t;
+            const a = (0.06 + 0.10*t) * (0.7+0.3*Math.sin(now*0.001+r));
+            mctx.strokeStyle='rgba(130,150,255,'+a+')';
+            mctx.beginPath(); mctx.moveTo(cx-spread, y); mctx.lineTo(cx+spread, y); mctx.stroke();
+        }
+        // лучи от центра (вертикали перспективы)
+        for (let c=-cols;c<=cols;c++){
+            const a = 0.05 + 0.05*Math.abs(Math.sin(now*0.0008+c));
+            mctx.strokeStyle='rgba(130,150,255,'+a+')';
+            mctx.beginPath();
+            mctx.moveTo(cx + c*8, topY);
+            mctx.lineTo(cx + c*34, botY);
+            mctx.stroke();
+        }
+        // мерцающие узлы пересечений
+        for (let r=1;r<rows;r++){
+            const t = r/rows;
+            const y = topY + (botY-topY)*t*t;
+            const spread = 30 + 150*t;
+            for (let c=-3;c<=3;c++){
+                const x = cx + c*(spread/3.2);
+                const tw = Math.sin(now*0.002 + r*1.3 + c*0.7);
+                if (tw > 0.6){
+                    mctx.beginPath(); mctx.arc(x, y, 1.2+tw, 0, Math.PI*2);
+                    mctx.fillStyle='rgba(180,200,255,'+(tw*0.5)+')'; mctx.fill();
+                }
+            }
+        }
+        mctx.restore();
+    }
+
+    function medDrawLoop(){
+        if (!medActive) return;
+        const now = performance.now();
+        // фон-затемнение со шлейфом
+        mctx.globalCompositeOperation='source-over';
+        mctx.fillStyle='rgba(4,6,13,0.30)';
+        mctx.fillRect(0,0,MW,MH);
+
+        mctx.globalCompositeOperation='lighter';
+
+        // 1) сетка Акаши в небе
+        drawAkashicGrid(now);
+
+        // 2) потоки информации спускаются через сетку к йогу (точка ~ cx, 470)
+        const targetX = MW/2, targetY = 470;
+        streams.forEach(s => {
+            s.y += s.sp;
+            // лёгкое схождение к йогу по мере спуска
+            const prog = Math.min(1, Math.max(0, (s.y-100)/(targetY-100)));
+            const curX = s.x + (targetX - s.x)*prog*prog;
+            const grad = mctx.createLinearGradient(curX, s.y-s.len, curX, s.y);
+            grad.addColorStop(0,'transparent');
+            grad.addColorStop(1,'hsla('+s.hue+',75%,78%,'+s.a+')');
+            mctx.strokeStyle=grad; mctx.lineWidth=1.4;
+            mctx.beginPath(); mctx.moveTo(curX, s.y-s.len); mctx.lineTo(curX, s.y); mctx.stroke();
+            // голова потока — светящаяся точка
+            mctx.beginPath(); mctx.arc(curX, s.y, 1.3, 0, Math.PI*2);
+            mctx.fillStyle='hsla('+s.hue+',80%,85%,'+(s.a*0.9)+')'; mctx.fill();
+            if (s.y > targetY + Math.random()*30){ s.y = Math.random()*-120; s.x = 40+Math.random()*(MW-80); }
+        });
+
+        // 3) свечение приёма над головой йога
+        const recv = 0.5 + 0.5*Math.sin(now*0.0015);
+        const rg = mctx.createRadialGradient(targetX, targetY-58, 0, targetX, targetY-58, 60);
+        rg.addColorStop(0,'rgba(190,205,255,'+(0.10+recv*0.12)+')');
+        rg.addColorStop(1,'transparent');
+        mctx.fillStyle=rg; mctx.beginPath(); mctx.arc(targetX, targetY-58, 60, 0, Math.PI*2); mctx.fill();
+
+        // 4) йог
+        mctx.globalCompositeOperation='source-over';
+        drawYogi(targetX, targetY, now);
+
+        medRaf = requestAnimationFrame(medDrawLoop);
+    }
+
+    // ===== Звуковой сигнал окончания (синтез, без файлов) =====
+    function playEndChime(){
+        try {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return;
+            const ctx = new AC();
+            const now = ctx.currentTime;
+            // мягкий «гонг» — три гармоничные ноты
+            const freqs = [528, 396, 639]; // «исцеляющие» частоты, приятное созвучие
+            freqs.forEach((f, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = f;
+                osc.connect(gain); gain.connect(ctx.destination);
+                const t0 = now + i*0.12;
+                gain.gain.setValueAtTime(0, t0);
+                gain.gain.linearRampToValueAtTime(0.25, t0+0.05);
+                gain.gain.exponentialRampToValueAtTime(0.0001, t0+2.4);
+                osc.start(t0); osc.stop(t0+2.5);
+            });
+            setTimeout(() => { try { ctx.close(); } catch(e){} }, 3000);
+        } catch(e){}
+    }
+
+    function endMeditation(completed){
+        medActive = false;
+        cancelAnimationFrame(medRaf);
+        clearInterval(medTick);
+        document.getElementById('sessionArea').classList.remove('show');
+        if (completed) {
+            playEndChime();                       // звуковой сигнал
+            if (navigator.vibrate) navigator.vibrate([140,90,140]);
+            if (FocusCore.celebrate) FocusCore.celebrate({ text: 'Медитация сделана', emoji: '🧘' });
+            openFeelModal();
+        }
+    }
+    document.getElementById('startMedBtn').addEventListener('click', startMeditation);
+    document.getElementById('medStop').addEventListener('click', () => {
+        const elapsed = medMin*60*1000 - Math.max(0, medEnd - Date.now());
+        endMeditation(elapsed >= 60*1000); // минимум минута — засчитываем
+    });
+
+    // Модалка впечатления
+    let selectedFeel = null;
+    function openFeelModal(){
+        selectedFeel = null;
+        document.querySelectorAll('.feel').forEach(f => f.classList.remove('on'));
+        document.getElementById('feelNote').value = '';
+        document.getElementById('feelModal').classList.add('show');
+    }
+    document.querySelectorAll('.feel').forEach(f => {
+        f.addEventListener('click', () => {
+            document.querySelectorAll('.feel').forEach(x => x.classList.remove('on'));
+            f.classList.add('on');
+            selectedFeel = f.dataset.feel;
+        });
+    });
+    function saveMeditation(){
+        archive.push({
+            id: Date.now(), date: today, min: medMin,
+            feel: selectedFeel, note: document.getElementById('feelNote').value.trim()
+        });
+        saveArchive();
+        // награда раз в день
+        let rewardDays = [];
+        try { rewardDays = JSON.parse(localStorage.getItem('focus_meditation_reward')) || []; } catch(e){}
+        if (!rewardDays.includes(today)) {
+            rewardDays.push(today);
+            localStorage.setItem('focus_meditation_reward', JSON.stringify(rewardDays));
+            if(window.FocusRewards)FocusRewards.mark('energy','meditation');else{FocusStorage.addCoins(1);FocusStorage.addActivity('energy','meditation');}
+            if (FocusCore.coinBurst) FocusCore.coinBurst({ amount:1, reason:'Медитация', sourceEl: document.querySelector('.title-icon') });
+            toast('Медитация завершена! +1 F-coin 🧘');
+        } else {
+            toast('Сохранено 🧘');
+        }
+        document.getElementById('feelModal').classList.remove('show');
+        renderArchive();
+    }
+    document.getElementById('feelSave').addEventListener('click', saveMeditation);
+    document.getElementById('feelSkip').addEventListener('click', () => {
+        selectedFeel = null;
+        document.getElementById('feelNote').value = '';
+        saveMeditation();
+    });
+
+    function renderArchive(){
+        const list = document.getElementById('archiveList');
+        const cnt = document.getElementById('archCnt');
+        if (archive.length === 0) {
+            list.innerHTML = '<div class="empty-mini">Здесь будут твои медитации<br>с впечатлениями и заметками.</div>';
+            cnt.innerText = '';
+            return;
+        }
+        cnt.innerText = archive.length;
+        list.innerHTML = '';
+        archive.slice().reverse().forEach(s => {
+            const note = s.note ? `<div class="arch-note">${escapeHtml(s.note)}</div>` : '';
+            const feel = s.feel ? (FEEL_EMOJI[s.feel]||'🧘') : '🧘';
+            const item = document.createElement('div');
+            item.className = 'arch-item';
+            item.innerHTML = `
+                <div class="arch-emoji">${feel}</div>
+                <div class="arch-body">
+                    <div class="arch-top">${s.min} мин · ${s.feel?FEEL_LABEL[s.feel]:'Медитация'}</div>
+                    <div class="arch-meta">${dateShort(s.date)}</div>
+                    ${note}
+                </div>
+                <div class="arch-del" data-del="${s.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></div>`;
+            list.appendChild(item);
+        });
+        list.querySelectorAll('[data-del]').forEach(el => {
+            el.addEventListener('click', () => {
+                archive = archive.filter(s => String(s.id) !== String(el.dataset.del));
+                saveArchive(); renderArchive();
+            });
+        });
+    }
+
+    // ============ ЦИФРОВОЙ ДЕТОКС ============
+    const DETOX_KEY = 'focus_detox_log'; // [{id, date, minutes}]
+    const DETOX_RUN_KEY = 'focus_detox_running'; // {startTs} активная сессия
+    let detoxLog = [];
+    try { detoxLog = JSON.parse(localStorage.getItem(DETOX_KEY)) || []; } catch(e){ detoxLog = []; }
+    function saveDetoxLog(){ localStorage.setItem(DETOX_KEY, JSON.stringify(detoxLog)); }
+
+    let detoxRunning = false, detoxStartTs = null, detoxRafTick = null;
+    // восстановить активную сессию (если ушёл с экрана)
+    try {
+        const run = JSON.parse(localStorage.getItem(DETOX_RUN_KEY));
+        if (run && run.startTs) { detoxRunning = true; detoxStartTs = run.startTs; }
+    } catch(e){}
+
+    function detoxTodayMinutes(){
+        return detoxLog.filter(d => d.date === today).reduce((s,d) => s + d.minutes, 0);
+    }
+    function renderDetoxToday(){
+        const total = detoxTodayMinutes();
+        document.getElementById('detoxTodayH').innerText = Math.floor(total/60);
+        document.getElementById('detoxTodayM').innerText = total % 60;
+    }
+    function updateDetoxUI(){
+        if (detoxRunning) {
+            document.getElementById('detoxIdle').style.display = 'none';
+            document.getElementById('detoxRunning').style.display = 'block';
+            document.getElementById('detoxStartBtn').style.display = 'none';
+            document.getElementById('detoxStopBtn').style.display = 'flex';
+            document.getElementById('detoxHint').innerText = 'Молодец, телефон отложен. Возвращайся и жми «Завершить» — время засчитается.';
+        } else {
+            document.getElementById('detoxIdle').style.display = 'block';
+            document.getElementById('detoxRunning').style.display = 'none';
+            document.getElementById('detoxStartBtn').style.display = 'flex';
+            document.getElementById('detoxStopBtn').style.display = 'none';
+            document.getElementById('detoxHint').innerText = 'Запусти детокс и отложи телефон. Таймер считает время без экрана. Вернулся — нажми «Завершить», время засчитается.';
+        }
+    }
+    function detoxTickFn(){
+        if (!detoxRunning) return;
+        const el = Date.now() - detoxStartTs;
+        const m = Math.floor(el/60000), s = Math.floor((el%60000)/1000);
+        document.getElementById('detoxTimer').innerText = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    }
+    document.getElementById('detoxStartBtn').addEventListener('click', () => {
+        detoxRunning = true; detoxStartTs = Date.now();
+        localStorage.setItem(DETOX_RUN_KEY, JSON.stringify({ startTs: detoxStartTs }));
+        updateDetoxUI();
+        detoxTickFn();
+        detoxRafTick = setInterval(detoxTickFn, 1000);
+    });
+    document.getElementById('detoxStopBtn').addEventListener('click', () => {
+        const minutes = Math.round((Date.now() - detoxStartTs)/60000);
+        clearInterval(detoxRafTick);
+        detoxRunning = false; detoxStartTs = null;
+        localStorage.removeItem(DETOX_RUN_KEY);
+        if (minutes >= 1) {
+            detoxLog.push({ id: Date.now(), date: today, minutes });
+            saveDetoxLog();
+            // награда раз в день за детокс
+            let rd = [];
+            try { rd = JSON.parse(localStorage.getItem('focus_detox_reward')) || []; } catch(e){}
+            if (!rd.includes(today)) {
+                rd.push(today); localStorage.setItem('focus_detox_reward', JSON.stringify(rd));
+                if(window.FocusRewards)FocusRewards.mark('energy','detox');else{FocusStorage.addCoins(1);FocusStorage.addActivity('energy','detox');}
+                if (FocusCore.coinBurst) FocusCore.coinBurst({ amount:1, reason:'Цифровой детокс', sourceEl: document.querySelector('.title-icon') });
+                toast('Детокс ' + minutes + ' мин! +1 F-coin 📵');
+            } else {
+                toast('Засчитано ' + minutes + ' мин 📵');
+            }
+        } else {
+            toast('Меньше минуты — не засчитано');
+        }
+        updateDetoxUI(); renderDetoxToday(); renderDetoxList();
+    });
+
+    function renderDetoxList(){
+        const list = document.getElementById('detoxList');
+        if (detoxLog.length === 0) {
+            list.innerHTML = '<div class="empty-mini">Пока нет сессий детокса.<br>Отложи телефон и начни первую.</div>';
+            return;
+        }
+        // сгруппируем по дням
+        const byDate = {};
+        detoxLog.forEach(d => { byDate[d.date] = (byDate[d.date]||0) + d.minutes; });
+        list.innerHTML = '';
+        Object.keys(byDate).sort().reverse().forEach(date => {
+            const total = byDate[date];
+            const h = Math.floor(total/60), m = total%60;
+            const item = document.createElement('div');
+            item.className = 'arch-item';
+            item.innerHTML = `
+                <div class="arch-emoji">📵</div>
+                <div class="arch-body">
+                    <div class="arch-top">${h?h+' ч ':''}${m} мин без телефона</div>
+                    <div class="arch-meta">${dateShort(date)}</div>
+                </div>`;
+            list.appendChild(item);
+        });
+    }
+
+    // Инициализация
+    renderArchive();
+    renderDetoxToday();
+    renderDetoxList();
+    updateDetoxUI();
+    if (detoxRunning) { detoxTickFn(); detoxRafTick = setInterval(detoxTickFn, 1000); }
+</script>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+    }
+</script>
+    <script src="focus-chat-fab.js"></script>
+</body>
+</html>

@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="original" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FOCUS">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Админка — FOCUS</title>
+<style>
+    :root, [data-theme="original"] { --accent:#FFD966; --accent-rgb:255,217,102; --accent-2:#7C8CFF; --accent-2-rgb:124,140,255; --accent-light:#FFE9A8; --accent-dark:#C9952E; --bg-1:#131319; --bg-2:#0d0d12; --text-strong:#FFFFFF; }
+    [data-theme="tron"] { --accent:#FF3B2E; --accent-rgb:255,59,46; --accent-2:#00E5FF; --accent-2-rgb:0,229,255; --accent-light:#FF8A6B; --accent-dark:#B8201A; --bg-1:#0a0a0d; --bg-2:#000000; --text-strong:#FFFFFF; }
+    [data-theme="predator"] { --accent:#FF7A1A; --accent-rgb:255,122,26; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#FFB347; --accent-dark:#B84D00; --bg-1:#0d120d; --bg-2:#050705; --text-strong:#FFFFFF; }
+    [data-theme="mk"] { --accent:#FF1A2E; --accent-rgb:255,26,46; --accent-2:#FFD700; --accent-2-rgb:255,215,0; --accent-light:#FF6B5C; --accent-dark:#8A0000; --bg-1:#14080a; --bg-2:#050202; --text-strong:#FFFFFF; }
+    [data-theme="matrix"] { --accent:#00FF41; --accent-rgb:0,255,65; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#7FFF9E; --accent-dark:#008F25; --bg-1:#050505; --bg-2:#000000; --text-strong:#FFFFFF; }
+    .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
+    @keyframes mkShake { 0%,100%{transform:translate(0,0);} 15%{transform:translate(-4px,2px) rotate(-0.4deg);} 30%{transform:translate(4px,-2px) rotate(0.4deg);} 45%{transform:translate(-3px,1px);} 60%{transform:translate(3px,-1px);} 75%{transform:translate(-2px,0);} }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif; background:#060608; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:12px; position:relative; overflow:hidden; }
+    body::before { content:''; position:fixed; width:600px; height:600px; background:radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%); top:10%; left:50%; transform:translateX(-50%); pointer-events:none; animation:ambientDrift 12s ease-in-out infinite; }
+    @keyframes ambientDrift { 0%,100%{opacity:.6;transform:translateX(-50%) scale(1);} 50%{opacity:1;transform:translateX(-50%) scale(1.15);} }
+    .phone { width:375px; height:700px; background:linear-gradient(165deg, var(--bg-1) 0%, var(--bg-2) 100%); border-radius:52px; box-shadow:0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--accent-rgb),0.06), 0 0 0 8px #1c1c24, 0 0 0 9px rgba(var(--accent-rgb),0.08), 0 0 60px rgba(var(--accent-rgb),0.04); overflow:hidden; display:flex; flex-direction:column; position:relative; }
+    .phone::before { content:''; position:absolute; inset:0; z-index:0; opacity:0.1; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    .phone::after { content:''; position:absolute; top:0; left:6%; right:6%; height:1px; background:linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.3), transparent); z-index:0; }
+    #atmosCanvas { position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:52px; }
+
+    .screen { flex:1; padding:18px 18px 12px; display:flex; flex-direction:column; height:100%; overflow:hidden; position:relative; z-index:1; }
+
+    .header-row { display:flex; align-items:center; gap:12px; margin-bottom:11px; }
+    .back-btn { width:36px; height:36px; border-radius:30px; background:rgba(var(--accent-rgb),0.07); border:1px solid rgba(var(--accent-rgb),0.2); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:0.3s ease; flex-shrink:0; }
+    .back-btn:active { transform:scale(0.92); }
+    .back-btn svg { width:16px; height:16px; color:var(--accent); }
+    .title { font-size:21px; font-weight:700; letter-spacing:0.2px; background:linear-gradient(135deg, var(--text-strong) 20%, var(--accent) 70%, var(--accent-dark) 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .title-icon { width:30px; height:30px; flex-shrink:0; border-radius:9px; background:radial-gradient(circle at 35% 30%, rgba(255,138,92,0.3), rgba(255,138,92,0.06)); border:0.5px solid rgba(255,138,92,0.4); display:flex; align-items:center; justify-content:center; margin-left:auto; }
+    .title-icon svg { width:17px; height:17px; color:#FF8A5C; }
+
+    /* Карточка метрик */
+    .metrics-card { background:linear-gradient(135deg, rgba(var(--accent-rgb),0.09), rgba(var(--accent-2-rgb),0.05)); border:1px solid rgba(var(--accent-rgb),0.22); border-radius:18px; padding:20px 16px; margin-bottom:12px; cursor:pointer; position:relative; overflow:hidden; transition:0.25s ease; }
+    .metrics-card::before { content:''; position:absolute; top:0; left:0; width:55px; height:4px; background:linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius:18px 0 8px 0; box-shadow:0 0 12px rgba(var(--accent-rgb),0.5); }
+    .metrics-card:active { transform:scale(0.98); }
+    .metrics-title { font-size:11px; font-weight:700; color:var(--accent-2); letter-spacing:0.3px; margin-bottom:16px; }
+    .metrics-grid { display:flex; justify-content:space-between; gap:10px; }
+    .metric { flex:1; text-align:center; }
+    .metric-label { font-size:11px; color:#9a9aab; margin-bottom:6px; }
+    .metric-value { font-size:26px; font-weight:700; color:#fff; line-height:1.1; }
+    .metric-unit { font-size:11px; color:#9a9aab; font-weight:500; }
+    .metric-divider { width:0.5px; background:rgba(255,255,255,0.1); }
+    .bmi-badge { display:inline-block; margin-top:3px; padding:1px 9px; border-radius:20px; font-size:9px; font-weight:700; background:rgba(120,220,150,0.18); color:#78DC96; border:0.5px solid rgba(120,220,150,0.3); }
+    .metrics-more { text-align:right; margin-top:14px; font-size:10px; color:var(--accent); opacity:0.75; font-weight:600; }
+
+    /* Подразделы */
+    .subsections { flex:1; overflow:hidden; }
+    .subsections::-webkit-scrollbar { display:none; }
+    .subsection-tile { display:flex; align-items:center; gap:12px; background:linear-gradient(135deg, rgba(35,35,46,0.55), rgba(22,22,30,0.55)); border:0.5px solid rgba(var(--accent-rgb),0.13); border-radius:14px; padding:9px 13px; margin-bottom:7px; cursor:pointer; transition:0.25s cubic-bezier(.2,.8,.2,1); position:relative; overflow:hidden; }
+    .subsection-tile::before { content:''; position:absolute; top:0; left:0; right:0; height:50%; background:linear-gradient(180deg, rgba(255,255,255,0.03), transparent); pointer-events:none; border-radius:15px 15px 0 0; }
+    .subsection-tile:active { transform:scale(0.98); }
+    .subsection-icon { width:38px; height:38px; flex-shrink:0; border-radius:11px; background:radial-gradient(circle at 35% 30%, rgba(var(--accent-rgb),0.16), rgba(var(--accent-rgb),0.04)); border:0.5px solid rgba(var(--accent-rgb),0.2); display:flex; align-items:center; justify-content:center; }
+    .subsection-icon svg { width:19px; height:19px; color:var(--accent); }
+    .subsection-info { flex:1; min-width:0; }
+    .subsection-title { font-size:13px; font-weight:700; color:#fff; margin-bottom:1px; }
+    .subsection-desc { font-size:9.5px; color:#9a9aab; line-height:1.3; }
+    .subsection-arrow { color:var(--accent); opacity:0.5; flex-shrink:0; }
+    .subsection-arrow svg { width:16px; height:16px; }
+
+    /* Цвета иконок подразделов */
+    .tile-gratitude .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,138,92,0.26), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,138,92,0.4); }
+    .tile-gratitude .subsection-icon svg { color:#FF8A5C; }
+    .tile-prayer .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,217,102,0.3), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,217,102,0.4); }
+    .tile-prayer .subsection-icon svg { color:var(--accent); }
+    .tile-temple .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(170,185,255,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(170,185,255,0.4); }
+    .tile-temple .subsection-icon svg { color:#AAB9FF; }
+    .tile-habits .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(120,220,150,0.26), rgba(var(--accent-rgb),0.04)); border-color:rgba(120,220,150,0.4); }
+    .tile-habits .subsection-icon svg { color:#78DC96; }
+    .tile-wish .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(200,170,255,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(200,170,255,0.4); }
+    .tile-wish .subsection-icon svg { color:#C8AAFF; }
+    .tile-nutrition .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(120,220,150,0.26), rgba(var(--accent-rgb),0.04)); border-color:rgba(120,220,150,0.4); }
+    .tile-nutrition .subsection-icon svg { color:#78DC96; }
+    .tile-workout .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,140,80,0.3), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,160,100,0.4); }
+    .tile-workout .subsection-icon svg { color:#FF9C64; }
+    .tile-training .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(150,170,255,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(170,185,255,0.4); }
+    .tile-training .subsection-icon svg { color:#AAB9FF; }
+    .tile-stats .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(200,170,255,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(200,170,255,0.4); }
+    .tile-stats .subsection-icon svg { color:#C8AAFF; }
+    .tile-meds .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,150,180,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,170,195,0.4); }
+    .tile-meds .subsection-icon svg { color:#FFAAC9; }
+    .tile-supp .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,138,92,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,150,110,0.4); }
+    .tile-supp .subsection-icon svg { color:#FF8A5C; }
+
+    /* Таб-бар */
+    .tab-bar { display:flex; justify-content:space-around; align-items:center; padding:6px 0 4px; background:rgba(18,18,24,0.9); backdrop-filter:blur(20px); border:0.5px solid rgba(255,255,255,0.06); margin-top:8px; border-radius:26px; flex-shrink:0; }
+    .tab-item { display:flex; flex-direction:column; align-items:center; gap:3px; color:#6e6e7e; font-size:9px; font-weight:600; cursor:pointer; padding:5px 14px; border-radius:20px; transition:0.25s ease; }
+    .tab-item.active { color:var(--accent); background:rgba(var(--accent-rgb),0.1); }
+    .tab-item svg { width:19px; height:19px; }
+
+    .toast { position:absolute; bottom:74px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,0.9); border:1px solid var(--accent); border-radius:20px; padding:9px 18px; color:var(--accent); font-size:12px; font-weight:600; z-index:500; opacity:0; transition:0.3s ease; pointer-events:none; white-space:nowrap; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* PWA-режим (установлено на телефон): на весь реальный экран, без макетной рамки */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; overflow: hidden !important; }
+    .phone {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding-top: env(safe-area-inset-top) !important;
+        padding-bottom: env(safe-area-inset-bottom) !important;
+        max-width: 100vw !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, #atmos, .atmos-canvas { border-radius: 0 !important; }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important;
+    }
+}
+
+/* Телефоны: приложение на весь экран без макетной рамки (надёжно, не зависит от PWA-режима) */
+@media (max-width: 600px) {
+    * { -webkit-user-select: none !important; user-select: none !important; -webkit-tap-highlight-color: transparent !important; }
+    input, textarea { -webkit-user-select: text !important; user-select: text !important; }
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; height: 100vh; height: 100dvh; display: block !important; }
+    body { display: flex !important; align-items: stretch !important; justify-content: flex-start !important; }
+    .phone {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    /* анимация/фон идут до самого верха под чёлку */
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important; border-radius: 0 !important;
+    }
+    /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
+    .screen, .session-area, .slideshow, .scroll-area {
+        padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+    }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+}
+
+    /* ===== АДМИНКА ===== */
+    .scroll-area { flex:1; overflow-y:auto; scrollbar-width:none; padding-bottom:70px; }
+    .scroll-area::-webkit-scrollbar { display:none; }
+    .admin-alert { background:rgba(255,140,90,0.12); border:1px solid rgba(255,140,90,0.3); border-radius:13px; padding:11px 13px; margin-bottom:14px; font-size:11.5px; color:#FFB088; line-height:1.5; font-weight:600; }
+    .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
+    .stat-card { background:linear-gradient(135deg, rgba(35,35,46,0.6), rgba(22,22,30,0.6)); border:0.5px solid rgba(var(--accent-rgb),0.14); border-radius:13px; padding:10px; }
+    .access-split { display:flex; gap:8px; margin-bottom:7px; }
+    .access-card { flex:1; border-radius:12px; padding:10px; text-align:center; }
+    .access-card.paid { background:linear-gradient(135deg, rgba(255,217,102,0.14), rgba(255,217,102,0.05)); border:1px solid rgba(255,217,102,0.3); }
+    .access-card.earned { background:linear-gradient(135deg, rgba(120,220,150,0.14), rgba(120,220,150,0.05)); border:1px solid rgba(120,220,150,0.3); }
+    .access-num { font-size:23px; font-weight:700; margin-bottom:2px; }
+    .access-card.paid .access-num { color:#FFD966; }
+    .access-card.earned .access-num { color:#78DC96; }
+    .access-lbl { font-size:10px; color:#d8d8e0; font-weight:600; margin-bottom:1px; }
+    .access-sub { font-size:8.5px; color:#8e8e9e; }
+    .access-hint { font-size:9px; color:#8e8e9e; line-height:1.4; }
+    .stat-value { font-size:19px; font-weight:700; color:#fff; }
+    .stat-value.gold { color:#FFD966; }
+    .stat-value.green { color:#78DC96; }
+    .stat-value.purple { color:#C8AAFF; }
+    .stat-label { font-size:10.5px; color:#9a9aab; margin-top:3px; font-weight:600; }
+    .panel { background:linear-gradient(135deg, rgba(35,35,46,0.5), rgba(22,22,30,0.5)); border:0.5px solid rgba(var(--accent-rgb),0.12); border-radius:13px; padding:11px; margin-bottom:9px; }
+    .panel-title { font-size:12px; font-weight:700; color:var(--accent); margin-bottom:9px; display:flex; align-items:center; justify-content:space-between; }
+    .panel-title .count-badge { font-size:10px; background:rgba(255,140,90,0.2); color:#FFB088; padding:2px 9px; border-radius:8px; }
+    .admin-search { width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(var(--accent-rgb),0.16); border-radius:11px; padding:10px 13px; color:#fff; font-size:12.5px; font-family:inherit; outline:none; margin-bottom:11px; }
+    .admin-search:focus { border-color:var(--accent); }
+    .admin-search::placeholder { color:#6e6e7e; }
+    .row-item { display:flex; align-items:center; gap:10px; padding:10px 4px; border-bottom:0.5px solid rgba(255,255,255,0.05); }
+    .row-item:last-child { border-bottom:none; }
+    .row-avatar { width:36px; height:36px; border-radius:50%; flex-shrink:0; background:linear-gradient(135deg, var(--accent), var(--accent-2)); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#0a0a0f; }
+    .row-avatar.purple { background:linear-gradient(135deg, #C8AAFF, var(--accent-2)); }
+    .row-info { flex:1; min-width:0; }
+    .row-name { font-size:13px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .row-sub { font-size:10.5px; color:#8e8e9e; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .row-tag { font-size:9px; font-weight:700; padding:2px 8px; border-radius:6px; flex-shrink:0; }
+    .row-tag.elite { background:rgba(255,217,102,0.15); color:#FFD966; }
+    .row-tag.fighter { background:rgba(200,170,255,0.15); color:#C8AAFF; }
+    .row-tag.newbie { background:rgba(255,255,255,0.08); color:#9a9aab; }
+    .row-tag.pending { background:rgba(255,200,90,0.15); color:#FFD98A; }
+    .row-tag.approved { background:rgba(120,220,150,0.15); color:#78DC96; }
+    .row-tag.rejected { background:rgba(255,120,120,0.15); color:#FF8A7C; }
+    .row-tag.active { background:rgba(120,220,150,0.15); color:#78DC96; }
+    .row-tag.blocked { background:rgba(255,120,120,0.15); color:#FF8A7C; }
+    .row-actions { display:flex; gap:6px; flex-shrink:0; }
+    .act-btn { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; }
+    .act-btn.approve { background:rgba(120,220,150,0.15); color:#78DC96; }
+    .act-btn.reject { background:rgba(255,120,120,0.15); color:#FF8A7C; }
+    .act-btn.block { background:rgba(255,160,90,0.12); color:#FFB088; }
+    .act-btn:active { transform:scale(0.9); }
+    .empty-row { text-align:center; color:#6e6e7e; font-size:11.5px; padding:18px; }
+    .sphere-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:9px; }
+    .sphere-bar-label { font-size:11px; color:#c8c8d0; width:80px; flex-shrink:0; }
+    .sphere-bar-track { flex:1; height:8px; background:rgba(255,255,255,0.06); border-radius:5px; overflow:hidden; }
+    .sphere-bar-fill { height:100%; border-radius:5px; background:linear-gradient(90deg, var(--accent-2), var(--accent)); }
+    .sphere-bar-val { font-size:10.5px; color:#9a9aab; width:30px; text-align:right; flex-shrink:0; }
+    .withdraw-card { display:flex; align-items:center; gap:10px; padding:11px 4px; border-bottom:0.5px solid rgba(255,255,255,0.05); }
+    .withdraw-card:last-child { border-bottom:none; }
+    .withdraw-amount { font-size:14px; font-weight:700; color:#FFD966; flex-shrink:0; }
+    /* нижняя навигация */
+    .admin-nav { position:absolute; bottom:0; left:0; right:0; height:60px; background:rgba(13,13,18,0.96); backdrop-filter:blur(10px); border-top:0.5px solid rgba(var(--accent-rgb),0.12); display:flex; align-items:center; justify-content:space-around; z-index:100; border-radius:0 0 52px 52px; }
+    .admin-nav-item { display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; color:#6e6e7e; font-size:8.5px; font-weight:600; padding:6px; flex:1; }
+    .admin-nav-item svg { width:20px; height:20px; }
+    .admin-nav-item.on { color:var(--accent); }
+    .admin-tab-content { display:none; }
+    .admin-tab-content.on { display:block; }
+    .toast { position:absolute; bottom:74px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,0.9); border:1px solid var(--accent); border-radius:16px; padding:11px 18px; color:var(--accent); font-size:12px; font-weight:600; z-index:500; opacity:0; transition:0.3s ease; pointer-events:none; max-width:300px; width:max-content; text-align:center; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+</style>
+<script src="focus-analytics.js"></script>
+<body>
+<div class="phone">
+    <canvas id="atmosCanvas" width="375" height="700" style="width:375px;height:700px;"></canvas>
+    <div class="screen">
+        <div class="header-row">
+            <div class="back-btn" onclick="location.href='index.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <div class="title">Админка</div>
+            <div class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 7v6c0 4 3.5 7 8 9 4.5-2 8-5 8-9V7l-8-5Z"/><path d="m9 12 2 2 4-4"/></svg></div>
+        </div>
+
+        <div class="scroll-area">
+            <!-- ДАШБОРД -->
+            <div class="admin-tab-content on" id="tab-dashboard">
+                <div class="admin-alert" id="dashAlert">🚨 Загрузка сводки...</div>
+                <div class="stat-grid">
+                    <div class="stat-card"><div class="stat-value" id="statUsers">—</div><div class="stat-label">👥 Пользователей</div></div>
+                    <div class="stat-card"><div class="stat-value gold" id="statRevenue">—</div><div class="stat-label">💰 Доход (₽)</div></div>
+                    <div class="stat-card"><div class="stat-value green" id="statActive">—</div><div class="stat-label">📈 Активны сегодня</div></div>
+                    <div class="stat-card"><div class="stat-value purple" id="statOracles">—</div><div class="stat-label">🔮 Оракулов</div></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">📊 Активность по сферам</div>
+                    <div id="sphereStats"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">🕐 Последние события</div>
+                    <div id="eventsLog"></div>
+                </div>
+            </div>
+
+            <!-- ЗАЯВКИ ОРАКУЛОВ -->
+            <div class="admin-tab-content" id="tab-requests">
+                <div class="panel">
+                    <div class="panel-title">📨 Заявки на роль Оракула <span class="count-badge" id="reqCount">0</span></div>
+                    <div id="applicationsList"></div>
+                </div>
+            </div>
+
+            <!-- ОРАКУЛЫ + ЗАКАЗЫ -->
+            <div class="admin-tab-content" id="tab-oracles">
+                <div class="panel">
+                    <div class="panel-title">🔮 Предсказатели</div>
+                    <div id="oraclesList"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">📋 Заказы клиентов</div>
+                    <div id="ordersList"></div>
+                </div>
+            </div>
+
+            <!-- ФИНАНСЫ -->
+            <div class="admin-tab-content" id="tab-finance">
+                <div class="stat-grid">
+                    <div class="stat-card"><div class="stat-value gold" id="finRevenue">—</div><div class="stat-label">💰 Общий доход</div></div>
+                    <div class="stat-card"><div class="stat-value purple" id="finCommission">—</div><div class="stat-label">🏦 Комиссия с оракулов</div></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">👥 Как получили доступ</div>
+                    <div class="access-split">
+                        <div class="access-card paid">
+                            <div class="access-num" id="accPaid">—</div>
+                            <div class="access-lbl">💳 Купили за ₽</div>
+                            <div class="access-sub" id="accPaidSub">прямой доход</div>
+                        </div>
+                        <div class="access-card earned">
+                            <div class="access-num" id="accEarned">—</div>
+                            <div class="access-lbl">⭐ Заработали старанием</div>
+                            <div class="access-sub" id="accEarnedSub">ядро, вовлечённые</div>
+                        </div>
+                    </div>
+                    <div class="access-hint">«Старательные» — лояльное ядро, активны и приводят друзей. «Денежные» — прямая касса. Здоровый баланс = устойчивый рост.</div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">💸 Запросы на вывод <span class="count-badge" id="wdCount">0</span></div>
+                    <div id="withdrawList"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">📊 Подписки по тарифам</div>
+                    <div id="subsStats"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Нижняя навигация -->
+        <div class="admin-nav">
+            <div class="admin-nav-item on" data-tab="dashboard">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                Дашборд
+            </div>
+            <div class="admin-nav-item" data-tab="requests">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H5.2L4 17.2Z"/></svg>
+                Заявки
+            </div>
+            <div class="admin-nav-item" data-tab="oracles">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M7 12h10"/></svg>
+                Оракулы
+            </div>
+            <div class="admin-nav-item" data-tab="finance">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Финансы
+            </div>
+        </div>
+    </div>
+    <div class="toast" id="toast"></div>
+</div>
+
+<script src="focus-storage.js"></script>
+<script type="module" src="firebase-auth-helper.js"></script>
+<script src="focus-core.js"></script>
+<script>
+    if (typeof FocusStorage === 'undefined') {
+        window.FocusStorage = {
+            _key:'focus_user',
+            getUser(){ try { return JSON.parse(localStorage.getItem(this._key)) || {}; } catch(e){ return {}; } },
+            saveUser(p){ const c=this.getUser(); const m={...c,...p}; localStorage.setItem(this._key, JSON.stringify(m)); return m; },
+            getTheme(){ return this.getUser().theme || 'original'; },
+            setTheme(id){ this.saveUser({ theme:id }); }
+        };
+    }
+    if (typeof FocusCore === 'undefined') {
+        window.FocusCore = {
+            applyStoredTheme(){ (document.getElementById('htmlRoot')||document.documentElement).setAttribute('data-theme', FocusStorage.getTheme()); },
+initAtmosphere(canvasId) {
+                const ac = document.getElementById(canvasId || 'atmosCanvas');
+                if (!ac) return;
+                const actx = ac.getContext('2d');
+                ac.width = 375; ac.height = 700;
+                let tronPulses=[], mkEmbers=[], mkDrips=[], mkFlash=0, mkBolt=null, matrixDrops=null, matrixColumns=0;
+                let predatorRadarAngle=0, predatorScanY=0, predatorT=0, predatorBlips=[{a:1.2,r:0.7},{a:3.8,r:0.5}], predatorReticle=null;
+                const matrixChars = 'アイウエオカキクケコサシスセソ0123456789ABCDEF'.split('');
+                let lastTheme=null, lastTrigger=0, washT=0;
+                function currentTheme() { const r = document.getElementById('htmlRoot') || document.documentElement; return r.getAttribute('data-theme') || 'original'; }
+                function cssColor(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function cssColorRgb(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function drawFullScreenWash() {
+                    washT += 0.008;
+                    const accRgb = cssColorRgb('--accent-rgb'), acc2Rgb = cssColorRgb('--accent-2-rgb');
+                    const x = ac.width*(0.5+Math.sin(washT)*0.5), y = ac.height*(0.5+Math.cos(washT*0.7)*0.5);
+                    const grad = actx.createRadialGradient(x,y,0,ac.width/2,ac.height/2,Math.max(ac.width,ac.height)*0.9);
+                    grad.addColorStop(0,'rgba('+accRgb+',0.05)'); grad.addColorStop(0.5,'rgba('+acc2Rgb+',0.035)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+                    actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                }
+                function drawTron() {
+                    if (Math.random() > 0.93) {
+                        const vertical = Math.random() > 0.5;
+                        tronPulses.push({ vertical, pos: Math.floor(Math.random()*(vertical?ac.width:ac.height)), t:-40, speed:3+Math.random()*2, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2'), len:60 });
+                    }
+                    tronPulses.forEach(p => {
+                        p.t += p.speed;
+                        const grad = p.vertical ? actx.createLinearGradient(p.pos,p.t-p.len,p.pos,p.t) : actx.createLinearGradient(p.t-p.len,p.pos,p.t,p.pos);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,p.color);
+                        actx.strokeStyle = grad; actx.lineWidth=2; actx.shadowBlur=8; actx.shadowColor=p.color;
+                        actx.beginPath();
+                        if (p.vertical) { actx.moveTo(p.pos,p.t-p.len); actx.lineTo(p.pos,p.t); } else { actx.moveTo(p.t-p.len,p.pos); actx.lineTo(p.t,p.pos); }
+                        actx.stroke();
+                    });
+                    actx.shadowBlur=0;
+                    tronPulses = tronPulses.filter(p => p.t < Math.max(ac.width,ac.height)+40);
+                }
+                function drawPredator() {
+                    predatorT += 0.01;
+                    for (let i=0;i<5;i++) {
+                        const x = ac.width/2+Math.sin(predatorT+i*2)*ac.width*0.35, y = ac.height/2+Math.cos(predatorT*0.7+i*1.7)*ac.height*0.4;
+                        const r = 60+Math.sin(predatorT*2+i)*20;
+                        const grad = actx.createRadialGradient(x,y,0,x,y,r);
+                        grad.addColorStop(0,'rgba('+cssColorRgb('--accent-rgb')+',0.05)'); grad.addColorStop(1,'rgba('+cssColorRgb('--accent-rgb')+',0)');
+                        actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                    }
+                    predatorScanY += 1.8; if (predatorScanY > ac.height+20) predatorScanY=-20;
+                    const acc2 = cssColorRgb('--accent-2-rgb');
+                    const lineGrad = actx.createLinearGradient(0,predatorScanY-15,0,predatorScanY+15);
+                    lineGrad.addColorStop(0,'rgba('+acc2+',0)'); lineGrad.addColorStop(0.5,'rgba('+acc2+',0.35)'); lineGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.fillStyle = lineGrad; actx.fillRect(0,predatorScanY-15,ac.width,30);
+                    actx.strokeStyle='rgba('+acc2+',0.5)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.moveTo(0,predatorScanY); actx.lineTo(ac.width,predatorScanY); actx.stroke();
+                    const rcx=ac.width-46, rcy=64, rr=34;
+                    actx.save();
+                    actx.strokeStyle='rgba('+acc2+',0.4)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.arc(rcx,rcy,rr,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.arc(rcx,rcy,rr*0.6,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx-rr,rcy); actx.lineTo(rcx+rr,rcy); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx,rcy-rr); actx.lineTo(rcx,rcy+rr); actx.stroke();
+                    predatorRadarAngle += 0.05;
+                    const sweepGrad = actx.createLinearGradient(rcx,rcy,rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr);
+                    sweepGrad.addColorStop(0,'rgba('+acc2+',0.6)'); sweepGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.strokeStyle = sweepGrad; actx.lineWidth=2;
+                    actx.beginPath(); actx.moveTo(rcx,rcy); actx.lineTo(rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr); actx.stroke();
+                    predatorBlips.forEach(b => {
+                        const bx=rcx+Math.cos(b.a)*rr*b.r, by=rcy+Math.sin(b.a)*rr*b.r;
+                        const diff = Math.abs(((predatorRadarAngle%(Math.PI*2))-b.a+Math.PI*3)%(Math.PI*2)-Math.PI);
+                        const blipAlpha = diff<0.5 ? 1-diff/0.5 : 0;
+                        if (blipAlpha>0) { actx.fillStyle='rgba('+acc2+','+blipAlpha+')'; actx.beginPath(); actx.arc(bx,by,2,0,Math.PI*2); actx.fill(); }
+                    });
+                    actx.restore();
+                    if (Math.random()>0.992 && !predatorReticle) predatorReticle = { x:40+Math.random()*(ac.width-80), y:90+Math.random()*(ac.height-220), life:1 };
+                    if (predatorReticle) {
+                        predatorReticle.life -= 0.012;
+                        if (predatorReticle.life<=0) predatorReticle=null;
+                        else {
+                            const a = Math.min(predatorReticle.life>0.85?(1-predatorReticle.life)/0.15:1,1) * Math.min(predatorReticle.life/0.15,1);
+                            const size = 22+(1-Math.min(predatorReticle.life,1))*6;
+                            actx.save(); actx.globalAlpha=a; actx.strokeStyle=cssColor('--accent'); actx.lineWidth=1.3;
+                            actx.beginPath(); actx.arc(predatorReticle.x,predatorReticle.y,size,0,Math.PI*2); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x-size-6,predatorReticle.y); actx.lineTo(predatorReticle.x-size+4,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x+size-4,predatorReticle.y); actx.lineTo(predatorReticle.x+size+6,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y-size-6); actx.lineTo(predatorReticle.x,predatorReticle.y-size+4); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y+size-4); actx.lineTo(predatorReticle.x,predatorReticle.y+size+6); actx.stroke();
+                            actx.font='8px monospace'; actx.fillStyle=cssColor('--accent'); actx.fillText('LOCKED', predatorReticle.x-16, predatorReticle.y+size+14);
+                            actx.restore();
+                        }
+                    }
+                }
+                function drawMK() {
+                    const phoneEl = document.querySelector('.phone');
+                    if (Math.random()>0.4) mkEmbers.push({ x:Math.random()*ac.width, y:ac.height+10, vx:(Math.random()-0.5)*0.6, vy:-0.6-Math.random()*1.2, size:1+Math.random()*2, life:1, decay:0.004+Math.random()*0.006, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2') });
+                    mkEmbers.forEach(e => {
+                        e.x+=e.vx; e.y+=e.vy; e.life-=e.decay;
+                        const fade=Math.max(e.life,0); actx.globalAlpha=fade; actx.fillStyle=e.color; actx.shadowBlur=6; actx.shadowColor=e.color;
+                        actx.beginPath(); actx.arc(e.x,e.y,e.size,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1; actx.shadowBlur=0;
+                    mkEmbers = mkEmbers.filter(e=>e.life>0 && e.y>-10);
+                    if (Math.random()>0.96) mkDrips.push({ x:20+Math.random()*(ac.width-40), y:-10, len:8+Math.random()*10, speed:1.2+Math.random()*1.5, life:1 });
+                    mkDrips.forEach(d => {
+                        d.y+=d.speed; d.life-=0.004;
+                        const fade=Math.max(d.life,0); actx.globalAlpha=fade;
+                        const grad = actx.createLinearGradient(d.x,d.y-d.len,d.x,d.y);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,cssColor('--accent'));
+                        actx.strokeStyle=grad; actx.lineWidth=2;
+                        actx.beginPath(); actx.moveTo(d.x,d.y-d.len); actx.lineTo(d.x,d.y); actx.stroke();
+                        actx.fillStyle=cssColor('--accent'); actx.beginPath(); actx.arc(d.x,d.y,1.4,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1;
+                    mkDrips = mkDrips.filter(d=>d.life>0 && d.y<ac.height+10);
+                    if (Date.now()-lastTrigger>6000 && Math.random()>0.5) {
+                        lastTrigger = Date.now(); mkFlash=1;
+                        const startX = 30+Math.random()*(ac.width-60);
+                        const points=[{x:startX,y:-5}]; let x=startX;
+                        for (let i=1;i<=9;i++) { const y=(ac.height/9)*i; x+=(Math.random()-0.5)*50; x=Math.max(10,Math.min(ac.width-10,x)); points.push({x,y}); }
+                        mkBolt = { points, life:1 };
+                        if (phoneEl) { phoneEl.classList.add('mk-shake'); setTimeout(()=>phoneEl.classList.remove('mk-shake'),280); }
+                    }
+                    if (mkBolt) {
+                        mkBolt.life -= 0.05;
+                        if (mkBolt.life<=0) mkBolt=null;
+                        else {
+                            actx.save(); actx.globalAlpha=Math.min(mkBolt.life*2,1);
+                            actx.strokeStyle='#7CD9FF'; actx.shadowBlur=14; actx.shadowColor='#3AB8FF'; actx.lineWidth=2;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.strokeStyle='#FFFFFF'; actx.lineWidth=0.8; actx.shadowBlur=4;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.restore();
+                        }
+                    }
+                    if (mkFlash>0) { actx.fillStyle='rgba(124,217,255,'+(mkFlash*0.16)+')'; actx.fillRect(0,0,ac.width,ac.height); mkFlash -= 0.08; }
+                }
+                function drawMatrix() {
+                    if (!matrixDrops) { matrixColumns = Math.floor(ac.width/13); matrixDrops = Array(matrixColumns).fill(0).map(()=>Math.random()*-30); }
+                    actx.fillStyle='rgba(0,0,0,0.08)'; actx.fillRect(0,0,ac.width,ac.height); actx.font='13px monospace';
+                    for (let i=0;i<matrixColumns;i++) {
+                        const text = matrixChars[Math.floor(Math.random()*matrixChars.length)];
+                        const y = matrixDrops[i]*13;
+                        const isHead = Math.random()>0.92;
+                        actx.fillStyle = isHead ? '#cfffd9' : 'rgba('+cssColorRgb('--accent-rgb')+',0.55)';
+                        actx.fillText(text, i*13, y);
+                        if (y>ac.height && Math.random()>0.975) matrixDrops[i]=0;
+                        matrixDrops[i]++;
+                    }
+                }
+                function loop() {
+                    const theme = currentTheme();
+                    if (theme !== lastTheme) {
+                        actx.clearRect(0,0,ac.width,ac.height);
+                        tronPulses=[]; mkEmbers=[]; mkDrips=[]; mkBolt=null; matrixDrops=null; predatorReticle=null;
+                        lastTheme = theme;
+                    }
+                    if (theme !== 'matrix') actx.clearRect(0,0,ac.width,ac.height);
+                    drawFullScreenWash();
+                    if (theme==='tron') drawTron();
+                    else if (theme==='predator') drawPredator();
+                    else if (theme==='mk') drawMK();
+                    else if (theme==='matrix') drawMatrix();
+                    requestAnimationFrame(loop);
+                }
+                loop();
+            }        };
+    }
+
+    FocusCore.applyStoredTheme();
+    FocusCore.initAtmosphere('atmosCanvas');
+
+    function toast(msg){
+        const t=document.getElementById('toast');
+        t.innerText=msg; t.classList.add('show');
+        clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'), 2000);
+    }
+    function escapeHtml(s){ const d=document.createElement('div'); d.innerText=String(s==null?'':s); return d.innerHTML; }
+
+    const CAT_LABELS = { tarot:'Таролог', astrology:'Астролог', numerology:'Нумеролог', runes:'Рунолог', palmistry:'Хиромант', clairvoyant:'Ясновидящий', shaman:'Шаман', lead_pour:'Отлив воском' };
+    function catLabel(id){ return CAT_LABELS[id] || id; }
+
+    // ===== Навигация по вкладкам =====
+    document.querySelectorAll('.admin-nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            document.querySelectorAll('.admin-nav-item').forEach(x => x.classList.remove('on'));
+            document.querySelectorAll('.admin-tab-content').forEach(x => x.classList.remove('on'));
+            item.classList.add('on');
+            document.getElementById('tab-' + item.dataset.tab).classList.add('on');
+        });
+    });
+
+    // ===== ДАШБОРД (демо-статистика + реальные заявки) =====
+    function getApps(){ try { return JSON.parse(localStorage.getItem('focus_psychic_applications'))||[]; } catch(e){ return []; } }
+    function saveApps(a){ localStorage.setItem('focus_psychic_applications', JSON.stringify(a)); }
+    function getRequests(){ try { return JSON.parse(localStorage.getItem('focus_oracle_requests'))||[]; } catch(e){ return []; } }
+
+    // демо-показатели (при бэкенде заменятся реальными агрегатами)
+    const DEMO = { users: 12345, revenue: 456789, activeToday: 2840, subscribers: 1230 };
+
+    function renderDashboard(){
+        const apps = getApps();
+        const pending = apps.filter(a => a.status === 'pending').length;
+        const oracleCount = apps.filter(a => a.status === 'approved').length + 6; // демо +реальные
+        document.getElementById('statUsers').innerText = DEMO.users.toLocaleString('ru-RU');
+        document.getElementById('statRevenue').innerText = (DEMO.revenue/1000).toFixed(0) + 'к';
+        document.getElementById('statActive').innerText = DEMO.activeToday.toLocaleString('ru-RU');
+        document.getElementById('statOracles').innerText = oracleCount;
+
+        const reqs = getRequests();
+        const wd = reqs.filter(r=>r.status==='withdraw').length;
+        document.getElementById('dashAlert').innerHTML = `🚨 ${pending} ${pending===1?'заявка ожидает':'заявок ожидают'} одобрения · ${reqs.filter(r=>r.status==='pending').length} активных заказов`;
+
+        // сферы (демо-распределение активности)
+        const spheres = [
+            { name:'Тело', val:82 }, { name:'Менталка', val:67 }, { name:'Энергия', val:58 },
+            { name:'Отношения', val:44 }, { name:'Вера', val:51 }, { name:'Награды', val:73 }
+        ];
+        const maxV = Math.max(...spheres.map(s=>s.val));
+        document.getElementById('sphereStats').innerHTML = spheres.map(s => `
+            <div class="sphere-bar-row">
+                <div class="sphere-bar-label">${s.name}</div>
+                <div class="sphere-bar-track"><div class="sphere-bar-fill" style="width:${(s.val/maxV*100).toFixed(0)}%"></div></div>
+                <div class="sphere-bar-val">${s.val}%</div>
+            </div>`).join('');
+
+        // события (последние заявки + демо)
+        const events = [];
+        apps.slice(-3).reverse().forEach(a => events.push({ what:'Заявка на роль', who:a.name, status:a.status==='pending'?'📨':'✅' }));
+        events.push({ what:'Купил «Про»', who:'Иван П.', status:'✅' });
+        events.push({ what:'Новый заказ оракулу', who:'Мария С.', status:'📋' });
+        document.getElementById('eventsLog').innerHTML = events.slice(0,6).map(e => `
+            <div class="row-item">
+                <div class="row-info"><div class="row-name">${escapeHtml(e.what)}</div><div class="row-sub">${escapeHtml(e.who)}</div></div>
+                <div style="font-size:16px;">${e.status}</div>
+            </div>`).join('') || '<div class="empty-row">Нет событий</div>';
+    }
+
+    // ===== ЗАЯВКИ (реальное одобрение) =====
+    function renderApplications(){
+        const cont = document.getElementById('applicationsList');
+        const apps = getApps();
+        const pending = apps.filter(a => a.status === 'pending');
+        document.getElementById('reqCount').innerText = pending.length;
+        if (apps.length === 0) {
+            cont.innerHTML = '<div class="empty-row">Заявок пока нет</div>';
+            return;
+        }
+        cont.innerHTML = '';
+        // сначала ожидающие
+        apps.slice().sort((a,b)=>{
+            const order = { pending:0, approved:1, rejected:2 };
+            return (order[a.status]||3) - (order[b.status]||3);
+        }).forEach(app => {
+            const cats = (app.categories||[]).map(catLabel).join(', ');
+            const statusTag = app.status==='pending' ? '<span class="row-tag pending">⏳ Ожидает</span>'
+                : app.status==='approved' ? '<span class="row-tag approved">✅ Одобрена</span>'
+                : '<span class="row-tag rejected">❌ Отклонена</span>';
+            const actions = app.status==='pending' ? `
+                <div class="row-actions">
+                    <div class="act-btn approve" data-approve="${app.id}">✓</div>
+                    <div class="act-btn reject" data-reject="${app.id}">✕</div>
+                </div>` : '';
+            const div = document.createElement('div');
+            div.className = 'row-item';
+            div.innerHTML = `
+                <div class="row-avatar purple">${escapeHtml((app.name||'?')[0].toUpperCase())}</div>
+                <div class="row-info">
+                    <div class="row-name">${escapeHtml(app.name)} ${statusTag}</div>
+                    <div class="row-sub">${escapeHtml(cats)} · ${escapeHtml(app.contacts||'')}</div>
+                </div>
+                ${actions}`;
+            cont.appendChild(div);
+        });
+        // обработчики одобрения/отклонения
+        cont.querySelectorAll('[data-approve]').forEach(el => el.addEventListener('click', () => {
+            const apps2 = getApps();
+            const app = apps2.find(a => String(a.id) === String(el.dataset.approve));
+            if (app) { app.status = 'approved'; app.reviewedAt = new Date().toISOString(); saveApps(apps2); toast('✓ Заявка одобрена — оракулу открыт кабинет'); renderApplications(); renderDashboard(); }
+        }));
+        cont.querySelectorAll('[data-reject]').forEach(el => el.addEventListener('click', () => {
+            const apps2 = getApps();
+            const app = apps2.find(a => String(a.id) === String(el.dataset.reject));
+            if (app) { app.status = 'rejected'; app.reviewedAt = new Date().toISOString(); saveApps(apps2); toast('Заявка отклонена'); renderApplications(); renderDashboard(); }
+        }));
+    }
+
+    // ===== ОРАКУЛЫ + ЗАКАЗЫ =====
+    function renderOracles(){
+        const cont = document.getElementById('oraclesList');
+        const apps = getApps().filter(a => a.status === 'approved');
+        // демо-оракулы + реальные одобренные
+        const demoOracles = [
+            { name:'Мария Т.', cat:'tarot', balance:1200, active:true },
+            { name:'Анна А.', cat:'astrology', balance:850, active:true },
+            { name:'Виктория Н.', cat:'numerology', balance:0, active:false }
+        ];
+        const realOracles = apps.map(a => ({ name:a.name, cat:(a.categories||[])[0], balance:0, active:true }));
+        const all = realOracles.concat(demoOracles);
+        cont.innerHTML = all.map(o => `
+            <div class="row-item">
+                <div class="row-avatar purple">${escapeHtml((o.name||'?')[0].toUpperCase())}</div>
+                <div class="row-info">
+                    <div class="row-name">${escapeHtml(o.name)}</div>
+                    <div class="row-sub">${escapeHtml(catLabel(o.cat))} · баланс ${o.balance} F</div>
+                </div>
+                <span class="row-tag ${o.active?'active':'blocked'}">${o.active?'🟢 Активен':'🔴 Блок'}</span>
+            </div>`).join('') || '<div class="empty-row">Нет оракулов</div>';
+    }
+
+    function renderOrders(){
+        const cont = document.getElementById('ordersList');
+        const reqs = getRequests();
+        if (reqs.length === 0) {
+            cont.innerHTML = '<div class="empty-row">Заказов пока нет</div>';
+            return;
+        }
+        cont.innerHTML = reqs.slice().reverse().slice(0,15).map(r => {
+            const st = r.status==='done' ? '<span class="row-tag approved">✅ Завершён</span>' : '<span class="row-tag pending">⏳ В работе</span>';
+            return `<div class="row-item">
+                <div class="row-info">
+                    <div class="row-name">${escapeHtml(r.clientName||'Клиент')} → ${escapeHtml(r.psychicName||'')}</div>
+                    <div class="row-sub">${escapeHtml(r.format||'')} · ${r.price} F</div>
+                </div>
+                ${st}</div>`;
+        }).join('');
+    }
+
+    // ===== ФИНАНСЫ =====
+    function renderFinance(){
+        document.getElementById('finRevenue').innerText = (DEMO.revenue/1000).toFixed(0) + 'к ₽';
+        // комиссия с оракулов (демо + реальные выполненные заказы)
+        const reqs = getRequests().filter(r=>r.status==='done');
+        let commission = 4250; // демо
+        reqs.forEach(r => commission += Math.round(r.price * 0.25));
+        document.getElementById('finCommission').innerText = commission.toLocaleString('ru-RU') + ' F';
+
+        // запросы на вывод (демо)
+        const withdraws = [
+            { name:'Мария Т.', amount:1200 },
+            { name:'Анна А.', amount:850 }
+        ];
+        document.getElementById('wdCount').innerText = withdraws.length;
+        document.getElementById('withdrawList').innerHTML = withdraws.map((w,i) => `
+            <div class="withdraw-card">
+                <div class="row-avatar purple">${escapeHtml(w.name[0])}</div>
+                <div class="row-info"><div class="row-name">${escapeHtml(w.name)}</div><div class="row-sub">Запрос на вывод</div></div>
+                <div class="withdraw-amount">${w.amount} F</div>
+                <div class="act-btn approve" data-wd="${i}">✓</div>
+            </div>`).join('') || '<div class="empty-row">Нет запросов</div>';
+        document.querySelectorAll('[data-wd]').forEach(el => el.addEventListener('click', () => {
+            toast('Вывод подтверждён (подключается с бэкендом)');
+        }));
+
+        // подписки (демо)
+        const subs = [ { name:'Лайт', count:520 }, { name:'Плюс', count:430 }, { name:'Про', count:280 } ];
+        const maxS = Math.max(...subs.map(s=>s.count));
+        document.getElementById('subsStats').innerHTML = subs.map(s => `
+            <div class="sphere-bar-row">
+                <div class="sphere-bar-label">${s.name}</div>
+                <div class="sphere-bar-track"><div class="sphere-bar-fill" style="width:${(s.count/maxS*100).toFixed(0)}%"></div></div>
+                <div class="sphere-bar-val">${s.count}</div>
+            </div>`).join('');
+
+        // разделение: купили за ₽ vs заработали старанием (демо — с бэкендом реальные)
+        const totalSubs = subs.reduce((a,s)=>a+s.count,0); // 1230
+        const paidCount = 740;   // купили рублями
+        const earnedCount = totalSubs - paidCount; // заработали старанием = 490
+        document.getElementById('accPaid').innerText = paidCount.toLocaleString('ru-RU');
+        document.getElementById('accEarned').innerText = earnedCount.toLocaleString('ru-RU');
+        document.getElementById('accPaidSub').innerText = '≈ ' + (paidCount*450).toLocaleString('ru-RU') + ' ₽/мес';
+        document.getElementById('accEarnedSub').innerText = Math.round(earnedCount/totalSubs*100) + '% базы, вовлечённые';
+    }
+
+    renderDashboard();
+    renderApplications();
+    renderOracles();
+    renderOrders();
+    renderFinance();
+
+</script>
+<script>
+    if ("serviceWorker" in navigator) { window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }); }
+</script>
+</body>
+</html>

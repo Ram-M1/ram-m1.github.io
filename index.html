@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="original" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FOCUS">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>FOCUS — Главная</title>
+<style>
+    :root, [data-theme="original"] {
+        --accent: #FFD966; --accent-rgb: 255,217,102;
+        --accent-2: #7C8CFF; --accent-2-rgb: 124,140,255;
+        --accent-light: #FFE9A8; --accent-dark: #C9952E;
+        --bg-1: #131319; --bg-2: #0d0d12; --text-strong: #FFFFFF;
+    }
+    [data-theme="tron"] {
+        --accent: #FF3B2E; --accent-rgb: 255,59,46;
+        --accent-2: #00E5FF; --accent-2-rgb: 0,229,255;
+        --accent-light: #FF8A6B; --accent-dark: #B8201A;
+        --bg-1: #0a0a0d; --bg-2: #000000; --text-strong: #FFFFFF;
+    }
+    [data-theme="predator"] {
+        --accent: #FF7A1A; --accent-rgb: 255,122,26;
+        --accent-2: #39FF6A; --accent-2-rgb: 57,255,106;
+        --accent-light: #FFB347; --accent-dark: #B84D00;
+        --bg-1: #0d120d; --bg-2: #050705; --text-strong: #FFFFFF;
+    }
+    [data-theme="mk"] {
+        --accent: #FF1A2E; --accent-rgb: 255,26,46;
+        --accent-2: #FFD700; --accent-2-rgb: 255,215,0;
+        --accent-light: #FF6B5C; --accent-dark: #8A0000;
+        --bg-1: #14080a; --bg-2: #050202; --text-strong: #FFFFFF;
+    }
+    [data-theme="matrix"] {
+        --accent: #00FF41; --accent-rgb: 0,255,65;
+        --accent-2: #39FF6A; --accent-2-rgb: 57,255,106;
+        --accent-light: #7FFF9E; --accent-dark: #008F25;
+        --bg-1: #050505; --bg-2: #000000; --text-strong: #FFFFFF;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif;
+        background: #060608;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 12px;
+        position: relative;
+        overflow: hidden;
+    }
+    body::before {
+        content: '';
+        position: fixed;
+        width: 600px; height: 600px;
+        background: radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%);
+        top: 10%; left: 50%;
+        transform: translateX(-50%);
+        pointer-events: none;
+        animation: ambientDrift 12s ease-in-out infinite;
+    }
+    @keyframes ambientDrift {
+        0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+        50% { opacity: 1; transform: translateX(-50%) scale(1.15); }
+    }
+    .phone {
+        width: 375px;
+        height: 700px;
+        background: linear-gradient(165deg, var(--bg-1) 0%, var(--bg-2) 100%);
+        border-radius: 52px;
+        box-shadow:
+            0 40px 80px rgba(0,0,0,0.6),
+            0 0 0 1px rgba(var(--accent-rgb),0.06),
+            0 0 0 8px #1c1c24,
+            0 0 0 9px rgba(var(--accent-rgb),0.08),
+            0 0 60px rgba(var(--accent-rgb),0.04);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+    .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
+    @keyframes mkShake {
+        0%, 100% { transform: translate(0,0); }
+        15% { transform: translate(-4px,2px) rotate(-0.4deg); }
+        30% { transform: translate(4px,-2px) rotate(0.4deg); }
+        45% { transform: translate(-3px,1px); }
+        60% { transform: translate(3px,-1px); }
+        75% { transform: translate(-2px,0); }
+    }
+    .phone::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        opacity: 0.1;
+        pointer-events: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    .phone::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 6%; right: 6%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.3), transparent);
+        z-index: 0;
+    }
+    .screen {
+        flex: 1;
+        padding: 14px 18px 12px 18px;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+        z-index: 1;
+    }
+    .logo-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+    .logo-left {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 30px;
+        transition: 0.35s cubic-bezier(.2,.8,.2,1);
+    }
+    .logo-left:hover { background: rgba(var(--accent-rgb),0.06); }
+    .logo-left:active { transform: scale(0.96); }
+    .logo-svg { width: 30px; height: 30px; display: block; }
+    .logo-badge {
+        width: 42px;
+        height: 42px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 30px;
+        background: rgba(var(--accent-rgb),0.07);
+        border: 1px solid rgba(var(--accent-rgb),0.25);
+        animation: logoPulse 2.4s ease-in-out infinite;
+    }
+    @keyframes logoPulse {
+        0%, 100% { box-shadow: 0 0 6px rgba(var(--accent-rgb),0.15); }
+        50% { box-shadow: 0 0 26px rgba(var(--accent-rgb),0.65); }
+    }
+    .logo-badge.cosmic-active {
+        animation: logoShake 0.25s ease-in-out infinite, logoPulseIntense 0.6s ease-in-out infinite;
+        box-shadow: 0 0 40px rgba(var(--accent-rgb),1), 0 0 80px rgba(var(--accent-rgb),0.5);
+        border-color: var(--accent-light);
+    }
+    .oracle-trigger.cosmic-active {
+        animation: logoShake 0.25s ease-in-out infinite, logoPulseIntense 0.6s ease-in-out infinite;
+        box-shadow: 0 0 40px rgba(var(--accent-rgb),1), 0 0 80px rgba(var(--accent-rgb),0.5);
+        border-color: var(--accent-light);
+    }
+    @keyframes logoShake {
+        0%, 100% { transform: translate(0,0) rotate(0deg); }
+        20% { transform: translate(-1.5px,1px) rotate(-2deg); }
+        40% { transform: translate(1.5px,-1px) rotate(2deg); }
+        60% { transform: translate(-1px,-1.5px) rotate(-1deg); }
+        80% { transform: translate(1px,1.5px) rotate(1deg); }
+    }
+    @keyframes logoPulseIntense {
+        0%, 100% { box-shadow: 0 0 20px rgba(var(--accent-rgb),0.6), 0 0 50px rgba(var(--accent-rgb),0.25); }
+        50% { box-shadow: 0 0 50px rgba(var(--accent-rgb),1), 0 0 100px rgba(var(--accent-rgb),0.6); }
+    }
+    #cosmicCanvas {
+        position: absolute;
+        inset: 0;
+        z-index: 150;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.4s ease;
+        border-radius: 52px;
+    }
+    #cosmicCanvas.show { opacity: 1; }
+    .app-name {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        background: linear-gradient(135deg, #FFFFFF 20%, var(--accent) 70%, var(--accent-dark) 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    .oracle-trigger {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        width: 42px;
+        height: 42px;
+        border-radius: 30px;
+        background: rgba(var(--accent-rgb),0.07);
+        border: 1px solid rgba(var(--accent-rgb),0.25);
+        transition: 0.35s cubic-bezier(.2,.8,.2,1);
+        animation: glowPulse 3s ease-in-out infinite;
+    }
+    .oracle-trigger:active { transform: scale(0.92); }
+    .oracle-trigger:hover {
+        background: rgba(var(--accent-rgb),0.14);
+        border-color: var(--accent);
+        box-shadow: 0 0 22px rgba(var(--accent-rgb),0.25);
+        transform: scale(1.04);
+    }
+    .oracle-icon { width: 32px; height: 32px; display: block; }
+    @keyframes glowPulse {
+        0%, 100% { box-shadow: 0 0 6px rgba(var(--accent-rgb),0.15); }
+        50% { box-shadow: 0 0 18px rgba(var(--accent-rgb),0.4); }
+    }
+    .ai-focus-card { background:linear-gradient(135deg, rgba(var(--accent-2-rgb),0.1), rgba(var(--accent-rgb),0.04)); border:1px solid rgba(var(--accent-2-rgb),0.25); border-radius:13px; padding:9px 11px; margin-bottom:8px; position:relative; }
+    .ai-card-head { display:flex; align-items:center; gap:6px; margin-bottom:2px; }
+    .ai-card-title { font-size:12px; font-weight:700; color:var(--accent-2); }
+    .ai-card-hint { font-size:10px; color:#9a9aab; margin-bottom:7px; line-height:1.25; }
+    .parent-tasks { background:linear-gradient(135deg, rgba(255,217,102,0.1), rgba(124,140,255,0.06)); border:1px solid rgba(255,217,102,0.25); border-radius:16px; padding:13px; margin-bottom:14px; }
+    .parent-tasks-head { font-size:12px; font-weight:700; color:var(--accent); margin-bottom:9px; }
+    .ptask { display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.22); border-radius:12px; padding:10px 12px; margin-bottom:7px; }
+    .ptask:last-child { margin-bottom:0; }
+    .ptask-pending { opacity:0.7; }
+    .ptask-info { flex:1; min-width:0; }
+    .ptask-text { font-size:13px; font-weight:600; color:#fff; }
+    .ptask-reward { font-size:10.5px; color:#FFD966; margin-top:2px; }
+    .ptask-do { background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; border:none; border-radius:10px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .ptask-do:active { transform:scale(0.95); }
+    .ptask-wait { font-size:11px; color:#FFD966; white-space:nowrap; }
+    .ai-pulse { width:7px; height:7px; border-radius:50%; background:var(--accent-2); animation:aiPulse 1.4s ease-in-out infinite; }
+    @keyframes aiPulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.4; transform:scale(0.7); } }
+    .ai-mic-btn { width:36px; height:36px; flex-shrink:0; border-radius:10px; background:rgba(var(--accent-2-rgb),0.14); border:1px solid rgba(var(--accent-2-rgb),0.3); display:flex; align-items:center; justify-content:center; color:var(--accent-2); cursor:pointer; }
+    .ai-mic-btn svg { width:15px; height:15px; }
+    .ai-mic-btn:active { transform:scale(0.92); }
+    .ai-mic-btn.recording { background:rgba(255,90,90,0.2); border-color:rgba(255,90,90,0.5); color:#ff6b6b; animation:micRec 1s ease-in-out infinite; }
+    @keyframes micRec { 0%,100% { box-shadow:0 0 0 0 rgba(255,90,90,0.4); } 50% { box-shadow:0 0 0 5px rgba(255,90,90,0); } }
+    .ai-input-row { display:flex; gap:6px; align-items:center; }
+    .ai-input { flex:1; min-width:0; background:rgba(0,0,0,0.28); border:1px solid rgba(var(--accent-rgb),0.14); border-radius:10px; padding:10px 12px; color:#fff; font-size:12.5px; font-family:inherit; outline:none; }
+    .ai-input:focus { border-color:var(--accent-2); }
+    .ai-input::placeholder { color:#7a7a8a; font-size:12px; }
+    .ai-send-btn { width:36px; height:36px; flex-shrink:0; border-radius:10px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); display:flex; align-items:center; justify-content:center; color:#0a0a0f; cursor:pointer; }
+    .ai-send-btn svg { width:15px; height:15px; }
+    .ai-send-btn:active { transform:scale(0.92); }
+    .ai-result { margin-top:7px; font-size:11.5px; font-weight:600; display:none; align-items:center; gap:6px; padding:8px 10px; border-radius:9px; background:rgba(120,220,150,0.12); border:1px solid rgba(120,220,150,0.3); color:#78DC96; line-height:1.3; }
+    .ai-result.show { display:flex; }
+    .ai-result.unknown { background:rgba(255,200,90,0.1); border-color:rgba(255,200,90,0.3); color:#FFD98A; }
+
+    .quote-container {
+        background: linear-gradient(135deg, rgba(var(--accent-2-rgb),0.07), rgba(var(--accent-rgb),0.04));
+        border: 1px solid rgba(var(--accent-2-rgb),0.18);
+        border-radius: 12px;
+        padding: 9px 13px;
+        margin-bottom: 12px;
+        position: relative;
+    }
+    .quote-container::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0;
+        width: 28px; height: 2px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        border-radius: 0 0 4px 0;
+    }
+    .quote-text {
+        font-size: 12px;
+        font-weight: 600;
+        color: #ECECF5;
+        line-height: 1.4;
+        margin-bottom: 3px;
+        letter-spacing: 0.1px;
+    }
+    .quote-author { font-size: 9px; color: var(--accent-2); letter-spacing: 0.6px; text-transform: uppercase; font-weight: 600; }
+    .focus-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        flex: 1;
+        overflow-y: auto;
+        scrollbar-width: none;
+        padding-bottom: 4px;
+    }
+    .focus-grid::-webkit-scrollbar { display: none; }
+    .focus-tile {
+        background: linear-gradient(135deg, rgba(35,35,46,0.42), rgba(22,22,30,0.42));
+        border-radius: 18px;
+        padding: 17px 15px;
+        border: 0.5px solid rgba(var(--accent-rgb),0.12);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        transition: 0.35s cubic-bezier(.2,.8,.2,1);
+        opacity: 0;
+        transform: translateY(10px);
+        animation: tileIn 0.5s cubic-bezier(.2,.8,.2,1) forwards;
+        position: relative;
+        overflow: hidden;
+    }
+    .focus-tile::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 50%;
+        background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
+        pointer-events: none;
+    }
+    .focus-tile[data-sphere="body"] .tile-icon { background: radial-gradient(circle at 35% 30%, rgba(255,140,80,0.32), rgba(var(--accent-rgb),0.05)); border-color: rgba(255,160,100,0.4); }
+    .focus-tile[data-sphere="mental"] .tile-icon { background: radial-gradient(circle at 35% 30%, rgba(150,170,255,0.28), rgba(var(--accent-rgb),0.05)); border-color: rgba(170,185,255,0.4); }
+    .focus-tile[data-sphere="energy"] .tile-icon { background: radial-gradient(circle at 35% 30%, rgba(var(--accent-rgb),0.36), rgba(var(--accent-rgb),0.05)); }
+    .focus-tile[data-sphere="relations"] .tile-icon { background: radial-gradient(circle at 35% 30%, rgba(255,150,180,0.28), rgba(var(--accent-rgb),0.05)); border-color: rgba(255,170,195,0.4); }
+    .focus-tile[data-sphere="faith"] .tile-icon { background: radial-gradient(circle at 35% 30%, rgba(255,120,80,0.32), rgba(var(--accent-rgb),0.05)); border-color: rgba(255,150,110,0.4); }
+    .focus-tile[data-sphere="reward"] .tile-icon { background: radial-gradient(circle at 35% 30%, rgba(190,150,255,0.28), rgba(var(--accent-rgb),0.05)); border-color: rgba(200,170,255,0.4); }
+    .focus-tile[data-sphere="body"] { border-left: 2px solid rgba(255,160,100,0.35); }
+    .focus-tile[data-sphere="mental"] { border-left: 2px solid rgba(170,185,255,0.35); }
+    .focus-tile[data-sphere="energy"] { border-left: 2px solid rgba(var(--accent-rgb),0.4); }
+    .focus-tile[data-sphere="relations"] { border-left: 2px solid rgba(255,170,195,0.35); }
+    .focus-tile[data-sphere="faith"] { border-left: 2px solid rgba(255,150,110,0.35); }
+    .focus-tile[data-sphere="reward"] { border-left: 2px solid rgba(200,170,255,0.35); }
+
+    .dot-divider {
+        display: flex;
+        justify-content: center;
+        gap: 7px;
+        margin: 2px 0 14px;
+    }
+    .dot-divider span {
+        width: 4px; height: 4px;
+        border-radius: 50%;
+        background: rgba(var(--accent-rgb),0.3);
+        animation: dotGlow 2.4s ease-in-out infinite;
+    }
+    .dot-divider span:nth-child(1) { animation-delay: 0s; }
+    .dot-divider span:nth-child(2) { animation-delay: 0.15s; }
+    .dot-divider span:nth-child(3) { animation-delay: 0.3s; }
+    .dot-divider span:nth-child(4) { animation-delay: 0.45s; }
+    .dot-divider span:nth-child(5) { animation-delay: 0.6s; }
+    .dot-divider span:nth-child(6) { animation-delay: 0.75s; }
+    @keyframes dotGlow {
+        0%, 100% { background: rgba(var(--accent-rgb),0.25); transform: scale(1); }
+        50% { background: rgba(var(--accent-rgb),0.9); transform: scale(1.4); }
+    }
+    .dot-divider span:nth-child(2n) { animation-name: dotGlowBlue; }
+    @keyframes dotGlowBlue {
+        0%, 100% { background: rgba(var(--accent-2-rgb),0.25); transform: scale(1); }
+        50% { background: rgba(var(--accent-2-rgb),0.9); transform: scale(1.4); }
+    }
+    .focus-tile::after {
+        content: '';
+        position: absolute;
+        top: 0; left: -120%;
+        width: 60%; height: 100%;
+        background: linear-gradient(100deg, transparent, rgba(var(--accent-rgb),0.06), transparent);
+        transition: left 0.7s ease;
+    }
+    .focus-tile:hover::after { left: 130%; }
+    .focus-tile:hover {
+        border-color: rgba(var(--accent-rgb),0.3);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(var(--accent-rgb),0.08) inset;
+        transform: translateY(-2px);
+    }
+    .focus-tile:active { transform: scale(0.97) translateY(0); }
+    .focus-tile.hidden-tile { display: none; }
+    @keyframes tileIn { to { opacity: 1; transform: translateY(0); } }
+    .focus-tile:nth-child(1) { animation-delay: 0.05s; }
+    .focus-tile:nth-child(2) { animation-delay: 0.12s; }
+    .focus-tile:nth-child(3) { animation-delay: 0.19s; }
+    .focus-tile:nth-child(4) { animation-delay: 0.26s; }
+    .focus-tile:nth-child(5) { animation-delay: 0.33s; }
+    .focus-tile:nth-child(6) { animation-delay: 0.40s; }
+    .tile-icon {
+        width: 46px;
+        height: 46px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at 35% 30%, rgba(var(--accent-rgb),0.16), rgba(var(--accent-rgb),0.04));
+        border-radius: 14px;
+        border: 0.5px solid rgba(var(--accent-rgb),0.18);
+        transition: 0.35s ease;
+    }
+    .focus-tile:hover .tile-icon {
+        border-color: rgba(var(--accent-rgb),0.4);
+        box-shadow: 0 0 14px rgba(var(--accent-rgb),0.18);
+    }
+    .tile-icon svg { width: 24px; height: 24px; }
+    .tile-info { flex: 1; min-width: 0; }
+    .tile-title { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 2px; letter-spacing: 0.1px; }
+    .tile-subtitle { font-size: 10px; color: #8e8e9e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tile-arrow { color: var(--accent); opacity: 0.45; transition: 0.3s ease; flex-shrink: 0; }
+    .tile-arrow svg { width: 16px; height: 16px; }
+    .focus-tile:hover .tile-arrow { opacity: 0.9; transform: translateX(2px); }
+    .tab-bar {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        padding: 8px 6px;
+        background: linear-gradient(135deg, rgba(22,22,30,0.95), rgba(14,14,19,0.95));
+        backdrop-filter: blur(24px);
+        border: 1px solid rgba(var(--accent-2-rgb),0.1);
+        margin-top: 12px;
+        border-radius: 20px;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.25);
+    }
+    .tab-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        color: #71717f;
+        font-size: 9px;
+        font-weight: 600;
+        cursor: pointer;
+        padding: 6px 16px 5px;
+        border-radius: 14px;
+        transition: 0.3s cubic-bezier(.2,.8,.2,1);
+    }
+    .tab-icon-badge {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        color: #0a0a0f;
+        box-shadow: 0 2px 12px rgba(var(--accent-2-rgb),0.35);
+        transition: 0.3s ease;
+    }
+    .tab-item svg { width: 15px; height: 15px; transition: 0.3s ease; }
+    .tab-item.active { color: var(--accent); }
+    .tab-item:hover .tab-icon-badge { transform: scale(1.05); box-shadow: 0 2px 18px rgba(var(--accent-2-rgb),0.5); }
+    .tab-item:active { transform: scale(0.92); }
+    .screen::-webkit-scrollbar { display: none; }
+    .modal-overlay {
+        display: none;
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85);
+        z-index: 200;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(10px);
+        border-radius: 52px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-content {
+        background: linear-gradient(165deg, #1c1c26, #15151c);
+        border-radius: 24px;
+        width: 280px;
+        padding: 20px;
+        border: 0.5px solid rgba(var(--accent-rgb),0.18);
+        max-height: 75%;
+        overflow-y: auto;
+        box-shadow: 0 0 40px rgba(var(--accent-rgb),0.06);
+    }
+    .modal-title { font-size: 18px; font-weight: 700; color: var(--accent); text-align: center; margin-bottom: 4px; }
+    .modal-sub { font-size: 11px; color: #8e8e9e; text-align: center; margin-bottom: 14px; }
+    .sphere-toggle {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 12px; background: rgba(30,30,42,0.5); border-radius: 12px;
+        margin-bottom: 6px; border: 0.5px solid rgba(var(--accent-rgb),0.06);
+    }
+    .sphere-toggle .info { display: flex; align-items: center; gap: 10px; }
+    .sphere-toggle .name { font-size: 13px; font-weight: 500; color: #fff; }
+    .sphere-toggle .toggle {
+        width: 40px; height: 22px; background: #2a2a34; border-radius: 30px;
+        cursor: pointer; position: relative; transition: 0.3s ease;
+        border: 0.5px solid rgba(255,255,255,0.05);
+    }
+    .sphere-toggle .toggle.active { background: rgba(var(--accent-rgb),0.3); border-color: rgba(var(--accent-rgb),0.3); }
+    .sphere-toggle .toggle .dot {
+        width: 16px; height: 16px; background: #6e6e7e; border-radius: 30px;
+        position: absolute; top: 2px; left: 2px; transition: 0.3s ease;
+    }
+    .sphere-toggle .toggle.active .dot { left: 20px; background: var(--accent); box-shadow: 0 0 8px rgba(var(--accent-rgb),0.5); }
+    .modal-divider { height: 0.5px; background: rgba(var(--accent-rgb),0.1); margin: 12px 0; }
+    .modal-btn {
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 10px; border-radius: 30px; background: rgba(var(--accent-rgb),0.06);
+        border: 0.5px solid rgba(var(--accent-rgb),0.12); color: var(--accent); cursor: pointer;
+        font-size: 13px; font-weight: 500; transition: 0.3s ease; margin-top: 6px;
+    }
+    .modal-btn:hover { background: rgba(var(--accent-rgb),0.12); }
+    .modal-btn:active { transform: scale(0.97); }
+    .modal-btn.vip { background: rgba(var(--accent-rgb),0.12); border-color: rgba(var(--accent-rgb),0.3); }
+    .modal-btn .badge { font-size: 8px; background: rgba(var(--accent-rgb),0.22); padding: 1px 8px; border-radius: 20px; color: var(--accent); }
+    .modal-close {
+        text-align: center; padding: 10px; margin-top: 10px; border-radius: 30px;
+        background: rgba(255,255,255,0.04); color: #8e8e9e; cursor: pointer;
+        font-size: 13px; border: 0.5px solid rgba(255,255,255,0.04); transition: 0.3s ease;
+    }
+    .modal-close:hover { background: rgba(255,255,255,0.08); }
+
+/* PWA-режим (установлено на телефон): на весь реальный экран, без макетной рамки */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; overflow: hidden !important; }
+    .phone {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding-top: env(safe-area-inset-top) !important;
+        padding-bottom: env(safe-area-inset-bottom) !important;
+        max-width: 100vw !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, #atmos, .atmos-canvas { border-radius: 0 !important; }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important;
+    }
+}
+
+/* Телефоны: приложение на весь экран без макетной рамки (надёжно, не зависит от PWA-режима) */
+@media (max-width: 600px) {
+    * { -webkit-user-select: none !important; user-select: none !important; -webkit-tap-highlight-color: transparent !important; }
+    input, textarea { -webkit-user-select: text !important; user-select: text !important; }
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; height: 100vh; height: 100dvh; display: block !important; }
+    body { display: flex !important; align-items: stretch !important; justify-content: flex-start !important; }
+    .phone {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    /* анимация/фон идут до самого верха под чёлку */
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important; border-radius: 0 !important;
+    }
+    /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
+    .screen, .session-area, .slideshow, .scroll-area {
+        padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+    }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+}
+</style>
+<script src="focus-analytics.js"></script>
+</head>
+<body>
+<div class="phone">
+    <canvas id="atmosCanvas" width="375" height="700" style="position:absolute;top:0;left:0;width:375px;height:700px;z-index:0;pointer-events:none;border-radius:52px;"></canvas>
+    <canvas id="cosmicCanvas" width="375" height="700" style="width:375px;height:700px;"></canvas>
+    <div class="screen">
+        <div class="logo-section">
+            <div class="logo-left" id="logoTrigger">
+                <div class="logo-badge">
+                <div class="logo-svg">
+                    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="logoGrad" x1="0" y1="0" x2="100" y2="100">
+                                <stop offset="0%" style="stop-color:var(--accent-light)"/>
+                                <stop offset="55%" style="stop-color:var(--accent)"/>
+                                <stop offset="100%" stop-color="#B8862A"/>
+                            </linearGradient>
+                            <linearGradient id="logoRing" x1="0" y1="0" x2="100" y2="100">
+                                <stop offset="0%" style="stop-color:var(--accent)"/>
+                                <stop offset="100%" style="stop-color:var(--accent-2)"/>
+                            </linearGradient>
+                        </defs>
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent-2)" stroke-width="1.5" opacity="0.4"/>
+                        <circle cx="50" cy="50" r="32" fill="none" stroke="url(#logoRing)" stroke-width="5"/>
+                        <g fill="url(#logoGrad)">
+                            <rect x="38" y="34" width="26" height="9" rx="4.5"/>
+                            <rect x="38" y="34" width="9" height="33" rx="4.5"/>
+                            <rect x="38" y="47" width="19" height="8" rx="4"/>
+                        </g>
+                    </svg>
+                </div>
+                </div>
+                <div class="app-name">FOCUS</div>
+            </div>
+            <div class="oracle-trigger" id="oracleTrigger">
+                <div class="oracle-icon">
+                    <svg viewBox="0 0 50 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="pyrGrad" x1="0" y1="0" x2="50" y2="50">
+                                <stop offset="0%" style="stop-color:var(--accent-light)"/>
+                                <stop offset="50%" style="stop-color:var(--accent)"/>
+                                <stop offset="100%" stop-color="#A8771F"/>
+                            </linearGradient>
+                        </defs>
+                        <polygon points="25,6 38,20 25,50 12,20" stroke="url(#pyrGrad)" stroke-width="1.6" fill="url(#pyrGrad)" fill-opacity="0.08" stroke-linejoin="round"/>
+                        <line x1="12" y1="20" x2="38" y2="20" stroke="url(#pyrGrad)" stroke-width="1.2"/>
+                        <line x1="25" y1="6" x2="25" y2="50" stroke="url(#pyrGrad)" stroke-width="0.8" opacity="0.5"/>
+                        <line x1="25" y1="6" x2="16" y2="20" stroke="url(#pyrGrad)" stroke-width="0.7" opacity="0.6"/>
+                        <line x1="25" y1="6" x2="34" y2="20" stroke="url(#pyrGrad)" stroke-width="0.7" opacity="0.6"/>
+                        <line x1="17" y1="20" x2="25" y2="50" stroke="url(#pyrGrad)" stroke-width="0.6" opacity="0.45"/>
+                        <line x1="33" y1="20" x2="25" y2="50" stroke="url(#pyrGrad)" stroke-width="0.6" opacity="0.45"/>
+                        <circle cx="25" cy="20" r="2.2" fill="#FFFFFF"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        <div class="quote-container" id="quoteContainer">
+            <div class="quote-text" id="quoteText">Загрузка...</div>
+            <div class="quote-author" id="quoteAuthor"></div>
+        </div>
+
+        <div class="ai-focus-card">
+            <div class="ai-card-head">
+                <span class="ai-pulse"></span>
+                <span class="ai-card-title">ИИ-ассистент Фокуса</span>
+            </div>
+            <div class="ai-card-hint">Отметь, что сделал сегодня — голосом или текстом</div>
+            <div class="ai-input-row">
+                <input type="text" class="ai-input" id="aiInput" placeholder="Отметь дело или спроси совет у ассистента...">
+                <div class="ai-mic-btn" id="aiMicBtn" title="Голос">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg>
+                </div>
+                <div class="ai-send-btn" id="aiSendBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"/></svg>
+                </div>
+            </div>
+            <div class="ai-result" id="aiResult"></div>
+        </div>
+
+        <!-- Задания от родителя (показываются только если есть) -->
+        <div class="parent-tasks" id="parentTasks" style="display:none;">
+            <div class="parent-tasks-head">
+                <span>🎁 Задания с наградой</span>
+            </div>
+            <div id="parentTasksList"></div>
+        </div>
+
+        <div class="dot-divider"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="focus-grid" id="focusGrid">
+            <div class="focus-tile" data-sphere="body" onclick="location.href='fokus_body.html'">
+                <div class="tile-icon">
+                    <svg viewBox="0 0 24 24" fill="none" style="stroke:var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6.5 9.5 4 12l2.5 2.5M17.5 9.5 20 12l-2.5 2.5M9 9l-1.5 3L9 15M15 9l1.5 3L15 15M10 12h4"/>
+                    </svg>
+                </div>
+                <div class="tile-info"><div class="tile-title">Физическое тело</div><div class="tile-subtitle">Питание · Зарядка · Тренировки</div></div>
+                <div class="tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+            </div>
+            <div class="focus-tile" data-sphere="mental" onclick="location.href='fokus_mental.html'">
+                <div class="tile-icon">
+                    <svg viewBox="0 0 24 24" fill="none" style="stroke:var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 4.5a3.5 3.5 0 0 0-3.5 3.5v.2A3 3 0 0 0 4 11v1a3 3 0 0 0 1.7 2.7v.3a3.5 3.5 0 0 0 3.5 3.5h.3M9 4.5a2.5 2.5 0 0 1 3-2.4M9 4.5v14.5M15 4.5a3.5 3.5 0 0 1 3.5 3.5v.2A3 3 0 0 1 20 11v1a3 3 0 0 1-1.7 2.7v.3a3.5 3.5 0 0 1-3.5 3.5h-.3M15 4.5a2.5 2.5 0 0 0-3-2.4M15 4.5v14.5"/>
+                    </svg>
+                </div>
+                <div class="tile-info"><div class="tile-title">Ментальное здоровье</div><div class="tile-subtitle">Висяки · Дыхание · Эмоции</div></div>
+                <div class="tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+            </div>
+            <div class="focus-tile" data-sphere="energy" onclick="location.href='fokus_energy.html'">
+                <div class="tile-icon">
+                    <svg viewBox="0 0 24 24" style="fill:var(--accent)" style="stroke:var(--accent)" stroke-width="0.5" stroke-linejoin="round">
+                        <path d="M13 2 4.5 13.5h6L10 22l9.5-12.5h-6.2L13 2Z"/>
+                    </svg>
+                </div>
+                <div class="tile-info"><div class="tile-title">Энергия</div><div class="tile-subtitle">Сон · Отдых · Детокс</div></div>
+                <div class="tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+            </div>
+            <div class="focus-tile" data-sphere="relations" onclick="location.href='fokus_relationships.html'">
+                <div class="tile-icon">
+                    <svg viewBox="0 0 24 24" fill="none" style="stroke:var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/>
+                        <circle cx="17" cy="9" r="2.3"/><path d="M15.5 13.2c1.9.3 4.5 1.7 4.5 6.8"/>
+                    </svg>
+                </div>
+                <div class="tile-info"><div class="tile-title">Отношения</div><div class="tile-subtitle">Друзья · Долги · Задачи</div></div>
+                <div class="tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+            </div>
+            <div class="focus-tile" data-sphere="faith" onclick="location.href='fokus_faith.html'">
+                <div class="tile-icon">
+                    <svg viewBox="0 0 24 24" fill="none" style="stroke:var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 21c4-2.6 6-5.6 6-9 0-2-1-3.7-2.3-5 .2 1.5-.4 2.6-1.2 3.4.3-2.5-1-4.6-2.5-6.2-.2 2-1 3.4-2.3 4.6C8.2 10.2 7 11.8 7 13.8c0 .5.05 1 .15 1.5"/>
+                        <path d="M12 21c-2.2-1.5-3.2-3.2-3.2-5.2 0-1.4.8-2.5 1.7-3.3"/>
+                    </svg>
+                </div>
+                <div class="tile-info"><div class="tile-title">Вера и ритуалы</div><div class="tile-subtitle">Благодарность · Карта желаний</div></div>
+                <div class="tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+            </div>
+            <div class="focus-tile" data-sphere="reward" onclick="location.href='fokus_reward.html'">
+                <div class="tile-icon">
+                    <svg viewBox="0 0 24 24" fill="none" style="stroke:var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="9" width="18" height="11" rx="1.5"/><path d="M3 13h18"/>
+                        <path d="M12 9v11"/><path d="M12 9C10.5 9 8.5 8 8.5 6.2 8.5 5 9.4 4 10.6 4 11.8 4 12 6.5 12 9Z"/>
+                        <path d="M12 9c1.5 0 3.5-1 3.5-2.8C15.5 5 14.6 4 13.4 4 12.2 4 12 6.5 12 9Z"/>
+                    </svg>
+                </div>
+                <div class="tile-info"><div class="tile-title">Поощрение</div><div class="tile-subtitle">Награды · Исключения</div></div>
+                <div class="tile-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+            </div>
+        </div>
+        <div class="tab-bar">
+            <div class="tab-item active" onclick="location.href='fokus_progress.html'">
+                <div class="tab-icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M8 16v-4M12 16V9M16 16v-7"/></svg></div>
+                <span>Прогресс</span>
+            </div>
+            <div class="tab-item" onclick="location.href='status.html'">
+                <div class="tab-icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg></div>
+                <span>ЛК</span>
+            </div>
+            <div class="tab-item" onclick="location.href='fokus_profile.html'">
+                <div class="tab-icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.6 3-6.5 7-6.5s7 2.9 7 6.5"/></svg></div>
+                <span>Профиль</span>
+            </div>
+        </div>
+    </div>
+    <div id="toast" style="position:absolute;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,0.9);border:1px solid var(--accent,#FFD966);border-radius:20px;padding:11px 20px;color:var(--accent,#FFD966);font-size:12px;font-weight:600;z-index:600;opacity:0;transition:0.3s ease;pointer-events:none;max-width:300px;text-align:center;line-height:1.4;"></div>
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-title">Настройки</div>
+            <div class="modal-sub">Включи или отключи нужные сферы</div>
+            <div id="sphereToggles"></div>
+            <div class="modal-divider"></div>
+            <div class="modal-btn" id="parentalControlBtn">
+                Родительский контроль
+                <span class="badge">VIP</span>
+            </div>
+            <div class="modal-btn" id="coachBtn">
+                Кабинет коуча
+                <span class="badge">B2B</span>
+            </div>
+            <div class="modal-btn" id="vpnBtn">
+                Focus VPN
+                <span class="badge">Скоро</span>
+            </div>
+            <div class="modal-close" id="closeSettingsBtn">Готово</div>
+        </div>
+    </div>
+</div>
+<script src="focus-storage.js"></script>
+<script src="focus-rewards.js"></script>
+<script src="focus-ai.js"></script>
+<script type="module" src="firebase-auth-helper.js"></script>
+<script src="focus-core.js"></script>
+<script>
+    // Шим темы на случай открытия файла по одному (без общих файлов рядом)
+    if (typeof FocusStorage === 'undefined') {
+        window.FocusStorage = {
+            _key: 'focus_user',
+            getUser() { try { return JSON.parse(localStorage.getItem(this._key)) || {}; } catch(e) { return {}; } },
+            saveUser(p) { const c = this.getUser(); localStorage.setItem(this._key, JSON.stringify({ ...c, ...p })); return { ...c, ...p }; },
+            getTheme() { return this.getUser().theme || localStorage.getItem('focus_theme') || 'original'; },
+            setTheme(id) { this.saveUser({ theme: id }); localStorage.setItem('focus_theme', id); },
+            hasActiveSubscription() {
+                const u = this.getUser();
+                if (!u.subscription || !u.subscriptionUntil) return false;
+                return new Date(u.subscriptionUntil).getTime() > Date.now();
+            }
+        };
+    }
+    if (typeof FocusCore === 'undefined' || !FocusCore.renderTempThemeSwitcher) {
+        window.FocusCore = window.FocusCore || {};
+        FocusCore.renderTempThemeSwitcher = function() {
+            const themes = [
+                { id: 'original', color: '#FFD966' }, { id: 'tron', color: '#FF3B2E' },
+                { id: 'predator', color: '#FF7A1A' }, { id: 'mk', color: '#FF1A2E' },
+                { id: 'matrix', color: '#00FF41' }
+            ];
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'position:absolute; top:8px; left:8px; z-index:300; display:flex; gap:5px; background:rgba(0,0,0,0.6); padding:5px; border-radius:20px;';
+            themes.forEach(t => {
+                const dot = document.createElement('div');
+                dot.style.cssText = `width:18px;height:18px;border-radius:50%;background:${t.color};cursor:pointer;border:1px solid #fff;`;
+                dot.addEventListener('click', () => {
+                    document.getElementById('htmlRoot').setAttribute('data-theme', t.id);
+                    FocusStorage.setTheme(t.id);
+                });
+                wrap.appendChild(dot);
+            });
+            (document.querySelector('.phone') || document.body).appendChild(wrap);
+        };
+    }
+
+    // Применяем сохранённую тему через единое хранилище
+    document.getElementById('htmlRoot').setAttribute('data-theme', FocusStorage.getTheme());
+
+    const quotes = [
+        { text: "Начинай сейчас. Лучший день — сегодня.", author: "Лао-цзы" },
+        { text: "Не жди. Время никогда не будет идеальным.", author: "Наполеон Хилл" },
+        { text: "Ты можешь всё, что захочешь. Просто начни.", author: "Пауло Коэльо" },
+        { text: "Дорогу осилит идущий.", author: "Конфуций" },
+        { text: "Маленький шаг каждый день ведёт к большой цели.", author: "Лао-цзы" }
+    ];
+    function showRandomQuote() {
+        const q = quotes[Math.floor(Math.random() * quotes.length)];
+        document.getElementById('quoteText').innerHTML = q.text;
+        document.getElementById('quoteAuthor').innerHTML = q.author;
+    }
+    showRandomQuote();
+    document.getElementById('oracleTrigger').addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (suppressNextOracleClick) { suppressNextOracleClick = false; return; }
+        window.location.href = 'oracle_menu.html';
+    });
+    let holdTimer = null, holdTimerOracle = null;
+    let isSpawningLogo = false, isSpawningOracle = false;
+    let isLoopRunning = false;
+    let suppressNextClick = false, suppressNextOracleClick = false;
+    let cosmicAnimFrame = null;
+    const logoBadge = document.querySelector('.logo-badge');
+    const oracleBadge = document.getElementById('oracleTrigger');
+    const cosmicCanvas = document.getElementById('cosmicCanvas');
+    const ctx = cosmicCanvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+        cosmicCanvas.width = 375;
+        cosmicCanvas.height = 700;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    setTimeout(resizeCanvas, 200);
+
+    function spawnParticleFrom(el) {
+        const r = el.getBoundingClientRect();
+        const c = cosmicCanvas.getBoundingClientRect();
+        const cx = r.left - c.left + r.width / 2;
+        const cy = r.top - c.top + r.height / 2;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 4;
+        const rootStyle = getComputedStyle(document.documentElement);
+        const colors = [
+            rootStyle.getPropertyValue('--accent').trim(),
+            rootStyle.getPropertyValue('--accent-light').trim(),
+            '#FFFFFF',
+            rootStyle.getPropertyValue('--accent-dark').trim()
+        ];
+        particles.push({
+            x: cx, y: cy,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 1,
+            size: 1 + Math.random() * 2.5,
+            color: colors[Math.floor(Math.random() * colors.length)]
+        });
+    }
+
+    function cosmicLoop() {
+        ctx.clearRect(0, 0, cosmicCanvas.width, cosmicCanvas.height);
+        if (isSpawningLogo) for (let i = 0; i < 4; i++) spawnParticleFrom(logoBadge);
+        if (isSpawningOracle) for (let i = 0; i < 4; i++) spawnParticleFrom(oracleBadge);
+        particles.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= 0.012;
+            ctx.globalAlpha = Math.max(p.life, 0);
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = p.color;
+        });
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+        particles = particles.filter(p => p.life > 0);
+        if (isSpawningLogo || isSpawningOracle || particles.length > 0) {
+            cosmicAnimFrame = requestAnimationFrame(cosmicLoop);
+        } else {
+            isLoopRunning = false;
+            cosmicCanvas.classList.remove('show');
+        }
+    }
+
+    function ensureLoopRunning() {
+        cosmicCanvas.classList.add('show');
+        if (!isLoopRunning) {
+            isLoopRunning = true;
+            cosmicLoop();
+        }
+    }
+
+    function onLogoPressStart() {
+        holdTimer = setTimeout(() => {
+            isSpawningLogo = true;
+            logoBadge.classList.add('cosmic-active');
+            suppressNextClick = true;
+            ensureLoopRunning();
+        }, 220);
+    }
+    function onLogoPressEnd() {
+        clearTimeout(holdTimer);
+        if (isSpawningLogo) {
+            isSpawningLogo = false;
+            logoBadge.classList.remove('cosmic-active');
+            setTimeout(() => { suppressNextClick = false; }, 50);
+        }
+    }
+    function onOraclePressStart() {
+        holdTimerOracle = setTimeout(() => {
+            isSpawningOracle = true;
+            oracleBadge.classList.add('cosmic-active');
+            suppressNextOracleClick = true;
+            ensureLoopRunning();
+        }, 220);
+    }
+    function onOraclePressEnd() {
+        clearTimeout(holdTimerOracle);
+        if (isSpawningOracle) {
+            isSpawningOracle = false;
+            oracleBadge.classList.remove('cosmic-active');
+            setTimeout(() => { suppressNextOracleClick = false; }, 50);
+        }
+    }
+
+    document.getElementById('logoTrigger').addEventListener('pointerdown', onLogoPressStart);
+    document.getElementById('logoTrigger').addEventListener('pointerup', onLogoPressEnd);
+    document.getElementById('logoTrigger').addEventListener('pointerleave', onLogoPressEnd);
+    document.getElementById('logoTrigger').addEventListener('pointercancel', onLogoPressEnd);
+
+    oracleBadge.addEventListener('pointerdown', onOraclePressStart);
+    oracleBadge.addEventListener('pointerup', onOraclePressEnd);
+    oracleBadge.addEventListener('pointerleave', onOraclePressEnd);
+    oracleBadge.addEventListener('pointercancel', onOraclePressEnd);
+
+    document.getElementById('logoTrigger').addEventListener('click', function() {
+        if (suppressNextClick) { suppressNextClick = false; return; }
+        document.getElementById('settingsModal').classList.add('show');
+        function showToast(msg){
+        var t=document.getElementById('toast'); if(!t) return;
+        t.innerText=msg; t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)';
+        clearTimeout(window._tt); window._tt=setTimeout(function(){ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(20px)'; }, 2600);
+    }
+    loadSphereSettings();
+        checkVipStatus();
+    });
+    document.getElementById('closeSettingsBtn').addEventListener('click', function() {
+        document.getElementById('settingsModal').classList.remove('show');
+    });
+    document.getElementById('settingsModal').addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('show');
+    });
+    const allSpheres = [
+        { id: 'body', name: 'Физическое тело' },
+        { id: 'mental', name: 'Ментальное здоровье' },
+        { id: 'energy', name: 'Энергия' },
+        { id: 'relations', name: 'Отношения' },
+        { id: 'faith', name: 'Вера и ритуалы' },
+        { id: 'reward', name: 'Поощрение' }
+    ];
+    function loadSphereSettings() {
+        const saved = localStorage.getItem('focus_active_spheres');
+        let active = allSpheres.map(s => s.id);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) active = parsed;
+            } catch(e) {}
+        }
+        updateTiles(active);
+        updateToggles(active);
+        return active;
+    }
+    function updateTiles(active) {
+        document.querySelectorAll('.focus-tile[data-sphere]').forEach(tile => {
+            tile.classList.toggle('hidden-tile', !active.includes(tile.dataset.sphere));
+        });
+    }
+    function updateToggles(active) {
+        const container = document.getElementById('sphereToggles');
+        container.innerHTML = '';
+        allSpheres.forEach(s => {
+            const isActive = active.includes(s.id);
+            const div = document.createElement('div');
+            div.className = 'sphere-toggle';
+            div.innerHTML = `<div class="info"><span class="name">${s.name}</span></div>
+                <div class="toggle ${isActive ? 'active' : ''}" data-sphere="${s.id}"><div class="dot"></div></div>`;
+            const toggle = div.querySelector('.toggle');
+            toggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                this.classList.toggle('active');
+                const sphereId = this.dataset.sphere;
+                let current = JSON.parse(localStorage.getItem('focus_active_spheres') || JSON.stringify(allSpheres.map(s => s.id)));
+                if (this.classList.contains('active')) {
+                    if (!current.includes(sphereId)) current.push(sphereId);
+                } else {
+                    current = current.filter(id => id !== sphereId);
+                }
+                localStorage.setItem('focus_active_spheres', JSON.stringify(current));
+                updateTiles(current);
+            });
+            container.appendChild(div);
+        });
+    }
+    function checkVipStatus() {
+        const u = FocusStorage.getUser();
+        const isPro = u.subscription === 'Про' && (typeof FocusStorage.hasActiveSubscription !== 'function' || FocusStorage.hasActiveSubscription());
+        const btn = document.getElementById('parentalControlBtn');
+        if (isPro) {
+            btn.classList.add('vip');
+            btn.innerHTML = 'Родительский контроль <span class="badge">VIP ✓</span>';
+        } else {
+            btn.classList.remove('vip');
+            btn.innerHTML = 'Родительский контроль <span class="badge">VIP</span>';
+        }
+    }
+    document.getElementById('parentalControlBtn').addEventListener('click', function() {
+        const u = FocusStorage.getUser();
+        const isPro = u.subscription === 'Про' && (typeof FocusStorage.hasActiveSubscription !== 'function' || FocusStorage.hasActiveSubscription());
+        if (isPro) {
+            document.getElementById('settingsModal').classList.remove('show');
+            window.location.href = 'parental_control.html';
+        } else {
+            showToast('Родительский контроль доступен на тарифе «Про». Оформите подписку в Магазине.');
+        }
+    });
+    document.getElementById('coachBtn').addEventListener('click', function() {
+        document.getElementById('settingsModal').classList.remove('show');
+        window.location.href = 'coach_dashboard.html';
+    });
+    document.getElementById('vpnBtn').addEventListener('click', function() {
+        showToast('Focus VPN — отдельное направление, появится позже. Приложение работает с VPN и без него.');
+    });
+    loadSphereSettings();
+
+    // Единый атмосферный движок — сам определяет тему и рисует соответствующий эффект
+    (function() {
+        const ac = document.getElementById('atmosCanvas');
+        const actx = ac.getContext('2d');
+        function resizeAtmos() { ac.width = 375; ac.height = 700; }
+        resizeAtmos();
+        window.addEventListener('resize', resizeAtmos);
+        window.addEventListener('load', resizeAtmos);
+        setTimeout(resizeAtmos, 200);
+        setTimeout(resizeAtmos, 1000);
+
+        let tronPulses = [];
+        let predatorRadarAngle = 0, predatorScanY = 0, predatorT = 0, predatorBlips = [{a:1.2,r:0.7},{a:3.8,r:0.5}], predatorReticle = null;
+        let mkEmbers = [], mkDrips = [], mkFlash = 0, mkBolt = null;
+        let matrixDrops = null, matrixColumns = 0;
+        const matrixChars = 'アイウエオカキクケコサシスセソ0123456789ABCDEF'.split('');
+        let lastTheme = null;
+        let lastTrigger = 0;
+
+        function currentTheme() { return document.getElementById('htmlRoot').getAttribute('data-theme') || 'original'; }
+        function cssColor(varName) { return getComputedStyle(document.documentElement).getPropertyValue(varName).trim(); }
+        function cssColorRgb(varName) { return getComputedStyle(document.documentElement).getPropertyValue(varName).trim(); }
+
+        function drawTron() {
+            if (Math.random() > 0.93) {
+                const vertical = Math.random() > 0.5;
+                tronPulses.push({
+                    vertical,
+                    pos: Math.floor(Math.random() * (vertical ? ac.width : ac.height)),
+                    t: -40,
+                    speed: 3 + Math.random() * 2,
+                    color: Math.random() > 0.5 ? cssColor('--accent') : cssColor('--accent-2'),
+                    len: 60
+                });
+            }
+            tronPulses.forEach(p => {
+                p.t += p.speed;
+                const grad = p.vertical
+                    ? actx.createLinearGradient(p.pos, p.t - p.len, p.pos, p.t)
+                    : actx.createLinearGradient(p.t - p.len, p.pos, p.t, p.pos);
+                grad.addColorStop(0, 'rgba(0,0,0,0)');
+                grad.addColorStop(1, p.color);
+                actx.strokeStyle = grad;
+                actx.lineWidth = 2;
+                actx.shadowBlur = 8;
+                actx.shadowColor = p.color;
+                actx.beginPath();
+                if (p.vertical) { actx.moveTo(p.pos, p.t - p.len); actx.lineTo(p.pos, p.t); }
+                else { actx.moveTo(p.t - p.len, p.pos); actx.lineTo(p.t, p.pos); }
+                actx.stroke();
+            });
+            actx.shadowBlur = 0;
+            tronPulses = tronPulses.filter(p => p.t < Math.max(ac.width, ac.height) + 40);
+        }
+
+        function drawPredator() {
+            predatorT += 0.01;
+            for (let i = 0; i < 5; i++) {
+                const x = ac.width/2 + Math.sin(predatorT + i*2) * ac.width*0.35;
+                const y = ac.height/2 + Math.cos(predatorT*0.7 + i*1.7) * ac.height*0.4;
+                const r = 60 + Math.sin(predatorT*2 + i) * 20;
+                const grad = actx.createRadialGradient(x, y, 0, x, y, r);
+                grad.addColorStop(0, 'rgba(' + cssColorRgb('--accent-rgb') + ',0.05)');
+                grad.addColorStop(1, 'rgba(' + cssColorRgb('--accent-rgb') + ',0)');
+                actx.fillStyle = grad;
+                actx.fillRect(0, 0, ac.width, ac.height);
+            }
+            predatorScanY += 1.8;
+            if (predatorScanY > ac.height + 20) predatorScanY = -20;
+            const lineGrad = actx.createLinearGradient(0, predatorScanY-15, 0, predatorScanY+15);
+            const acc2 = cssColorRgb('--accent-2-rgb');
+            lineGrad.addColorStop(0, 'rgba(' + acc2 + ',0)');
+            lineGrad.addColorStop(0.5, 'rgba(' + acc2 + ',0.35)');
+            lineGrad.addColorStop(1, 'rgba(' + acc2 + ',0)');
+            actx.fillStyle = lineGrad;
+            actx.fillRect(0, predatorScanY-15, ac.width, 30);
+            actx.strokeStyle = 'rgba(' + acc2 + ',0.5)';
+            actx.lineWidth = 1;
+            actx.beginPath(); actx.moveTo(0, predatorScanY); actx.lineTo(ac.width, predatorScanY); actx.stroke();
+
+            const rcx = ac.width - 46, rcy = 64, rr = 34;
+            actx.save();
+            actx.strokeStyle = 'rgba(' + acc2 + ',0.4)';
+            actx.lineWidth = 1;
+            actx.beginPath(); actx.arc(rcx, rcy, rr, 0, Math.PI*2); actx.stroke();
+            actx.beginPath(); actx.arc(rcx, rcy, rr*0.6, 0, Math.PI*2); actx.stroke();
+            actx.beginPath(); actx.moveTo(rcx-rr, rcy); actx.lineTo(rcx+rr, rcy); actx.stroke();
+            actx.beginPath(); actx.moveTo(rcx, rcy-rr); actx.lineTo(rcx, rcy+rr); actx.stroke();
+            predatorRadarAngle += 0.05;
+            const sweepGrad = actx.createLinearGradient(rcx, rcy, rcx + Math.cos(predatorRadarAngle)*rr, rcy + Math.sin(predatorRadarAngle)*rr);
+            sweepGrad.addColorStop(0, 'rgba(' + acc2 + ',0.6)');
+            sweepGrad.addColorStop(1, 'rgba(' + acc2 + ',0)');
+            actx.strokeStyle = sweepGrad;
+            actx.lineWidth = 2;
+            actx.beginPath(); actx.moveTo(rcx, rcy); actx.lineTo(rcx + Math.cos(predatorRadarAngle)*rr, rcy + Math.sin(predatorRadarAngle)*rr); actx.stroke();
+            predatorBlips.forEach(b => {
+                const bx = rcx + Math.cos(b.a)*rr*b.r, by = rcy + Math.sin(b.a)*rr*b.r;
+                const diff = Math.abs(((predatorRadarAngle % (Math.PI*2)) - b.a + Math.PI*3) % (Math.PI*2) - Math.PI);
+                const blipAlpha = diff < 0.5 ? 1 - diff/0.5 : 0;
+                if (blipAlpha > 0) { actx.fillStyle = 'rgba(' + acc2 + ',' + blipAlpha + ')'; actx.beginPath(); actx.arc(bx, by, 2, 0, Math.PI*2); actx.fill(); }
+            });
+            actx.restore();
+
+            if (Math.random() > 0.992 && !predatorReticle) {
+                predatorReticle = { x: 40 + Math.random() * (ac.width - 80), y: 90 + Math.random() * (ac.height - 220), life: 1 };
+            }
+            if (predatorReticle) {
+                predatorReticle.life -= 0.012;
+                if (predatorReticle.life <= 0) { predatorReticle = null; }
+                else {
+                    const a = Math.min(predatorReticle.life > 0.85 ? (1 - predatorReticle.life) / 0.15 : 1, 1) * Math.min(predatorReticle.life / 0.15, 1);
+                    const size = 22 + (1 - Math.min(predatorReticle.life,1)) * 6;
+                    actx.save();
+                    actx.globalAlpha = a;
+                    actx.strokeStyle = cssColor('--accent');
+                    actx.lineWidth = 1.3;
+                    actx.beginPath(); actx.arc(predatorReticle.x, predatorReticle.y, size, 0, Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.moveTo(predatorReticle.x-size-6, predatorReticle.y); actx.lineTo(predatorReticle.x-size+4, predatorReticle.y); actx.stroke();
+                    actx.beginPath(); actx.moveTo(predatorReticle.x+size-4, predatorReticle.y); actx.lineTo(predatorReticle.x+size+6, predatorReticle.y); actx.stroke();
+                    actx.beginPath(); actx.moveTo(predatorReticle.x, predatorReticle.y-size-6); actx.lineTo(predatorReticle.x, predatorReticle.y-size+4); actx.stroke();
+                    actx.beginPath(); actx.moveTo(predatorReticle.x, predatorReticle.y+size-4); actx.lineTo(predatorReticle.x, predatorReticle.y+size+6); actx.stroke();
+                    actx.font = '8px monospace';
+                    actx.fillStyle = cssColor('--accent');
+                    actx.fillText('LOCKED', predatorReticle.x - 16, predatorReticle.y + size + 14);
+                    actx.restore();
+                }
+            }
+        }
+
+        const phoneEl = document.querySelector('.phone');
+        function drawMK() {
+            if (Math.random() > 0.4) {
+                mkEmbers.push({
+                    x: Math.random() * ac.width, y: ac.height + 10,
+                    vx: (Math.random() - 0.5) * 0.6, vy: -0.6 - Math.random() * 1.2,
+                    size: 1 + Math.random() * 2, life: 1, decay: 0.004 + Math.random() * 0.006,
+                    color: Math.random() > 0.5 ? cssColor('--accent') : cssColor('--accent-2')
+                });
+            }
+            mkEmbers.forEach(e => {
+                e.x += e.vx; e.y += e.vy; e.life -= e.decay;
+                const fade = Math.max(e.life, 0);
+                actx.globalAlpha = fade;
+                actx.fillStyle = e.color;
+                actx.shadowBlur = 6; actx.shadowColor = e.color;
+                actx.beginPath(); actx.arc(e.x, e.y, e.size, 0, Math.PI*2); actx.fill();
+            });
+            actx.globalAlpha = 1; actx.shadowBlur = 0;
+            mkEmbers = mkEmbers.filter(e => e.life > 0 && e.y > -10);
+
+            if (Math.random() > 0.96) mkDrips.push({ x: 20 + Math.random() * (ac.width - 40), y: -10, len: 8 + Math.random()*10, speed: 1.2 + Math.random()*1.5, life: 1 });
+            mkDrips.forEach(d => {
+                d.y += d.speed; d.life -= 0.004;
+                const fade = Math.max(d.life, 0);
+                actx.globalAlpha = fade;
+                const grad = actx.createLinearGradient(d.x, d.y - d.len, d.x, d.y);
+                grad.addColorStop(0, 'rgba(0,0,0,0)');
+                grad.addColorStop(1, cssColor('--accent'));
+                actx.strokeStyle = grad; actx.lineWidth = 2;
+                actx.beginPath(); actx.moveTo(d.x, d.y - d.len); actx.lineTo(d.x, d.y); actx.stroke();
+                actx.fillStyle = cssColor('--accent');
+                actx.beginPath(); actx.arc(d.x, d.y, 1.4, 0, Math.PI*2); actx.fill();
+            });
+            actx.globalAlpha = 1;
+            mkDrips = mkDrips.filter(d => d.life > 0 && d.y < ac.height + 10);
+
+            if (Date.now() - lastTrigger > 6000 && Math.random() > 0.5) {
+                lastTrigger = Date.now();
+                mkFlash = 1;
+                const startX = 30 + Math.random() * (ac.width - 60);
+                const points = [{x: startX, y: -5}];
+                let x = startX;
+                for (let i = 1; i <= 9; i++) {
+                    const y = (ac.height / 9) * i;
+                    x += (Math.random() - 0.5) * 50;
+                    x = Math.max(10, Math.min(ac.width - 10, x));
+                    points.push({x, y});
+                }
+                mkBolt = { points, life: 1 };
+                phoneEl.classList.add('mk-shake');
+                setTimeout(() => phoneEl.classList.remove('mk-shake'), 280);
+            }
+            if (mkBolt) {
+                mkBolt.life -= 0.05;
+                if (mkBolt.life <= 0) { mkBolt = null; }
+                else {
+                    actx.save();
+                    actx.globalAlpha = Math.min(mkBolt.life * 2, 1);
+                    actx.strokeStyle = '#7CD9FF';
+                    actx.shadowBlur = 14; actx.shadowColor = '#3AB8FF';
+                    actx.lineWidth = 2;
+                    actx.beginPath();
+                    mkBolt.points.forEach((p, i) => { i === 0 ? actx.moveTo(p.x, p.y) : actx.lineTo(p.x, p.y); });
+                    actx.stroke();
+                    actx.strokeStyle = '#FFFFFF'; actx.lineWidth = 0.8; actx.shadowBlur = 4;
+                    actx.beginPath();
+                    mkBolt.points.forEach((p, i) => { i === 0 ? actx.moveTo(p.x, p.y) : actx.lineTo(p.x, p.y); });
+                    actx.stroke();
+                    actx.restore();
+                }
+            }
+            if (mkFlash > 0) {
+                actx.fillStyle = 'rgba(124,217,255,' + (mkFlash*0.16) + ')';
+                actx.fillRect(0, 0, ac.width, ac.height);
+                mkFlash -= 0.08;
+            }
+        }
+
+        function drawMatrix() {
+            if (!matrixDrops) {
+                matrixColumns = Math.floor(ac.width / 13);
+                matrixDrops = Array(matrixColumns).fill(0).map(() => Math.random() * -30);
+            }
+            actx.fillStyle = 'rgba(0,0,0,0.08)';
+            actx.fillRect(0, 0, ac.width, ac.height);
+            actx.font = '13px monospace';
+            for (let i = 0; i < matrixColumns; i++) {
+                const text = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+                const y = matrixDrops[i] * 13;
+                const isHead = Math.random() > 0.92;
+                actx.fillStyle = isHead ? '#cfffd9' : 'rgba(' + cssColorRgb('--accent-rgb') + ',0.55)';
+                actx.fillText(text, i * 13, y);
+                if (y > ac.height && Math.random() > 0.975) matrixDrops[i] = 0;
+                matrixDrops[i]++;
+            }
+        }
+
+        let washT = 0;
+        function drawFullScreenWash(theme) {
+            washT += 0.008;
+            const accRgb = cssColorRgb('--accent-rgb');
+            const acc2Rgb = cssColorRgb('--accent-2-rgb');
+            const x = ac.width * (0.5 + Math.sin(washT) * 0.5);
+            const y = ac.height * (0.5 + Math.cos(washT * 0.7) * 0.5);
+            const grad = actx.createRadialGradient(x, y, 0, ac.width/2, ac.height/2, Math.max(ac.width, ac.height) * 0.9);
+            grad.addColorStop(0, 'rgba(' + accRgb + ',0.05)');
+            grad.addColorStop(0.5, 'rgba(' + acc2Rgb + ',0.035)');
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            actx.fillStyle = grad;
+            actx.fillRect(0, 0, ac.width, ac.height);
+        }
+
+        let _atmoPaused = false;
+        document.addEventListener('visibilitychange', () => {
+            _atmoPaused = document.hidden;
+            if (!_atmoPaused) atmosphereLoop(); // возобновляем когда вернулись
+        });
+        function atmosphereLoop() {
+            if (_atmoPaused) return; // вкладка скрыта — не тратим ресурсы
+            const theme = currentTheme();
+            // тема "original" без анимации фона — не крутим цикл впустую
+            if (theme === 'original') {
+                if (theme !== lastTheme) { actx.clearRect(0, 0, ac.width, ac.height); lastTheme = theme; }
+                setTimeout(atmosphereLoop, 500); // редкая проверка смены темы
+                return;
+            }
+            if (theme !== lastTheme) {
+                actx.clearRect(0, 0, ac.width, ac.height);
+                tronPulses = []; mkEmbers = []; mkDrips = []; mkBolt = null; matrixDrops = null;
+                predatorReticle = null;
+                lastTheme = theme;
+            }
+            if (theme !== 'matrix') actx.clearRect(0, 0, ac.width, ac.height);
+            drawFullScreenWash(theme);
+            if (theme === 'tron') drawTron();
+            else if (theme === 'predator') drawPredator();
+            else if (theme === 'mk') drawMK();
+            else if (theme === 'matrix') drawMatrix();
+            requestAnimationFrame(atmosphereLoop);
+        }
+        atmosphereLoop();
+    })();
+
+    // ===== ИИ ФОКУСА — распознавание по ключевым словам (работает без сервера) =====
+    (function(){
+        // словарь: ключевые слова -> {сфера, что записать, человекочитаемое название}
+        const RULES = [
+            // ТЕЛО
+            { kw:['зарядк','размин','отжим','присед','подтяг','планк'], sphere:'body', action:'workout', label:'Тело · Зарядка' },
+            { kw:['трениров','качал','зал','спортзал','штанг','гантел','жим'], sphere:'body', action:'training', label:'Тело · Тренировка' },
+            { kw:['поел','покушал','завтрак','обед','ужин','съел','еда','питани','калори'], sphere:'body', action:'nutrition', label:'Тело · Питание' },
+            { kw:['воды','воду','выпил','стакан','гидрат'], sphere:'body', action:'water', label:'Тело · Вода' },
+            { kw:['витамин','таблетк','добавк','бад','лекарств'], sphere:'body', action:'supplements', label:'Тело · Добавки' },
+            // МЕНТАЛКА
+            { kw:['настроени','чувству','эмоци','грустн','радостн','тревож'], sphere:'mental', action:'mood', label:'Менталка · Настроение' },
+            { kw:['мысл','записал мысл','дамп','выгруз','голову'], sphere:'mental', action:'braindump', label:'Менталка · Поток мыслей' },
+            { kw:['фокус','сосредоточ','помодор','поработал над','концентрац'], sphere:'mental', action:'focus', label:'Менталка · Фокус' },
+            // ЭНЕРГИЯ
+            { kw:['поспал','спал','сон','выспал','лёг','уснул','просну'], sphere:'energy', action:'sleep', label:'Энергия · Сон' },
+            { kw:['подыша','дыхан','дыхател'], sphere:'energy', action:'breathing', label:'Энергия · Дыхание' },
+            { kw:['медитац','помедитир','отдохн','релакс','расслаб'], sphere:'energy', action:'rest', label:'Энергия · Медитация' },
+            // ОТНОШЕНИЯ
+            { kw:['встрети','позвонил','написал друг','пообщал','свидани','познаком','общени'], sphere:'relations', action:'contact', label:'Отношения · Контакт' },
+            // ВЕРА
+            { kw:['благодар','спасибо за','признател'], sphere:'faith', action:'gratitude', label:'Вера · Благодарность' },
+            { kw:['помолил','молитв','намаз','прибежищ'], sphere:'faith', action:'prayer', label:'Вера · Молитва' },
+            { kw:['привычк','бросил','не курил','воздерж'], sphere:'faith', action:'habit', label:'Вера · Привычки' },
+            { kw:['желани','мечт','визуализ','карта желан'], sphere:'faith', action:'wishmap', label:'Вера · Карта желаний' },
+            // прогулка -> энергия/тело
+            { kw:['погулял','прогул','шагов','ходил пешком','прошёл'], sphere:'body', action:'walk', label:'Тело · Прогулка' },
+        ];
+
+        // РЕАЛЬНО заполняет раздел как будто ты сам прошёл флоу (галочки + завершить)
+        function markSectionDone(action){
+            const today = new Date().toISOString().slice(0,10);
+            function addDay(key){
+                try {
+                    let days = JSON.parse(localStorage.getItem(key)) || [];
+                    if (!days.includes(today)) { days.push(today); localStorage.setItem(key, JSON.stringify(days)); }
+                } catch(e){}
+            }
+            try {
+                if (action === 'workout') {
+                    // зарядка: отмечаем все упражнения выполненными + завершаем день
+                    const exList = JSON.parse(localStorage.getItem('focus_workout_exercises') || 'null');
+                    if (exList && exList.length) {
+                        const checks = {};
+                        exList.forEach(ex => { checks[ex.id] = true; });
+                        localStorage.setItem('focus_workout_checks_' + today, JSON.stringify(checks));
+                    }
+                    addDay('focus_workout_days'); // завершённый день
+                }
+                else if (action === 'nutrition') {
+                    addDay('focus_nutrition_finished'); // день питания завершён
+                }
+                else if (action === 'sleep') {
+                    // сон: добавляем запись сна за сегодня если её нет
+                    try {
+                        let entries = JSON.parse(localStorage.getItem('focus_sleep_entries') || '[]');
+                        if (!entries.some(e => e.date === today)) {
+                            entries.push({ date: today, hours: 8, quality: 3, note: 'Отмечено голосом' });
+                            localStorage.setItem('focus_sleep_entries', JSON.stringify(entries));
+                        }
+                    } catch(e){}
+                }
+                else if (action === 'gratitude') {
+                    addDay('focus_habit_reward'); // засчитываем благодарность
+                }
+                // для остальных действий — активность уже записана через FocusRewards.mark выше
+            } catch(e){}
+        }
+
+        function recognize(text){
+            const t = (text||'').toLowerCase();
+            const matched = [];
+            RULES.forEach(rule => {
+                if (rule.kw.some(k => t.includes(k))) {
+                    if (!matched.find(m => m.sphere===rule.sphere && m.action===rule.action)) matched.push(rule);
+                }
+            });
+            return matched;
+        }
+
+        const input = document.getElementById('aiInput');
+        const result = document.getElementById('aiResult');
+        const sendBtn = document.getElementById('aiSendBtn');
+        const micBtn = document.getElementById('aiMicBtn');
+        if (!input) return;
+
+        async function process(){
+            const text = input.value.trim();
+            if (!text) { input.focus(); return; }
+            const matched = recognize(text);
+            if (matched.length > 0) {
+                // распознали команду — записываем активность + отмечаем раздел выполненным
+                matched.forEach(m => {
+                    try {
+                        if (window.FocusRewards) FocusRewards.mark(m.sphere, m.action);
+                        else { FocusStorage.addActivity(m.sphere, m.action); FocusStorage.addCoins(1); }
+                        // отмечаем конкретный раздел как выполненный сегодня (как будто сам заполнил)
+                        markSectionDone(m.action);
+                    } catch(e){}
+                });
+                const labels = matched.map(m => m.label).join(', ');
+                result.className = 'ai-result show';
+                result.innerHTML = '<span class="check">✓</span> Записал: ' + labels + ' &nbsp;(+1 F-coin)';
+                input.value = '';
+            } else {
+                // не команда — спрашиваем реальный ИИ (совет ассистента)
+                if (window.fbAskAI) {
+                    result.className = 'ai-result show';
+                    result.innerHTML = '<span class="ai-thinking">🧠 Ассистент думает...</span>';
+                    // проверка лимита ИИ (если есть система лимитов)
+                    let canAsk = true;
+                    try { if (FocusStorage.canUseAI) canAsk = FocusStorage.canUseAI('mentor', 'text').ok; } catch(e){}
+                    if (!canAsk) {
+                        result.innerHTML = '🔒 Лимит ИИ-запросов исчерпан. Пополни F-coin в магазине или оформи подписку.';
+                        return;
+                    }
+                    const prompt = [
+                        { role: 'system', content:
+                            'Ты — умный, поддерживающий ассистент по саморазвитию в приложении FOCUS. Помогаешь с привычками, целями, дисциплиной, здоровьем, мышлением, мотивацией.\n' +
+                            'Отвечай ИМЕННО на вопрос человека, конкретно и по делу. Давай practical советы которые реально можно применить сегодня. Живой разговорный русский, 2-5 предложений, без воды и клише. Если человек язвит — реагируй спокойно и с юмором. Не читай нотации.'
+                        },
+                        { role: 'user', content: text }
+                    ];
+                    let res = await window.fbAskAI(prompt, 600);
+                    if (!res.ok) res = await window.fbAskAI(prompt, 600); // повтор при сбое
+                    if (res.ok && res.reply && res.reply.trim()) {
+                        try { if (FocusStorage.useAI) FocusStorage.useAI('mentor', 'text'); } catch(e){}
+                        result.className = 'ai-result show';
+                        result.innerHTML = '🧠 ' + res.reply.trim().replace(/</g,'&lt;').replace(/\n/g,'<br>');
+                        input.value = '';
+                    } else {
+                        result.className = 'ai-result show unknown';
+                        result.innerHTML = '⚠️ ИИ не ответил. Причина: ' + (res.error || 'неизвестно');
+                    }
+                    return;
+                } else {
+                    result.className = 'ai-result show unknown';
+                    result.innerHTML = '🤔 Не понял. Попробуй: «сделал зарядку», «выпил воды», или задай вопрос ассистенту.';
+                }
+            }
+            clearTimeout(window._aiTimer);
+            window._aiTimer = setTimeout(() => { result.className = 'ai-result'; }, 6000);
+        }
+
+        sendBtn.addEventListener('click', process);
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') process(); });
+
+        // голосовой ввод: ТАП — старт записи, ещё ТАП — стоп (надёжно на iOS)
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SR && micBtn) {
+            let recog = null, listening = false, finalText = '';
+
+            function toggleRec(){
+                if (listening) {
+                    // второй тап — стоп
+                    if (recog) { try { recog.stop(); } catch(er){} }
+                    return;
+                }
+                // первый тап — старт
+                finalText = '';
+                recog = new SR();
+                recog.lang = 'ru-RU';
+                recog.interimResults = true;
+                recog.continuous = false;   // на iOS false надёжнее — авто-стоп по паузе
+                recog.maxAlternatives = 1;
+                recog.onstart = () => { listening = true; micBtn.classList.add('recording'); input.placeholder = '🎤 Слушаю... (тап чтобы стоп)'; };
+                recog.onend = () => {
+                    listening = false; micBtn.classList.remove('recording');
+                    input.placeholder = 'Отметь дело или спроси совет у ассистента...';
+                    if (finalText.trim()) { input.value = finalText.trim(); process(); }
+                };
+                recog.onerror = (e) => {
+                    listening = false; micBtn.classList.remove('recording');
+                    input.placeholder = 'Отметь дело или спроси совет у ассистента...';
+                    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+                        toast('Разреши доступ к микрофону в настройках браузера');
+                    }
+                };
+                recog.onresult = (e) => {
+                    let txt = '';
+                    for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
+                    finalText = txt;
+                    input.value = txt.trim();   // показываем вживую
+                };
+                try { recog.start(); } catch(er){}
+            }
+            // один обработчик click (работает и на тач, и на мышь, iOS-friendly)
+            micBtn.addEventListener('click', (e) => { e.preventDefault(); toggleRec(); });
+        } else if (micBtn) {
+            // нет поддержки голоса — микрофон подсказывает писать текстом
+            micBtn.addEventListener('click', () => {
+                result.className = 'ai-result show unknown';
+                result.innerHTML = '🎤 Голосовой ввод недоступен в этом браузере — напиши текстом';
+                input.focus();
+                clearTimeout(window._aiTimer);
+                window._aiTimer = setTimeout(() => { result.className = 'ai-result'; }, 4000);
+            });
+        }
+    })();
+
+    // ===== Геопозиция ребёнка (если привязан к родителю) =====
+    // Обновляется когда ребёнок открывает FOCUS. Фоновый трекинг в PWA невозможен.
+    (function(){
+        async function sendLocationIfChild(){
+            if (!navigator.geolocation || !window.fbSaveLocation) return;
+            let u = FocusStorage.getUser();
+            let parentUid = u && u.parentUid;
+            if (!parentUid && window.fbLoadUserData) {
+                const cloud = await window.fbLoadUserData();
+                if (cloud && cloud.parentUid) {
+                    parentUid = cloud.parentUid;
+                    FocusStorage.saveUser({ parentUid });
+                }
+            }
+            if (!parentUid) return; // не привязан — не шлём
+            // шлём при каждом заходе на главную (родителю нужна свежая точка); внутри сессии не спамим (3 мин)
+            const last = parseInt(sessionStorage.getItem('focus_geo_sent') || '0');
+            if (last && Date.now() - last < 3*60*1000) return;
+            navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                    const r = await window.fbSaveLocation(pos.coords.latitude, pos.coords.longitude);
+                    if (r && r.ok) sessionStorage.setItem('focus_geo_sent', String(Date.now()));
+                },
+                (err) => { /* отказ/ошибка доступа — молча */ },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+            );
+        }
+        if (window.FB_AUTH_READY) setTimeout(sendLocationIfChild, 1500);
+        else window.addEventListener('fb-auth-ready', () => setTimeout(sendLocationIfChild, 1500));
+    })();
+
+    // ===== Задания от родителя (сторона ребёнка) =====
+    (function(){
+        async function loadParentTasks(){
+            if (!window.fbGetChildTasks) return;
+            const u = FocusStorage.getUser();
+            if (!u || !u.parentUid) return; // только если привязан к родителю
+            const tasks = await window.fbGetChildTasks();
+            const active = tasks.filter(t => t.status === 'active' || t.status === 'pending');
+            const wrap = document.getElementById('parentTasks');
+            const list = document.getElementById('parentTasksList');
+            if (!active.length) { wrap.style.display = 'none'; return; }
+            wrap.style.display = 'block';
+            list.innerHTML = '';
+            active.forEach(t => {
+                const card = document.createElement('div');
+                card.className = 'ptask' + (t.status==='pending'?' ptask-pending':'');
+                const streak = t.streakDays ? ` · 🔥 ${t.progress||0}/${t.streakDays}` : '';
+                card.innerHTML = `
+                    <div class="ptask-info">
+                        <div class="ptask-text">${escapeHtml(t.text)}</div>
+                        <div class="ptask-reward">💰 ${t.reward} F-coin${streak}</div>
+                    </div>
+                    ${t.status==='pending'
+                        ? '<div class="ptask-wait">⏳ на проверке</div>'
+                        : `<button class="ptask-do" data-do="${t.id}" data-verify="${t.verify}">Выполнил</button>`}`;
+                list.appendChild(card);
+            });
+            list.querySelectorAll('[data-do]').forEach(b => b.addEventListener('click', async () => {
+                const taskId = b.dataset.do;
+                const verify = b.dataset.verify;
+                let photoData = null;
+                if (verify === 'photo') {
+                    photoData = await pickPhoto();
+                    if (!photoData) { return; } // отменил выбор фото
+                }
+                b.disabled = true; b.innerText = '...';
+                const res = await window.fbMarkTaskDone(taskId, photoData);
+                if (res.ok) {
+                    if (res.awarded > 0) {
+                        // начисляем ребёнку локально + анимация
+                        const nc = (FocusStorage.getUser().coins||0) + res.awarded;
+                        FocusStorage.saveUser({ coins: nc });
+                        if (FocusCore.celebrate) FocusCore.celebrate({ big: res.streakComplete, text: res.streakComplete?'Стрик! Бонус':'Награда твоя', emoji: '💰', fromEl: b });
+                        if (typeof toast==='function') toast('+' + res.awarded + ' F-coin!');
+                    } else if (res.pending) {
+                        if (typeof toast==='function') toast('Отправлено родителю на проверку');
+                    }
+                    loadParentTasks();
+                } else {
+                    b.disabled = false; b.innerText = 'Выполнил';
+                    if (typeof toast==='function') toast(res.error || 'Ошибка');
+                }
+            }));
+        }
+        // выбор фото → base64 (сжатое)
+        function pickPhoto(){
+            return new Promise(resolve => {
+                const inp = document.createElement('input');
+                inp.type = 'file'; inp.accept = 'image/*';
+                inp.onchange = () => {
+                    const f = inp.files[0]; if (!f) { resolve(null); return; }
+                    const r = new FileReader();
+                    r.onload = () => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const cv = document.createElement('canvas');
+                            const max = 600, sc = Math.min(1, max/Math.max(img.width,img.height));
+                            cv.width = img.width*sc; cv.height = img.height*sc;
+                            cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+                            resolve(cv.toDataURL('image/jpeg', 0.7));
+                        };
+                        img.src = r.result;
+                    };
+                    r.readAsDataURL(f);
+                };
+                inp.click();
+            });
+        }
+        if (window.FB_AUTH_READY) setTimeout(loadParentTasks, 1500);
+        else window.addEventListener('fb-auth-ready', () => setTimeout(loadParentTasks, 1500));
+    })();
+</script>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        });
+    }
+</script>
+    <script src="focus-chat-fab.js"></script>
+</body>
+</html>

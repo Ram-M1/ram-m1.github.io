@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="original" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FOCUS">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Карта желаний — FOCUS</title>
+<style>
+    :root, [data-theme="original"] { --accent:#FFD966; --accent-rgb:255,217,102; --accent-2:#7C8CFF; --accent-2-rgb:124,140,255; --accent-light:#FFE9A8; --accent-dark:#C9952E; --bg-1:#131319; --bg-2:#0d0d12; --text-strong:#FFFFFF; }
+    [data-theme="tron"] { --accent:#FF3B2E; --accent-rgb:255,59,46; --accent-2:#00E5FF; --accent-2-rgb:0,229,255; --accent-light:#FF8A6B; --accent-dark:#B8201A; --bg-1:#0a0a0d; --bg-2:#000000; --text-strong:#FFFFFF; }
+    [data-theme="predator"] { --accent:#FF7A1A; --accent-rgb:255,122,26; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#FFB347; --accent-dark:#B84D00; --bg-1:#0d120d; --bg-2:#050705; --text-strong:#FFFFFF; }
+    [data-theme="mk"] { --accent:#FF1A2E; --accent-rgb:255,26,46; --accent-2:#FFD700; --accent-2-rgb:255,215,0; --accent-light:#FF6B5C; --accent-dark:#8A0000; --bg-1:#14080a; --bg-2:#050202; --text-strong:#FFFFFF; }
+    [data-theme="matrix"] { --accent:#00FF41; --accent-rgb:0,255,65; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#7FFF9E; --accent-dark:#008F25; --bg-1:#050505; --bg-2:#000000; --text-strong:#FFFFFF; }
+    .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
+    @keyframes mkShake { 0%,100%{transform:translate(0,0);} 15%{transform:translate(-4px,2px) rotate(-0.4deg);} 30%{transform:translate(4px,-2px) rotate(0.4deg);} 45%{transform:translate(-3px,1px);} 60%{transform:translate(3px,-1px);} 75%{transform:translate(-2px,0);} }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif; background:#060608; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:12px; position:relative; overflow:hidden; }
+    body::before { content:''; position:fixed; width:600px; height:600px; background:radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%); top:10%; left:50%; transform:translateX(-50%); pointer-events:none; animation:ambientDrift 12s ease-in-out infinite; }
+    @keyframes ambientDrift { 0%,100%{opacity:.6;transform:translateX(-50%) scale(1);} 50%{opacity:1;transform:translateX(-50%) scale(1.15);} }
+    .phone { width:375px; height:700px; background:linear-gradient(165deg, var(--bg-1) 0%, var(--bg-2) 100%); border-radius:52px; box-shadow:0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--accent-rgb),0.06), 0 0 0 8px #1c1c24, 0 0 0 9px rgba(var(--accent-rgb),0.08), 0 0 60px rgba(var(--accent-rgb),0.04); overflow:hidden; display:flex; flex-direction:column; position:relative; }
+    .phone::before { content:''; position:absolute; inset:0; z-index:0; opacity:0.1; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    .phone::after { content:''; position:absolute; top:0; left:6%; right:6%; height:1px; background:linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.3), transparent); z-index:0; }
+    #atmosCanvas { position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:52px; }
+    .screen { flex:1; padding:18px 16px 12px; display:flex; flex-direction:column; height:100%; overflow:hidden; position:relative; z-index:1; }
+    .header-row { display:flex; align-items:center; gap:12px; margin-bottom:13px; }
+    .back-btn { width:36px; height:36px; border-radius:30px; background:rgba(var(--accent-rgb),0.07); border:1px solid rgba(var(--accent-rgb),0.2); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:0.3s ease; flex-shrink:0; }
+    .back-btn:active { transform:scale(0.92); }
+    .back-btn svg { width:16px; height:16px; color:var(--accent); }
+    .title { font-size:19px; font-weight:700; letter-spacing:0.2px; background:linear-gradient(135deg, var(--text-strong) 20%, var(--accent) 70%, var(--accent-dark) 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .title-icon { width:30px; height:30px; flex-shrink:0; border-radius:9px; background:radial-gradient(circle at 35% 30%, rgba(200,170,255,0.3), rgba(200,170,255,0.06)); border:0.5px solid rgba(200,170,255,0.4); display:flex; align-items:center; justify-content:center; margin-left:auto; }
+    .title-icon svg { width:17px; height:17px; color:#C8AAFF; }
+
+    /* Переключатель карт */
+    .card-selector { display:flex; align-items:center; gap:8px; margin-bottom:13px; }
+    .card-select { flex:1; background:rgba(35,35,46,0.6); border:1px solid rgba(var(--accent-rgb),0.16); border-radius:12px; padding:10px 12px; color:#fff; font-size:13px; font-family:inherit; outline:none; font-weight:600; }
+    .card-select option { background:#1c1c26; }
+    .icon-btn { width:40px; height:40px; flex-shrink:0; border-radius:12px; background:rgba(200,170,255,0.12); border:1px solid rgba(200,170,255,0.3); display:flex; align-items:center; justify-content:center; cursor:pointer; color:#C8AAFF; }
+    .icon-btn:active { transform:scale(0.94); }
+    .icon-btn svg { width:18px; height:18px; }
+
+    .scroll-area { flex:1; overflow-y:auto; scrollbar-width:none; }
+    .scroll-area::-webkit-scrollbar { display:none; }
+    .section-label { font-size:11px; font-weight:700; color:var(--accent-2); letter-spacing:0.3px; margin:6px 2px 10px; display:flex; align-items:center; justify-content:space-between; }
+    .section-label .mini-link { color:#C8AAFF; font-weight:600; cursor:pointer; font-size:10px; }
+
+    /* Сетка желаний */
+    .wish-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:16px; }
+    .wish-cell { aspect-ratio:1; border-radius:16px; overflow:hidden; position:relative; cursor:pointer; background:linear-gradient(135deg, rgba(200,170,255,0.14), rgba(124,140,255,0.07)); border:1px solid rgba(200,170,255,0.22); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; transition:0.2s ease; }
+    .wish-cell:active { transform:scale(0.97); }
+    .wish-cell img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+    .wish-overlay { position:absolute; inset:0; background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.75)); display:flex; align-items:flex-end; padding:10px; }
+    .wish-icon { font-size:38px; z-index:1; }
+    .wish-label { font-size:12px; font-weight:700; color:#fff; text-align:center; padding:0 8px; z-index:1; }
+    .wish-label-over { position:absolute; bottom:10px; left:0; right:0; text-align:center; font-size:12px; font-weight:700; color:#fff; z-index:2; text-shadow:0 1px 4px rgba(0,0,0,0.9); padding:0 6px; }
+    .wish-del { position:absolute; top:7px; right:7px; width:22px; height:22px; border-radius:50%; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:3; color:#fff; }
+    .wish-del svg { width:12px; height:12px; }
+    .wish-add { aspect-ratio:1; border-radius:16px; border:1.5px dashed rgba(200,170,255,0.35); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer; color:#C8AAFF; background:rgba(200,170,255,0.04); }
+    .wish-add:active { transform:scale(0.97); }
+    .wish-add svg { width:24px; height:24px; }
+    .wish-add span { font-size:10px; }
+
+    .slideshow-btn { padding:13px; border-radius:14px; background:linear-gradient(135deg, var(--accent-2), #C8AAFF); color:#0a0a0f; font-weight:700; font-size:13px; text-align:center; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:16px; }
+    .slideshow-btn:active { transform:scale(0.98); }
+    .slideshow-btn svg { width:16px; height:16px; }
+
+    /* Музыка */
+    .music-item { display:flex; align-items:center; gap:11px; background:linear-gradient(135deg, rgba(35,35,46,0.5), rgba(22,22,30,0.5)); border:0.5px solid rgba(var(--accent-rgb),0.1); border-radius:12px; padding:10px 13px; margin-bottom:8px; }
+    .music-icon { width:34px; height:34px; border-radius:9px; background:rgba(200,170,255,0.14); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:#C8AAFF; }
+    .music-icon svg { width:16px; height:16px; }
+    .music-name { flex:1; font-size:12.5px; color:#fff; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .music-play { color:#C8AAFF; cursor:pointer; flex-shrink:0; }
+    .music-play svg { width:18px; height:18px; }
+    .music-del { color:#ff6b6b; opacity:0.4; cursor:pointer; flex-shrink:0; }
+    .music-del svg { width:13px; height:13px; }
+    .add-music-btn { padding:12px; border-radius:13px; background:rgba(200,170,255,0.1); border:1px solid rgba(200,170,255,0.25); color:#C8AAFF; font-weight:700; font-size:12.5px; text-align:center; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; }
+    .add-music-btn:active { transform:scale(0.98); }
+    .add-music-btn svg { width:15px; height:15px; }
+    .empty-mini { text-align:center; color:#6e6e7e; font-size:11px; padding:16px 12px; line-height:1.5; }
+
+    /* Слайд-шоу оверлей */
+    .slideshow { position:absolute; inset:0; z-index:450; background:#000; display:none; align-items:center; justify-content:center; border-radius:52px; overflow:hidden; }
+    .slideshow.show { display:flex; }
+    .slide { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:0; gap:22px; transition:opacity 1.4s cubic-bezier(0.4,0,0.2,1); pointer-events:none; }
+    .slide.active { opacity:1; pointer-events:auto; }
+    /* фон — размытая увеличенная версия фото, заполняет экран */
+    .slide-bg { position:absolute; inset:0; background-size:cover; background-position:center; filter:blur(28px) brightness(0.4); transform:scale(1.25); z-index:0; }
+    .slide-frame { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; width:100%; height:100%; }
+    .slide img { max-width:82%; max-height:56%; border-radius:20px; object-fit:cover; box-shadow:0 20px 60px rgba(0,0,0,0.7); }
+    /* Ken Burns — медленный зум+пан на активном слайде */
+    .slide.active img { animation:kenBurns 7s ease-out forwards; }
+    @keyframes kenBurns {
+        0%   { transform:scale(1.0) translate(0,0); }
+        100% { transform:scale(1.14) translate(-1.5%, -2%); }
+    }
+    .slide.active .slide-icon { animation:iconFloat 7s ease-in-out infinite; }
+    @keyframes iconFloat {
+        0%,100% { transform:translateY(0) scale(1); }
+        50%     { transform:translateY(-14px) scale(1.06); }
+    }
+    .slide-icon { font-size:96px; filter:drop-shadow(0 8px 30px rgba(200,170,255,0.4)); position:relative; z-index:1; }
+    .slide-label { font-size:26px; font-weight:700; color:#fff; text-align:center; padding:0 30px; text-shadow:0 2px 18px rgba(0,0,0,0.9); position:relative; z-index:1; }
+    /* подпись мягко всплывает */
+    .slide.active .slide-label { animation:labelRise 1.6s cubic-bezier(0.16,1,0.3,1) forwards; }
+    @keyframes labelRise {
+        0%   { opacity:0; transform:translateY(26px); letter-spacing:2px; }
+        100% { opacity:1; transform:translateY(0); letter-spacing:0; }
+    }
+    /* индикатор прогресса слайдов */
+    .slide-progress { position:absolute; top:22px; left:0; right:0; display:flex; gap:5px; justify-content:center; padding:0 60px; z-index:460; }
+    .slide-dot { flex:1; max-width:40px; height:3px; border-radius:3px; background:rgba(255,255,255,0.25); overflow:hidden; position:relative; }
+    .slide-dot.done { background:rgba(255,255,255,0.7); }
+    .slide-dot.active::after { content:''; position:absolute; inset:0; background:#fff; transform-origin:left; animation:dotFill 5s linear forwards; }
+    @keyframes dotFill { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+    .slideshow-close { position:absolute; top:40px; right:24px; width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:470; color:#fff; backdrop-filter:blur(6px); }
+    .slideshow-close svg { width:20px; height:20px; }
+    .slideshow-hint { position:absolute; bottom:30px; left:0; right:0; text-align:center; font-size:11px; color:rgba(255,255,255,0.5); z-index:460; }
+    .slideshow-music { position:absolute; bottom:54px; left:0; right:0; text-align:center; font-size:11px; color:rgba(255,255,255,0.6); z-index:460; display:flex; align-items:center; justify-content:center; gap:6px; }
+    .slideshow-music svg { width:13px; height:13px; }
+
+    /* Модалки */
+    .modal { position:absolute; inset:0; z-index:400; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); display:none; align-items:center; justify-content:center; border-radius:52px; padding:18px; }
+    .modal.show { display:flex; }
+    .modal-box { background:linear-gradient(165deg, #1c1c26, #15151c); border-radius:22px; width:100%; padding:18px; border:0.5px solid rgba(var(--accent-rgb),0.2); }
+    .modal-title { font-size:16px; font-weight:700; color:var(--accent); margin-bottom:14px; }
+    .modal-box input { width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(var(--accent-rgb),0.16); border-radius:11px; padding:11px 12px; color:#fff; font-size:14px; font-family:inherit; outline:none; margin-bottom:10px; }
+    .modal-box input:focus { border-color:var(--accent-2); }
+    .modal-box input::placeholder { color:#6e6e7e; }
+    .emoji-pick { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+    .emoji-opt { width:38px; height:38px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid transparent; display:flex; align-items:center; justify-content:center; font-size:20px; cursor:pointer; }
+    .emoji-opt.on { background:rgba(200,170,255,0.2); border-color:rgba(200,170,255,0.5); }
+    .photo-pick { padding:11px; border-radius:11px; border:1px dashed rgba(200,170,255,0.35); text-align:center; color:#C8AAFF; font-size:12px; cursor:pointer; margin-bottom:12px; }
+    .photo-preview { width:100%; height:120px; object-fit:cover; border-radius:11px; margin-bottom:12px; display:none; }
+    .modal-btns { display:flex; gap:8px; }
+    .modal-btn { flex:1; padding:12px; border-radius:13px; font-size:13px; font-weight:700; cursor:pointer; text-align:center; border:none; }
+    .modal-btn.save { background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; }
+    .modal-btn.cancel { background:rgba(255,255,255,0.06); color:#9a9aab; border:1px solid rgba(255,255,255,0.1); }
+
+    .toast { position:absolute; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,0.9); border:1px solid var(--accent); border-radius:20px; padding:9px 18px; color:var(--accent); font-size:12px; font-weight:600; z-index:500; opacity:0; transition:0.3s ease; pointer-events:none; white-space:nowrap; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* PWA-режим (установлено на телефон): на весь реальный экран, без макетной рамки */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; overflow: hidden !important; }
+    .phone {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding-top: env(safe-area-inset-top) !important;
+        padding-bottom: env(safe-area-inset-bottom) !important;
+        max-width: 100vw !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, #atmos, .atmos-canvas { border-radius: 0 !important; }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important;
+    }
+}
+
+/* Телефоны: приложение на весь экран без макетной рамки (надёжно, не зависит от PWA-режима) */
+@media (max-width: 600px) {
+    * { -webkit-user-select: none !important; user-select: none !important; -webkit-tap-highlight-color: transparent !important; }
+    input, textarea { -webkit-user-select: text !important; user-select: text !important; }
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; height: 100vh; height: 100dvh; display: block !important; }
+    body { display: flex !important; align-items: stretch !important; justify-content: flex-start !important; }
+    .phone {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    /* анимация/фон идут до самого верха под чёлку */
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important; border-radius: 0 !important;
+    }
+    /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
+    .screen, .session-area, .slideshow, .scroll-area {
+        padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+    }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+}
+</style>
+<script src="focus-analytics.js"></script>
+</head>
+<body>
+<div class="phone">
+    <canvas id="atmosCanvas" width="375" height="700" style="width:375px;height:700px;"></canvas>
+    <div class="screen">
+        <div class="header-row">
+            <div class="back-btn" onclick="location.href='fokus_faith.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <div class="title">Карта желаний</div>
+            <div class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.4H22l-6 4.5 2.3 7.1-6.3-4.6L5.7 21l2.3-7.1-6-4.5h7.6L12 2Z"/></svg></div>
+        </div>
+
+        <div class="card-selector">
+            <select class="card-select" id="cardSelect"></select>
+            <div class="icon-btn" id="newCardBtn" title="Новая карта">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            </div>
+            <div class="icon-btn" id="delCardBtn" title="Удалить карту">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
+            </div>
+        </div>
+
+        <div class="scroll-area">
+            <div class="wish-grid" id="wishGrid"></div>
+
+            <div class="slideshow-btn" id="slideshowBtn">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                Слайд-шоу желаний
+            </div>
+
+            <div class="section-label"><span>🎵 МУЗЫКА ДЛЯ КАРТЫ</span></div>
+            <div id="musicList"></div>
+            <div class="add-music-btn" id="addMusicBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                Добавить песню
+            </div>
+            <div style="font-size:9.5px;color:#8e8e9e;margin-top:7px;line-height:1.4;text-align:center;">
+                Можно добавить аудиофайл из «Файлов» (до ~3 МБ). Треки из Apple Music защищены и недоступны — это ограничение iPhone.
+            </div>
+        </div>
+    </div>
+
+    <!-- Слайд-шоу -->
+    <div class="slideshow" id="slideshow">
+        <div class="slide-progress" id="slideProgress"></div>
+        <div class="slideshow-close" id="slideshowClose">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </div>
+        <div id="slidesContainer"></div>
+        <div class="slideshow-music" id="slideshowMusic" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            <span id="slideshowMusicName"></span>
+        </div>
+        <div class="slideshow-hint" id="slideshowHint">Визуализируй свои цели ✨</div>
+    </div>
+
+    <!-- Модалка желания -->
+    <div class="modal" id="wishModal">
+        <div class="modal-box">
+            <div class="modal-title" id="wishModalTitle">➕ Новое желание</div>
+            <input type="text" id="wishLabelInput" placeholder="Например: Путешествие в Японию">
+            <div style="font-size:10px;color:#9a9aab;margin-bottom:7px;font-weight:600;">Иконка</div>
+            <div class="emoji-pick" id="emojiPick"></div>
+            <div style="font-size:10px;color:#9a9aab;margin-bottom:7px;font-weight:600;">Или своё фото</div>
+            <div class="photo-pick" id="photoPick">📷 Загрузить фото</div>
+            <img class="photo-preview" id="photoPreview">
+            <input type="file" id="photoInput" accept="image/*" style="display:none;">
+            <div class="modal-btns">
+                <button class="modal-btn cancel" id="cancelWish">Отмена</button>
+                <button class="modal-btn save" id="saveWish">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка новой карты -->
+    <div class="modal" id="cardModal">
+        <div class="modal-box">
+            <div class="modal-title">➕ Новая карта</div>
+            <input type="text" id="cardNameInput" placeholder="Название карты (напр. Цели 2026)">
+            <div class="modal-btns">
+                <button class="modal-btn cancel" id="cancelCard">Отмена</button>
+                <button class="modal-btn save" id="saveCard">Создать</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="musicInput" accept="audio/*" style="display:none;">
+    <audio id="audioPlayer"></audio>
+
+    <div class="toast" id="toast"></div>
+</div>
+<script src="focus-storage.js"></script>
+<script src="focus-rewards.js"></script>
+<script type="module" src="firebase-auth-helper.js"></script>
+<script src="focus-core.js"></script>
+<script>
+    if (typeof FocusStorage === 'undefined') {
+        window.FocusStorage = {
+            _key:'focus_user',
+            getUser(){ try { return JSON.parse(localStorage.getItem(this._key)) || {}; } catch(e){ return {}; } },
+            saveUser(p){ const c=this.getUser(); localStorage.setItem(this._key, JSON.stringify({...c,...p})); return {...c,...p}; },
+            addCoins(n){ const c=this.getUser().coins||0; this.saveUser({coins:c+n}); return c+n; },
+            addActivity(sphere, action){ const u=this.getUser(); const d=new Date().toISOString().slice(0,10); u.activity=u.activity||{}; u.activity[d]=u.activity[d]||[]; u.activity[d].push({sphere,action,t:Date.now()}); this.saveUser({activity:u.activity}); },
+            getTheme(){ return this.getUser().theme || 'original'; },
+            setTheme(id){ this.saveUser({ theme:id }); }
+        };
+    }
+    if (typeof FocusCore === 'undefined') {
+        window.FocusCore = {
+            applyStoredTheme(){ (document.getElementById('htmlRoot')||document.documentElement).setAttribute('data-theme', FocusStorage.getTheme()); },
+            coinBurst(config) {
+
+      config = config || {};
+      var amount = config.amount || 1;
+      var reason = config.reason || '';
+      var count = Math.min(Math.max(Math.round(amount), 8), 20);
+
+      var rootStyle = getComputedStyle(document.documentElement);
+      var accent = (rootStyle.getPropertyValue('--accent') || '#FFD966').trim();
+      var accentLight = (rootStyle.getPropertyValue('--accent-light') || '#FFE9A8').trim();
+      var accentDark = (rootStyle.getPropertyValue('--accent-dark') || '#C9952E').trim();
+
+      var phone = document.querySelector('.phone') || document.body;
+      var phoneRect = phone.getBoundingClientRect();
+      var phoneW = phoneRect.width, phoneH = phoneRect.height;
+
+      var originX = phoneW / 2, originY = phoneH / 2;
+      if (config.sourceEl) {
+        try {
+          var sr = config.sourceEl.getBoundingClientRect();
+          originX = sr.left - phoneRect.left + sr.width / 2;
+          originY = sr.top - phoneRect.top + sr.height / 2;
+        } catch (e) {}
+      }
+
+      var layer = document.createElement('div');
+      layer.style.cssText = 'position:absolute; inset:0; z-index:2000; pointer-events:none; overflow:hidden; border-radius:52px;';
+      phone.appendChild(layer);
+
+      function coinSVG() {
+        return '<svg width="30" height="30" viewBox="0 0 40 40">' +
+          '<defs><radialGradient id="cgr" cx="38%" cy="32%" r="70%">' +
+          '<stop offset="0%" stop-color="' + accentLight + '"/>' +
+          '<stop offset="55%" stop-color="' + accent + '"/>' +
+          '<stop offset="100%" stop-color="' + accentDark + '"/></radialGradient></defs>' +
+          '<circle cx="20" cy="20" r="18" fill="url(#cgr)" stroke="' + accentDark + '" stroke-width="1.5"/>' +
+          '<circle cx="20" cy="20" r="14" fill="none" stroke="' + accentDark + '" stroke-width="1" opacity="0.5"/>' +
+          '<path d="M15 12h10M15 12v16M15 20h7" stroke="' + accentDark + '" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
+          '</svg>';
+      }
+
+      var coins = [];
+      for (var i = 0; i < count; i++) {
+        var el = document.createElement('div');
+        el.style.cssText = 'position:absolute; left:' + originX + 'px; top:' + originY + 'px; will-change:transform,opacity; filter:drop-shadow(0 0 5px rgba(255,200,80,0.55));';
+        el.innerHTML = coinSVG();
+        layer.appendChild(el);
+        var angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+        var power = 6 + Math.random() * 6;
+        coins.push({
+          el: el, x: 0, y: 0,
+          vx: Math.cos(angle) * power,
+          vy: Math.sin(angle) * power - 8,
+          rot: Math.random() * 360, vrot: (Math.random() - 0.5) * 30,
+          delay: Math.floor(Math.random() * 5)
+        });
+      }
+
+      // надпись
+      var note = document.createElement('div');
+      note.style.cssText = 'position:absolute; left:50%; top:40%; transform:translate(-50%,-50%) scale(0.6); z-index:2001;' +
+        'background:rgba(0,0,0,0.88); border:1.5px solid ' + accent + '; border-radius:22px; padding:11px 24px;' +
+        'color:' + accent + '; font-weight:800; font-size:16px; text-align:center; pointer-events:none;' +
+        'box-shadow:0 0 30px rgba(255,200,80,0.4); opacity:0; transition:all 0.4s cubic-bezier(.2,1.4,.4,1); font-family:inherit; white-space:nowrap;';
+      note.innerHTML = '+' + amount + ' F-coin' + (reason ? '<br><span style="font-size:11px;font-weight:600;opacity:0.85;">' + reason + '</span>' : '');
+      layer.appendChild(note);
+      requestAnimationFrame(function () { note.style.opacity = '1'; note.style.transform = 'translate(-50%,-50%) scale(1)'; });
+
+      var gravity = 0.4;
+      var floorY = phoneH - originY - 24;
+      var frame = 0;
+      var MAX_FRAMES = 110; // жёсткий предел — гарантия что всё уберётся
+
+      function animate() {
+        frame++;
+        // фейд монет с 60-го кадра
+        var fade = frame > 60 ? Math.max(0, 1 - (frame - 60) / 35) : 1;
+        coins.forEach(function (c) {
+          if (c.delay > 0) { c.delay--; return; }
+          c.vy += gravity;
+          c.x += c.vx; c.y += c.vy;
+          c.rot += c.vrot;
+          if (c.y > floorY) { c.y = floorY; c.vy *= -0.45; c.vx *= 0.7; }
+          c.el.style.opacity = fade;
+          c.el.style.transform = 'translate(' + c.x + 'px,' + c.y + 'px) rotate(' + c.rot + 'deg)';
+        });
+        // надпись исчезает к концу
+        if (frame > 70) {
+          var nf = Math.max(0, 1 - (frame - 70) / 30);
+          note.style.opacity = nf;
+          note.style.transform = 'translate(-50%,-50%) scale(' + (1 + (1 - nf) * 0.3) + ') translateY(' + (-(1 - nf) * 30) + 'px)';
+        }
+        if (frame < MAX_FRAMES) {
+          requestAnimationFrame(animate);
+        } else {
+          layer.remove(); // гарантированная очистка — ничего не зависнет
+        }
+      }
+      requestAnimationFrame(animate);
+            },
+initAtmosphere(canvasId) {
+                const ac = document.getElementById(canvasId || 'atmosCanvas');
+                if (!ac) return;
+                const actx = ac.getContext('2d');
+                ac.width = 375; ac.height = 700;
+                let tronPulses=[], mkEmbers=[], mkDrips=[], mkFlash=0, mkBolt=null, matrixDrops=null, matrixColumns=0;
+                let predatorRadarAngle=0, predatorScanY=0, predatorT=0, predatorBlips=[{a:1.2,r:0.7},{a:3.8,r:0.5}], predatorReticle=null;
+                const matrixChars = 'アイウエオカキクケコサシスセソ0123456789ABCDEF'.split('');
+                let lastTheme=null, lastTrigger=0, washT=0;
+                function currentTheme() { const r = document.getElementById('htmlRoot') || document.documentElement; return r.getAttribute('data-theme') || 'original'; }
+                function cssColor(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function cssColorRgb(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function drawFullScreenWash() {
+                    washT += 0.008;
+                    const accRgb = cssColorRgb('--accent-rgb'), acc2Rgb = cssColorRgb('--accent-2-rgb');
+                    const x = ac.width*(0.5+Math.sin(washT)*0.5), y = ac.height*(0.5+Math.cos(washT*0.7)*0.5);
+                    const grad = actx.createRadialGradient(x,y,0,ac.width/2,ac.height/2,Math.max(ac.width,ac.height)*0.9);
+                    grad.addColorStop(0,'rgba('+accRgb+',0.05)'); grad.addColorStop(0.5,'rgba('+acc2Rgb+',0.035)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+                    actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                }
+                function drawTron() {
+                    if (Math.random() > 0.93) {
+                        const vertical = Math.random() > 0.5;
+                        tronPulses.push({ vertical, pos: Math.floor(Math.random()*(vertical?ac.width:ac.height)), t:-40, speed:3+Math.random()*2, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2'), len:60 });
+                    }
+                    tronPulses.forEach(p => {
+                        p.t += p.speed;
+                        const grad = p.vertical ? actx.createLinearGradient(p.pos,p.t-p.len,p.pos,p.t) : actx.createLinearGradient(p.t-p.len,p.pos,p.t,p.pos);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,p.color);
+                        actx.strokeStyle = grad; actx.lineWidth=2; actx.shadowBlur=8; actx.shadowColor=p.color;
+                        actx.beginPath();
+                        if (p.vertical) { actx.moveTo(p.pos,p.t-p.len); actx.lineTo(p.pos,p.t); } else { actx.moveTo(p.t-p.len,p.pos); actx.lineTo(p.t,p.pos); }
+                        actx.stroke();
+                    });
+                    actx.shadowBlur=0;
+                    tronPulses = tronPulses.filter(p => p.t < Math.max(ac.width,ac.height)+40);
+                }
+                function drawPredator() {
+                    predatorT += 0.01;
+                    for (let i=0;i<5;i++) {
+                        const x = ac.width/2+Math.sin(predatorT+i*2)*ac.width*0.35, y = ac.height/2+Math.cos(predatorT*0.7+i*1.7)*ac.height*0.4;
+                        const r = 60+Math.sin(predatorT*2+i)*20;
+                        const grad = actx.createRadialGradient(x,y,0,x,y,r);
+                        grad.addColorStop(0,'rgba('+cssColorRgb('--accent-rgb')+',0.05)'); grad.addColorStop(1,'rgba('+cssColorRgb('--accent-rgb')+',0)');
+                        actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                    }
+                    predatorScanY += 1.8; if (predatorScanY > ac.height+20) predatorScanY=-20;
+                    const acc2 = cssColorRgb('--accent-2-rgb');
+                    const lineGrad = actx.createLinearGradient(0,predatorScanY-15,0,predatorScanY+15);
+                    lineGrad.addColorStop(0,'rgba('+acc2+',0)'); lineGrad.addColorStop(0.5,'rgba('+acc2+',0.35)'); lineGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.fillStyle = lineGrad; actx.fillRect(0,predatorScanY-15,ac.width,30);
+                    actx.strokeStyle='rgba('+acc2+',0.5)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.moveTo(0,predatorScanY); actx.lineTo(ac.width,predatorScanY); actx.stroke();
+                    const rcx=ac.width-46, rcy=64, rr=34;
+                    actx.save();
+                    actx.strokeStyle='rgba('+acc2+',0.4)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.arc(rcx,rcy,rr,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.arc(rcx,rcy,rr*0.6,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx-rr,rcy); actx.lineTo(rcx+rr,rcy); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx,rcy-rr); actx.lineTo(rcx,rcy+rr); actx.stroke();
+                    predatorRadarAngle += 0.05;
+                    const sweepGrad = actx.createLinearGradient(rcx,rcy,rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr);
+                    sweepGrad.addColorStop(0,'rgba('+acc2+',0.6)'); sweepGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.strokeStyle = sweepGrad; actx.lineWidth=2;
+                    actx.beginPath(); actx.moveTo(rcx,rcy); actx.lineTo(rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr); actx.stroke();
+                    predatorBlips.forEach(b => {
+                        const bx=rcx+Math.cos(b.a)*rr*b.r, by=rcy+Math.sin(b.a)*rr*b.r;
+                        const diff = Math.abs(((predatorRadarAngle%(Math.PI*2))-b.a+Math.PI*3)%(Math.PI*2)-Math.PI);
+                        const blipAlpha = diff<0.5 ? 1-diff/0.5 : 0;
+                        if (blipAlpha>0) { actx.fillStyle='rgba('+acc2+','+blipAlpha+')'; actx.beginPath(); actx.arc(bx,by,2,0,Math.PI*2); actx.fill(); }
+                    });
+                    actx.restore();
+                    if (Math.random()>0.992 && !predatorReticle) predatorReticle = { x:40+Math.random()*(ac.width-80), y:90+Math.random()*(ac.height-220), life:1 };
+                    if (predatorReticle) {
+                        predatorReticle.life -= 0.012;
+                        if (predatorReticle.life<=0) predatorReticle=null;
+                        else {
+                            const a = Math.min(predatorReticle.life>0.85?(1-predatorReticle.life)/0.15:1,1) * Math.min(predatorReticle.life/0.15,1);
+                            const size = 22+(1-Math.min(predatorReticle.life,1))*6;
+                            actx.save(); actx.globalAlpha=a; actx.strokeStyle=cssColor('--accent'); actx.lineWidth=1.3;
+                            actx.beginPath(); actx.arc(predatorReticle.x,predatorReticle.y,size,0,Math.PI*2); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x-size-6,predatorReticle.y); actx.lineTo(predatorReticle.x-size+4,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x+size-4,predatorReticle.y); actx.lineTo(predatorReticle.x+size+6,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y-size-6); actx.lineTo(predatorReticle.x,predatorReticle.y-size+4); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y+size-4); actx.lineTo(predatorReticle.x,predatorReticle.y+size+6); actx.stroke();
+                            actx.font='8px monospace'; actx.fillStyle=cssColor('--accent'); actx.fillText('LOCKED', predatorReticle.x-16, predatorReticle.y+size+14);
+                            actx.restore();
+                        }
+                    }
+                }
+                function drawMK() {
+                    const phoneEl = document.querySelector('.phone');
+                    if (Math.random()>0.4) mkEmbers.push({ x:Math.random()*ac.width, y:ac.height+10, vx:(Math.random()-0.5)*0.6, vy:-0.6-Math.random()*1.2, size:1+Math.random()*2, life:1, decay:0.004+Math.random()*0.006, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2') });
+                    mkEmbers.forEach(e => {
+                        e.x+=e.vx; e.y+=e.vy; e.life-=e.decay;
+                        const fade=Math.max(e.life,0); actx.globalAlpha=fade; actx.fillStyle=e.color; actx.shadowBlur=6; actx.shadowColor=e.color;
+                        actx.beginPath(); actx.arc(e.x,e.y,e.size,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1; actx.shadowBlur=0;
+                    mkEmbers = mkEmbers.filter(e=>e.life>0 && e.y>-10);
+                    if (Math.random()>0.96) mkDrips.push({ x:20+Math.random()*(ac.width-40), y:-10, len:8+Math.random()*10, speed:1.2+Math.random()*1.5, life:1 });
+                    mkDrips.forEach(d => {
+                        d.y+=d.speed; d.life-=0.004;
+                        const fade=Math.max(d.life,0); actx.globalAlpha=fade;
+                        const grad = actx.createLinearGradient(d.x,d.y-d.len,d.x,d.y);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,cssColor('--accent'));
+                        actx.strokeStyle=grad; actx.lineWidth=2;
+                        actx.beginPath(); actx.moveTo(d.x,d.y-d.len); actx.lineTo(d.x,d.y); actx.stroke();
+                        actx.fillStyle=cssColor('--accent'); actx.beginPath(); actx.arc(d.x,d.y,1.4,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1;
+                    mkDrips = mkDrips.filter(d=>d.life>0 && d.y<ac.height+10);
+                    if (Date.now()-lastTrigger>6000 && Math.random()>0.5) {
+                        lastTrigger = Date.now(); mkFlash=1;
+                        const startX = 30+Math.random()*(ac.width-60);
+                        const points=[{x:startX,y:-5}]; let x=startX;
+                        for (let i=1;i<=9;i++) { const y=(ac.height/9)*i; x+=(Math.random()-0.5)*50; x=Math.max(10,Math.min(ac.width-10,x)); points.push({x,y}); }
+                        mkBolt = { points, life:1 };
+                        if (phoneEl) { phoneEl.classList.add('mk-shake'); setTimeout(()=>phoneEl.classList.remove('mk-shake'),280); }
+                    }
+                    if (mkBolt) {
+                        mkBolt.life -= 0.05;
+                        if (mkBolt.life<=0) mkBolt=null;
+                        else {
+                            actx.save(); actx.globalAlpha=Math.min(mkBolt.life*2,1);
+                            actx.strokeStyle='#7CD9FF'; actx.shadowBlur=14; actx.shadowColor='#3AB8FF'; actx.lineWidth=2;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.strokeStyle='#FFFFFF'; actx.lineWidth=0.8; actx.shadowBlur=4;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.restore();
+                        }
+                    }
+                    if (mkFlash>0) { actx.fillStyle='rgba(124,217,255,'+(mkFlash*0.16)+')'; actx.fillRect(0,0,ac.width,ac.height); mkFlash -= 0.08; }
+                }
+                function drawMatrix() {
+                    if (!matrixDrops) { matrixColumns = Math.floor(ac.width/13); matrixDrops = Array(matrixColumns).fill(0).map(()=>Math.random()*-30); }
+                    actx.fillStyle='rgba(0,0,0,0.08)'; actx.fillRect(0,0,ac.width,ac.height); actx.font='13px monospace';
+                    for (let i=0;i<matrixColumns;i++) {
+                        const text = matrixChars[Math.floor(Math.random()*matrixChars.length)];
+                        const y = matrixDrops[i]*13;
+                        const isHead = Math.random()>0.92;
+                        actx.fillStyle = isHead ? '#cfffd9' : 'rgba('+cssColorRgb('--accent-rgb')+',0.55)';
+                        actx.fillText(text, i*13, y);
+                        if (y>ac.height && Math.random()>0.975) matrixDrops[i]=0;
+                        matrixDrops[i]++;
+                    }
+                }
+                function loop() {
+                    const theme = currentTheme();
+                    if (theme !== lastTheme) {
+                        actx.clearRect(0,0,ac.width,ac.height);
+                        tronPulses=[]; mkEmbers=[]; mkDrips=[]; mkBolt=null; matrixDrops=null; predatorReticle=null;
+                        lastTheme = theme;
+                    }
+                    if (theme !== 'matrix') actx.clearRect(0,0,ac.width,ac.height);
+                    drawFullScreenWash();
+                    if (theme==='tron') drawTron();
+                    else if (theme==='predator') drawPredator();
+                    else if (theme==='mk') drawMK();
+                    else if (theme==='matrix') drawMatrix();
+                    requestAnimationFrame(loop);
+                }
+                loop();
+            }        };
+    }
+
+    FocusCore.applyStoredTheme();
+    FocusCore.initAtmosphere('atmosCanvas');
+
+    function toast(msg){
+        const t=document.getElementById('toast');
+        t.innerText=msg; t.classList.add('show');
+        clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'), 1600);
+    }
+    function escapeHtml(s){ const d=document.createElement('div'); d.innerText=String(s==null?'':s); return d.innerHTML; }
+
+    const CARDS_KEY = 'faith_wishCards';   // [{id, name, wishes:[{id,label,icon,imageData}]}]
+    const SONGS_KEY = 'faith_songs';       // [{id, name, dataUrl}]
+    const EMOJIS = ['🌟','🚗','✈️','🏠','💪','📈','❤️','💰','🎓','🏝️','💍','👶','🐶','🎸','📚','🏆','🌍','☀️'];
+
+    let cards = [];
+    let songs = [];
+    try { cards = JSON.parse(localStorage.getItem(CARDS_KEY)) || []; } catch(e){ cards = []; }
+    try { songs = JSON.parse(localStorage.getItem(SONGS_KEY)) || []; } catch(e){ songs = []; }
+    // дефолтная карта
+    if (cards.length === 0) {
+        cards = [{ id: Date.now(), name: 'Мои желания', wishes: [
+            { id: 1, label:'Путешествие', icon:'✈️', imageData:null },
+            { id: 2, label:'Свой дом', icon:'🏠', imageData:null },
+            { id: 3, label:'Здоровье', icon:'💪', imageData:null }
+        ]}];
+    }
+    let currentCardId = cards[0].id;
+    function saveCards(){ localStorage.setItem(CARDS_KEY, JSON.stringify(cards)); }
+    function saveSongs(){ localStorage.setItem(SONGS_KEY, JSON.stringify(songs)); }
+    function curCard(){ return cards.find(c => c.id === currentCardId) || cards[0]; }
+
+    // ===== Селектор карт =====
+    function renderCardSelect(){
+        const sel = document.getElementById('cardSelect');
+        sel.innerHTML = '';
+        cards.forEach(c => {
+            const o = document.createElement('option');
+            o.value = c.id; o.textContent = c.name + ' (' + c.wishes.length + ')';
+            if (c.id === currentCardId) o.selected = true;
+            sel.appendChild(o);
+        });
+    }
+    document.getElementById('cardSelect').addEventListener('change', (e) => {
+        currentCardId = parseInt(e.target.value);
+        renderWishes();
+    });
+    document.getElementById('newCardBtn').addEventListener('click', () => {
+        document.getElementById('cardNameInput').value = '';
+        document.getElementById('cardModal').classList.add('show');
+    });
+    document.getElementById('cancelCard').addEventListener('click', () => document.getElementById('cardModal').classList.remove('show'));
+    document.getElementById('saveCard').addEventListener('click', () => {
+        const name = document.getElementById('cardNameInput').value.trim();
+        if (!name) { toast('Введите название'); return; }
+        const c = { id: Date.now(), name, wishes: [] };
+        cards.push(c); currentCardId = c.id; saveCards();
+        document.getElementById('cardModal').classList.remove('show');
+        renderCardSelect(); renderWishes();
+    });
+    document.getElementById('delCardBtn').addEventListener('click', () => {
+        if (cards.length <= 1) { toast('Нужна хотя бы одна карта'); return; }
+        cards = cards.filter(c => c.id !== currentCardId);
+        currentCardId = cards[0].id; saveCards();
+        renderCardSelect(); renderWishes();
+        toast('Карта удалена');
+    });
+
+    // ===== Желания =====
+    function renderWishes(){
+        const grid = document.getElementById('wishGrid');
+        const card = curCard();
+        grid.innerHTML = '';
+        card.wishes.forEach(w => {
+            const cell = document.createElement('div');
+            cell.className = 'wish-cell';
+            if (w.imageData) {
+                cell.innerHTML = `<img src="${w.imageData}"><div class="wish-label-over">${escapeHtml(w.label)}</div>
+                    <div class="wish-del" data-del="${w.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></div>`;
+            } else {
+                cell.innerHTML = `<div class="wish-icon">${w.icon||'🌟'}</div><div class="wish-label">${escapeHtml(w.label)}</div>
+                    <div class="wish-del" data-del="${w.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></div>`;
+            }
+            cell.addEventListener('click', (e) => { if (!e.target.closest('.wish-del')) openWishModal(w); });
+            grid.appendChild(cell);
+        });
+        // кнопка добавления
+        const add = document.createElement('div');
+        add.className = 'wish-add';
+        add.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg><span>Добавить</span>';
+        add.addEventListener('click', () => openWishModal(null));
+        grid.appendChild(add);
+
+        grid.querySelectorAll('[data-del]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const card = curCard();
+                card.wishes = card.wishes.filter(w => String(w.id) !== String(el.dataset.del));
+                saveCards(); renderCardSelect(); renderWishes();
+            });
+        });
+    }
+
+    // Модалка желания
+    let editingWish = null, pickedEmoji = '🌟', pickedPhoto = null;
+    function openWishModal(wish){
+        editingWish = wish;
+        pickedEmoji = wish ? (wish.icon||'🌟') : '🌟';
+        pickedPhoto = wish ? (wish.imageData||null) : null;
+        document.getElementById('wishModalTitle').innerText = wish ? '✏️ Желание' : '➕ Новое желание';
+        document.getElementById('wishLabelInput').value = wish ? wish.label : '';
+        // эмодзи
+        const ep = document.getElementById('emojiPick');
+        ep.innerHTML = '';
+        EMOJIS.forEach(em => {
+            const o = document.createElement('div');
+            o.className = 'emoji-opt' + (em === pickedEmoji ? ' on' : '');
+            o.innerText = em;
+            o.addEventListener('click', () => { pickedEmoji = em; document.querySelectorAll('.emoji-opt').forEach(x=>x.classList.remove('on')); o.classList.add('on'); });
+            ep.appendChild(o);
+        });
+        // фото
+        const prev = document.getElementById('photoPreview');
+        if (pickedPhoto) { prev.src = pickedPhoto; prev.style.display = 'block'; }
+        else prev.style.display = 'none';
+        document.getElementById('wishModal').classList.add('show');
+    }
+    document.getElementById('photoPick').addEventListener('click', () => document.getElementById('photoInput').click());
+    document.getElementById('photoInput').addEventListener('change', (e) => {
+        const file = e.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            // сжатие до 600px
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height; const max = 600;
+                if (w > h && w > max) { h = h*max/w; w = max; } else if (h > max) { w = w*max/h; h = max; }
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                pickedPhoto = canvas.toDataURL('image/jpeg', 0.75);
+                const prev = document.getElementById('photoPreview');
+                prev.src = pickedPhoto; prev.style.display = 'block';
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+    document.getElementById('cancelWish').addEventListener('click', () => document.getElementById('wishModal').classList.remove('show'));
+    document.getElementById('saveWish').addEventListener('click', () => {
+        const label = document.getElementById('wishLabelInput').value.trim();
+        if (!label) { toast('Введите название желания'); return; }
+        const card = curCard();
+        if (editingWish) {
+            editingWish.label = label; editingWish.icon = pickedEmoji; editingWish.imageData = pickedPhoto;
+        } else {
+            card.wishes.push({ id: Date.now(), label, icon: pickedEmoji, imageData: pickedPhoto });
+            // награда за первое желание дня
+            const today = new Date().toISOString().slice(0,10);
+            let rd = []; try { rd = JSON.parse(localStorage.getItem('focus_wish_reward')) || []; } catch(e){}
+            if (!rd.includes(today)) {
+                rd.push(today); localStorage.setItem('focus_wish_reward', JSON.stringify(rd));
+                if(window.FocusRewards)FocusRewards.mark('faith','wish');else{FocusStorage.addCoins(1);FocusStorage.addActivity('faith','wish');}
+                if (FocusCore.coinBurst) FocusCore.coinBurst({ amount:1, reason:'Желание добавлено', sourceEl: document.querySelector('.title-icon') });
+                toast('Желание добавлено! +1 F-coin ✨');
+            } else toast('Желание добавлено ✨');
+        }
+        saveCards();
+        document.getElementById('wishModal').classList.remove('show');
+        renderCardSelect(); renderWishes();
+    });
+
+    // ===== Слайд-шоу =====
+    let slideTimer = null, slideIdx = 0;
+    document.getElementById('slideshowBtn').addEventListener('click', () => {
+        const card = curCard();
+        if (card.wishes.length === 0) { toast('Добавь хотя бы одно желание'); return; }
+        const cont = document.getElementById('slidesContainer');
+        cont.innerHTML = '';
+        card.wishes.forEach((w, i) => {
+            const slide = document.createElement('div');
+            slide.className = 'slide' + (i===0?' active':'');
+            if (w.imageData) {
+                slide.innerHTML = `
+                    <div class="slide-bg" style="background-image:url('${w.imageData}')"></div>
+                    <div class="slide-frame">
+                        <img src="${w.imageData}">
+                        <div class="slide-label">${escapeHtml(w.label)}</div>
+                    </div>`;
+            } else {
+                slide.innerHTML = `
+                    <div class="slide-frame">
+                        <div class="slide-icon">${w.icon||'🌟'}</div>
+                        <div class="slide-label">${escapeHtml(w.label)}</div>
+                    </div>`;
+            }
+            cont.appendChild(slide);
+        });
+
+        // прогресс-точки
+        const prog = document.getElementById('slideProgress');
+        prog.innerHTML = '';
+        card.wishes.forEach((w, i) => {
+            const dot = document.createElement('div');
+            dot.className = 'slide-dot' + (i===0?' active':'');
+            prog.appendChild(dot);
+        });
+
+        document.getElementById('slideshow').classList.add('show');
+        slideIdx = 0;
+
+        // музыка (закреплённая песня) если есть
+        const musicInfo = document.getElementById('slideshowMusic');
+        if (songs.length > 0) {
+            const audio = document.getElementById('audioPlayer');
+            audio.src = songs[0].dataUrl; audio.loop = true;
+            audio.play().catch(()=>{});
+            document.getElementById('slideshowMusicName').innerText = songs[0].name || 'Моя песня';
+            musicInfo.style.display = 'flex';
+        } else {
+            musicInfo.style.display = 'none';
+        }
+
+        const SLIDE_MS = 5000;
+        slideTimer = setInterval(() => {
+            const slides = cont.querySelectorAll('.slide');
+            const dots = prog.querySelectorAll('.slide-dot');
+            slides[slideIdx].classList.remove('active');
+            if (dots[slideIdx]) { dots[slideIdx].classList.remove('active'); dots[slideIdx].classList.add('done'); }
+            slideIdx = (slideIdx + 1) % slides.length;
+            // если прошли круг — сбрасываем точки
+            if (slideIdx === 0) dots.forEach(d => d.classList.remove('done','active'));
+            slides[slideIdx].classList.add('active');
+            if (dots[slideIdx]) dots[slideIdx].classList.add('active');
+        }, SLIDE_MS);
+
+        // награда за просмотр (раз в день)
+        try {
+            let rd = JSON.parse(localStorage.getItem('focus_wish_reward')) || [];
+            const today2 = new Date().toISOString().slice(0,10);
+            if (!rd.includes(today2)) {
+                rd.push(today2); localStorage.setItem('focus_wish_reward', JSON.stringify(rd));
+                if(window.FocusRewards)FocusRewards.mark('faith','wishmap');else{FocusStorage.addCoins(1);FocusStorage.addActivity('faith','wishmap');}
+            }
+        } catch(e){}
+    });
+    document.getElementById('slideshowClose').addEventListener('click', () => {
+        clearInterval(slideTimer);
+        document.getElementById('slideshow').classList.remove('show');
+        const audio = document.getElementById('audioPlayer'); audio.pause(); audio.currentTime = 0;
+    });
+
+    // ===== Музыка =====
+    function renderMusic(){
+        const list = document.getElementById('musicList');
+        if (songs.length === 0) {
+            list.innerHTML = '<div class="empty-mini">🎵 Добавь музыку для атмосферы<br>под слайд-шоу желаний</div>';
+            return;
+        }
+        list.innerHTML = '';
+        songs.forEach(s => {
+            const item = document.createElement('div');
+            item.className = 'music-item';
+            item.innerHTML = `
+                <div class="music-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+                <div class="music-name">${escapeHtml(s.name)}</div>
+                <div class="music-play" data-play="${s.id}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+                <div class="music-del" data-del="${s.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></div>`;
+            list.appendChild(item);
+        });
+        list.querySelectorAll('[data-play]').forEach(el => {
+            el.addEventListener('click', () => {
+                const s = songs.find(x => String(x.id) === String(el.dataset.play));
+                const audio = document.getElementById('audioPlayer');
+                if (audio.src === s.dataUrl && !audio.paused) { audio.pause(); toast('⏸ Пауза'); }
+                else { audio.src = s.dataUrl; audio.loop = false; audio.play().catch(()=>{}); toast('▶ ' + s.name); }
+            });
+        });
+        list.querySelectorAll('[data-del]').forEach(el => {
+            el.addEventListener('click', () => {
+                songs = songs.filter(s => String(s.id) !== String(el.dataset.del));
+                saveSongs(); renderMusic();
+            });
+        });
+    }
+    document.getElementById('addMusicBtn').addEventListener('click', () => document.getElementById('musicInput').click());
+    document.getElementById('musicInput').addEventListener('change', (e) => {
+        const file = e.target.files[0]; if (!file) return;
+        // localStorage вмещает мало; полноценное хранение музыки — через облако (Firebase Storage), на следующем этапе
+        if (file.size > 4*1024*1024) {
+            toast('Пока лимит ~4 МБ (храним локально). Облачная музыка будет позже. Выбери короткий трек');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            songs.push({ id: Date.now(), name: file.name.replace(/\.[^.]+$/, ''), dataUrl: ev.target.result });
+            try {
+                saveSongs();
+                renderMusic();
+                toast('🎵 Песня добавлена');
+            } catch(err) {
+                // переполнение localStorage
+                songs.pop();
+                toast('Не хватает места в памяти. Удали старую песню или выбери короче');
+            }
+        };
+        reader.onerror = () => toast('Не удалось прочитать файл');
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    });
+
+    // Закрытие модалок по фону
+    ['wishModal','cardModal'].forEach(id => {
+        document.getElementById(id).addEventListener('click', (e) => { if (e.target.id === id) e.currentTarget.classList.remove('show'); });
+    });
+
+    // Инициализация
+    renderCardSelect();
+    renderWishes();
+    renderMusic();
+</script>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+    }
+</script>
+    <script src="focus-chat-fab.js"></script>
+</body>
+</html>

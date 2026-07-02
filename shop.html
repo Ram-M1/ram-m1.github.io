@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="original" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FOCUS">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Магазин — FOCUS</title>
+<style>
+    :root, [data-theme="original"] {
+        --accent: #FFD966; --accent-rgb: 255,217,102;
+        --accent-2: #7C8CFF; --accent-2-rgb: 124,140,255;
+        --accent-light: #FFE9A8; --accent-dark: #C9952E;
+        --bg-1: #131319; --bg-2: #0d0d12; --text-strong: #FFFFFF;
+    }
+    [data-theme="tron"] {
+        --accent: #FF3B2E; --accent-rgb: 255,59,46;
+        --accent-2: #00E5FF; --accent-2-rgb: 0,229,255;
+        --accent-light: #FF8A6B; --accent-dark: #B8201A;
+        --bg-1: #0a0a0d; --bg-2: #000000; --text-strong: #FFFFFF;
+    }
+    [data-theme="predator"] {
+        --accent: #FF7A1A; --accent-rgb: 255,122,26;
+        --accent-2: #39FF6A; --accent-2-rgb: 57,255,106;
+        --accent-light: #FFB347; --accent-dark: #B84D00;
+        --bg-1: #0d120d; --bg-2: #050705; --text-strong: #FFFFFF;
+    }
+    [data-theme="mk"] {
+        --accent: #FF1A2E; --accent-rgb: 255,26,46;
+        --accent-2: #FFD700; --accent-2-rgb: 255,215,0;
+        --accent-light: #FF6B5C; --accent-dark: #8A0000;
+        --bg-1: #14080a; --bg-2: #050202; --text-strong: #FFFFFF;
+    }
+    [data-theme="matrix"] {
+        --accent: #00FF41; --accent-rgb: 0,255,65;
+        --accent-2: #39FF6A; --accent-2-rgb: 57,255,106;
+        --accent-light: #7FFF9E; --accent-dark: #008F25;
+        --bg-1: #050505; --bg-2: #000000; --text-strong: #FFFFFF;
+    }
+    .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
+    @keyframes mkShake {
+        0%, 100% { transform: translate(0,0); }
+        15% { transform: translate(-4px,2px) rotate(-0.4deg); }
+        30% { transform: translate(4px,-2px) rotate(0.4deg); }
+        45% { transform: translate(-3px,1px); }
+        60% { transform: translate(3px,-1px); }
+        75% { transform: translate(-2px,0); }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif;
+        background: #060608;
+        display: flex; justify-content: center; align-items: center;
+        min-height: 100vh; padding: 12px; position: relative; overflow: hidden;
+    }
+    body::before {
+        content: ''; position: fixed; width: 600px; height: 600px;
+        background: radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%);
+        top: 10%; left: 50%; transform: translateX(-50%); pointer-events: none;
+        animation: ambientDrift 12s ease-in-out infinite;
+    }
+    @keyframes ambientDrift { 0%,100%{opacity:.6;transform:translateX(-50%) scale(1);} 50%{opacity:1;transform:translateX(-50%) scale(1.15);} }
+    .toast { position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(20px); background:rgba(20,20,28,0.96); color:#fff; padding:12px 20px; border-radius:13px; font-size:13px; font-weight:600; z-index:2000; opacity:0; transition:0.3s ease; border:1px solid rgba(255,217,102,0.3); pointer-events:none; max-width:300px; text-align:center; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    .phone {
+        width: 375px; height: 700px;
+        background: linear-gradient(165deg, var(--bg-1) 0%, var(--bg-2) 100%);
+        border-radius: 52px;
+        box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--accent-rgb),0.06),
+            0 0 0 8px #1c1c24, 0 0 0 9px rgba(var(--accent-rgb),0.08), 0 0 60px rgba(var(--accent-rgb),0.04);
+        overflow: hidden; display: flex; flex-direction: column; position: relative;
+    }
+    .phone::before {
+        content: '';
+        position: absolute; inset: 0; z-index: 0; opacity: 0.1; pointer-events: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    .phone::after {
+        content: ''; position: absolute; top: 0; left: 6%; right: 6%; height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.3), transparent);
+        z-index: 0;
+    }
+    #atmosCanvas { position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:52px; }
+
+    .screen { flex: 1; padding: 18px 20px 14px; display: flex; flex-direction: column; height: 100%; overflow-y: auto; scrollbar-width: none; position: relative; z-index: 1; }
+    .screen::-webkit-scrollbar { display: none; }
+
+    .header-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .back-btn {
+        width: 38px; height: 38px; border-radius: 30px;
+        background: rgba(var(--accent-rgb),0.07); border: 1px solid rgba(var(--accent-rgb),0.2);
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: 0.3s ease; flex-shrink: 0;
+    }
+    .back-btn:active { transform: scale(0.92); }
+    .back-btn svg { width: 17px; height: 17px; color: var(--accent); }
+    .title {
+        font-size: 22px; font-weight: 700; letter-spacing: 0.2px;
+        background: linear-gradient(135deg, var(--text-strong) 20%, var(--accent) 70%, var(--accent-dark) 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+
+    .balance-card {
+        background: linear-gradient(135deg, rgba(var(--accent-rgb),0.1), rgba(var(--accent-2-rgb),0.06));
+        border: 1px solid rgba(var(--accent-rgb),0.25);
+        border-radius: 16px; padding: 10px; margin-bottom: 8px; text-align: center;
+        position: relative; overflow: hidden;
+    }
+    .balance-card::before {
+        content: ''; position: absolute; top: 0; left: 0;
+        width: 60px; height: 4px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        border-radius: 0 0 8px 0;
+        box-shadow: 0 2px 10px rgba(var(--accent-rgb),0.5);
+    }
+    .balance-label { font-size: 10px; color: #8e8e9e; letter-spacing: 0.5px; margin-bottom: 3px; }
+    .balance-value { font-size: 22px; font-weight: 700; color: var(--accent); display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .balance-value svg { width: 24px; height: 24px; }
+    .balance-sub { font-size: 10px; color: #8e8e9e; margin-top: 3px; }
+
+    .buy-coins-card {
+        background: linear-gradient(135deg, rgba(35,35,46,0.55), rgba(22,22,30,0.55));
+        border-radius: 16px; padding: 10px; margin-bottom: 8px;
+        border: 0.5px solid rgba(var(--accent-2-rgb),0.2);
+    }
+    .buy-title { font-size: 11px; font-weight: 700; color: var(--accent-2); margin-bottom: 7px; text-align: center; letter-spacing: 0.3px; }
+    .coin-control { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 5px; }
+    .coin-btn {
+        width: 32px; height: 32px;
+        background: linear-gradient(135deg, rgba(var(--accent-rgb),0.14), rgba(var(--accent-2-rgb),0.14));
+        border: 1px solid rgba(var(--accent-rgb),0.25);
+        border-radius: 12px; font-size: 19px; font-weight: 700; color: var(--accent);
+        cursor: pointer; transition: 0.2s ease;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .coin-btn:active { transform: scale(0.9); }
+    .coin-amount { font-size: 19px; font-weight: 700; color: #fff; min-width: 64px; text-align: center; }
+    .coin-price { text-align: center; font-size: 10px; color: #8e8e9e; margin-bottom: 7px; }
+    .buy-btn {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        border: none; border-radius: 12px; padding: 8px;
+        color: #0a0a0f; font-weight: 700; font-size: 13px;
+        text-align: center; cursor: pointer; width: 100%;
+        transition: 0.3s cubic-bezier(.2,.8,.2,1);
+        box-shadow: 0 4px 14px rgba(var(--accent-2-rgb),0.3);
+    }
+    .buy-btn:active { transform: scale(0.97); }
+
+    .plan-card {
+        background: linear-gradient(135deg, rgba(35,35,46,0.55), rgba(22,22,30,0.55));
+        border-radius: 14px; padding: 9px 12px; margin-bottom: 7px;
+        border: 0.5px solid rgba(var(--accent-rgb),0.15);
+        cursor: pointer; transition: 0.3s cubic-bezier(.2,.8,.2,1);
+        position: relative; overflow: hidden;
+    }
+    .plan-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%; background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent); pointer-events: none; }
+    .plan-card:active { transform: scale(0.98); }
+    .plan-card[data-plan="plus"] { border-left: 2px solid rgba(var(--accent-2-rgb),0.4); }
+    .plan-card[data-plan="elite"] { border-left: 2px solid var(--accent); box-shadow: 0 0 16px rgba(var(--accent-rgb),0.12); }
+    .plan-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+    .plan-name { font-size: 14px; font-weight: 700; color: #FF9C64; display: flex; align-items: center; gap: 7px; }
+    .plan-icon { width: 26px; height: 26px; border-radius: 9px; background: radial-gradient(circle at 35% 30%, rgba(255,140,80,0.32), rgba(255,140,80,0.05)); border: 0.5px solid rgba(255,160,100,0.3); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .plan-icon svg { width: 14px; height: 14px; color: #FF9C64; }
+    .plan-price { font-size: 13px; font-weight: 700; color: #fff; }
+    .plan-desc { font-size: 10px; color: #8e8e9e; margin-bottom: 3px; margin-left: 33px; }
+    .plan-features { list-style: none; padding: 0; margin: 5px 0 5px 33px; }
+    .plan-features li { font-size: 10px; color: #c8c8d0; margin-bottom: 3px; padding-left: 14px; position: relative; line-height: 1.3; }
+    .plan-features li::before { content: '✓'; position: absolute; left: 0; color: #78DC96; font-weight: 700; font-size: 9px; }
+    .plan-features li b { color: var(--accent); }
+    .feat-note { color: var(--accent-2); font-size: 9px; }
+    .plan-coins { font-size: 9px; color: var(--accent-2); margin-left: 33px; font-weight: 600; }
+
+    .modal-overlay {
+        display: none; position: absolute; inset: 0; z-index: 200;
+        background: rgba(0,0,0,0.85); justify-content: center; align-items: center;
+        backdrop-filter: blur(10px); border-radius: 52px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-content {
+        background: linear-gradient(165deg, #1c1c26, #15151c);
+        border-radius: 22px; width: 290px; padding: 18px;
+        border: 0.5px solid rgba(var(--accent-rgb),0.2);
+    }
+    .modal-title { font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 14px; text-align: center; }
+    .modal-info { background: rgba(0,0,0,0.3); border-radius: 14px; padding: 12px; margin-bottom: 14px; }
+    .info-row { display: flex; justify-content: space-between; margin-bottom: 7px; font-size: 12px; }
+    .info-row:last-child { margin-bottom: 0; }
+    .info-label { color: #9a9aab; }
+    .info-value { color: #fff; font-weight: 600; }
+    .total-row { border-top: 0.5px solid rgba(255,255,255,0.1); padding-top: 7px; margin-top: 7px; font-size: 13.5px; }
+    .total-label { color: var(--accent); }
+    .total-value { color: var(--accent); font-weight: 700; }
+    .modal-btn-primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        border: none; border-radius: 14px; padding: 11px;
+        color: #0a0a0f; font-weight: 700; font-size: 13px;
+        text-align: center; cursor: pointer; width: 100%; margin-bottom: 8px;
+    }
+    .modal-btn-primary:active { transform: scale(0.97); }
+    .modal-btn-secondary {
+        background: rgba(var(--accent-rgb),0.07); border: 1px solid rgba(var(--accent-rgb),0.2);
+        border-radius: 14px; padding: 10px; color: #9a9aab; font-weight: 600; font-size: 12px;
+        text-align: center; cursor: pointer; width: 100%;
+    }
+    .modal-btn-secondary:active { transform: scale(0.97); }
+
+    .coin-particle {
+        position: fixed; width: 16px; height: 16px;
+        background: radial-gradient(circle, var(--accent), var(--accent-dark));
+        border-radius: 50%; box-shadow: 0 0 8px var(--accent);
+        animation: flyToBalance 0.8s ease-out forwards;
+        pointer-events: none; z-index: 1000;
+    }
+    @keyframes flyToBalance {
+        0% { transform: translateY(0) scale(1); opacity: 1; }
+        100% { transform: translateY(-150px) translateX(60px) scale(0.3); opacity: 0; }
+    }
+    .coin-notification {
+        position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.9); border: 1px solid var(--accent);
+        border-radius: 20px; padding: 12px 24px; text-align: center;
+        color: var(--accent); font-weight: bold; z-index: 1001;
+        animation: fadeOut 2s forwards; pointer-events: none; font-size: 15px;
+    }
+    @keyframes fadeOut {
+        0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        70% { opacity: 1; }
+        100% { opacity: 0; transform: translate(-50%, -80%) scale(0.8); }
+    }
+
+/* PWA-режим (установлено на телефон): на весь реальный экран, без макетной рамки */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; overflow: hidden !important; }
+    .phone {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding-top: env(safe-area-inset-top) !important;
+        padding-bottom: env(safe-area-inset-bottom) !important;
+        max-width: 100vw !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, #atmos, .atmos-canvas { border-radius: 0 !important; }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important;
+    }
+}
+
+/* Телефоны: приложение на весь экран без макетной рамки (надёжно, не зависит от PWA-режима) */
+@media (max-width: 600px) {
+    * { -webkit-user-select: none !important; user-select: none !important; -webkit-tap-highlight-color: transparent !important; }
+    input, textarea { -webkit-user-select: text !important; user-select: text !important; }
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; height: 100vh; height: 100dvh; display: block !important; }
+    body { display: flex !important; align-items: stretch !important; justify-content: flex-start !important; }
+    .phone {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    /* анимация/фон идут до самого верха под чёлку */
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important; border-radius: 0 !important;
+    }
+    /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
+    .screen, .session-area, .slideshow, .scroll-area {
+        padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+    }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+}
+</style>
+<script src="focus-analytics.js"></script>
+</head>
+<body>
+<div class="phone">
+    <canvas id="atmosCanvas" width="375" height="700" style="width:375px;height:700px;"></canvas>
+    <div class="screen">
+        <div class="header-row">
+            <div class="back-btn" onclick="location.href='index.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <div class="title">Магазин</div>
+        </div>
+
+        <div class="balance-card">
+            <div class="balance-label">БАЛАНС</div>
+            <div class="balance-value">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="12" r="7"/>
+                    <g stroke-width="1.2" stroke-linecap="round">
+                        <line x1="12" y1="2.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="21.5"/>
+                        <line x1="2.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="21.5" y2="12"/>
+                    </g>
+                    <path d="M9.8 8.7h4.1M9.8 8.7v6.6M9.8 11.8h3.3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span id="balanceValue">0</span>
+            </div>
+            <div class="balance-sub">1 F-coin = 1 ₽</div>
+        </div>
+
+        <div class="buy-coins-card">
+            <div class="buy-title">ПОПОЛНИТЬ БАЛАНС</div>
+            <div class="coin-control">
+                <div class="coin-btn" id="coinMinus">−</div>
+                <div class="coin-amount" id="coinAmount">100</div>
+                <div class="coin-btn" id="coinPlus">+</div>
+            </div>
+            <div class="coin-price" id="coinPrice">100 ₽</div>
+            <button class="buy-btn" id="buyCoinsBtn">Купить</button>
+        </div>
+
+        <div class="plan-card" data-plan="lite" data-price-coin="333" data-price-rub="333" data-name="Лайт">
+            <div class="plan-header">
+                <span class="plan-name"><span class="plan-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4-2.6 6-5.6 6-9 0-2-1-3.7-2.3-5 .2 1.5-.4 2.6-1.2 3.4.3-2.5-1-4.6-2.5-6.2-.2 2-1 3.4-2.3 4.6C8.2 10.2 7 11.8 7 13.8c0 .5.05 1 .15 1.5"/></svg></span>Лайт</span>
+                <span class="plan-price">333 ₽ / мес</span>
+            </div>
+            <div class="plan-desc">Всё для саморазвития</div>
+            <ul class="plan-features">
+                <li>Все 6 сфер, трекеры, привычки</li>
+                <li>Оракул — задавать вопросы</li>
+                <li>Чаты с друзьями</li>
+                <li><b>3</b> ИИ-запроса в каждом разделе/мес</li>
+            </ul>
+            <div class="plan-coins">или заработай 333 F-coin за неделю</div>
+        </div>
+
+        <div class="plan-card" data-plan="plus" data-price-coin="555" data-price-rub="555" data-name="Плюс">
+            <div class="plan-header">
+                <span class="plan-name"><span class="plan-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>Плюс</span>
+                <span class="plan-price">555 ₽ / мес</span>
+            </div>
+            <div class="plan-desc">Зарабатывай и контролируй</div>
+            <ul class="plan-features">
+                <li>Всё из Лайт</li>
+                <li><b>5</b> ИИ-запросов в каждом разделе/мес</li>
+                <li>Стать оракулом — консультировать за деньги</li>
+                <li>Родительский контроль</li>
+            </ul>
+            <div class="plan-coins">или 555 F-coin</div>
+        </div>
+
+        <div class="plan-card" data-plan="elite" data-price-coin="777" data-price-rub="777" data-name="Про">
+            <div class="plan-header">
+                <span class="plan-name"><span class="plan-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10l1.5 5L12 20 5.5 9 7 4Z"/><path d="M5.5 9h13M9.5 4 12 9l2.5-5"/></svg></span>Про</span>
+                <span class="plan-price">777 ₽ / мес</span>
+            </div>
+            <div class="plan-desc">Максимум + бизнес</div>
+            <ul class="plan-features">
+                <li>Всё из Плюс</li>
+                <li><b>10</b> ИИ-запросов в каждом разделе/мес</li>
+                <li>Кабинет коуча (B2B) <span class="feat-note">+2000₽/тренинг</span></li>
+                <li>Приоритетная поддержка</li>
+            </ul>
+            <div class="plan-coins">или 777 F-coin</div>
+        </div>
+    </div>
+
+    <div id="purchaseModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle"></div>
+            <div class="modal-info">
+                <div class="info-row"><span class="info-label">Ваш баланс:</span><span class="info-value" id="modalBalance">0 F-coins</span></div>
+                <div class="info-row"><span class="info-label">Нужно:</span><span class="info-value" id="modalNeeded">0 F-coins</span></div>
+                <div class="info-row" id="shortageRow" style="display:none;"><span class="info-label">Не хватает:</span><span class="info-value" id="modalShortage">0 F-coins</span></div>
+                <div class="info-row total-row" id="totalRow" style="display:none;"><span class="info-label total-label">Итого к оплате:</span><span class="info-value total-value" id="modalTotal">0 ₽</span></div>
+            </div>
+            <button class="modal-btn-primary" id="confirmBtn">Оплатить</button>
+            <button class="modal-btn-secondary" id="cancelBtn">Отмена</button>
+        </div>
+    </div>
+</div>
+<script src="focus-storage.js"></script>
+<script type="module" src="firebase-auth-helper.js"></script>
+<script src="focus-core.js"></script>
+<script>
+    function toast(msg){ var t=document.getElementById('toast'); if(!t)return; t.innerText=msg; t.classList.add('show'); clearTimeout(window._tt); window._tt=setTimeout(function(){t.classList.remove('show');},2200); }
+    if (typeof FocusStorage === 'undefined') {
+        window.FocusStorage = {
+            _key: 'focus_user',
+            _defaults() { return { email:null, password:null, name:null, age:null, city:null, phone:null, coins:0, theme:'original', subscription:null, subscriptionUntil:null, flags:{ emailConfirmed:false, demoUsed:false, demoMode:false, profileCompleted:false } }; },
+            getUser() {
+                try {
+                    const raw = localStorage.getItem(this._key);
+                    const d = this._defaults();
+                    if (!raw) return d;
+                    const p = JSON.parse(raw);
+                    return { ...d, ...p, flags: { ...d.flags, ...(p.flags||{}) } };
+                } catch(e) { return this._defaults(); }
+            },
+            saveUser(partial) {
+                const cur = this.getUser();
+                const merged = { ...cur, ...partial, flags: { ...cur.flags, ...(partial.flags||{}) } };
+                localStorage.setItem(this._key, JSON.stringify(merged));
+                return merged;
+            },
+            addCoins(amount) {
+                const u = this.getUser();
+                const newBal = (u.coins||0) + amount;
+                this.saveUser({ coins: newBal });
+                return newBal;
+            },
+            setSubscription(planName, days = 30) {
+                const until = new Date(Date.now() + days*24*60*60*1000).toISOString();
+                this.saveUser({ subscription: planName, subscriptionUntil: until });
+                return until;
+            },
+            getTheme() { return this.getUser().theme || 'original'; },
+            setTheme(id) { this.saveUser({ theme: id }); }
+        };
+    }
+    if (typeof FocusCore === 'undefined') {
+        window.FocusCore = {
+            applyStoredTheme() {
+                const theme = FocusStorage.getTheme();
+                const root = document.getElementById('htmlRoot') || document.documentElement;
+                root.setAttribute('data-theme', theme);
+            },
+            formatCoins(n) { return (n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '); },
+            coinBurst(config) {
+        const amount = config.amount || 0;
+        const reason = config.reason || '';
+        const count = Math.min(Math.max(Math.round(amount), 8), 24);
+
+        const rootStyle = getComputedStyle(document.documentElement);
+        const accent = rootStyle.getPropertyValue('--accent').trim() || '#FFD966';
+        const accentLight = rootStyle.getPropertyValue('--accent-light').trim() || '#FFE9A8';
+        const accentDark = rootStyle.getPropertyValue('--accent-dark').trim() || '#C9952E';
+
+        // Контейнер монет вкладываем В РАМКУ телефона (не в body),
+        // чтобы анимация не вылетала за пределы экрана. overflow:hidden обрежет лишнее.
+        const phone = document.querySelector('.phone') || document.body;
+        const phoneRect = phone.getBoundingClientRect();
+        const phoneW = phoneRect.width, phoneH = phoneRect.height;
+
+        // Точка назначения — карточка баланса (координаты ОТНОСИТЕЛЬНО рамки телефона)
+        let targetX = phoneW / 2, targetY = 70;
+        const target = document.querySelector(config.targetSelector || '.balance-value, .balance-coins, .balance-block');
+        if (target) {
+            const r = target.getBoundingClientRect();
+            targetX = r.left - phoneRect.left + r.width / 2;
+            targetY = r.top - phoneRect.top + r.height / 2;
+        }
+
+        const startX = phoneW / 2;
+        const startY = phoneH / 2;
+        let originX = startX, originY = startY;
+        // Если передан элемент-источник (кнопка) — монеты вылетают из него
+        if (config.sourceEl) {
+            const sr = config.sourceEl.getBoundingClientRect();
+            originX = sr.left - phoneRect.left + sr.width / 2;
+            originY = sr.top - phoneRect.top + sr.height / 2;
+        }
+
+        // Контейнер для монет — absolute внутри .phone, обрезается рамкой
+        const layer = document.createElement('div');
+        layer.style.cssText = 'position:absolute; inset:0; z-index:2000; pointer-events:none; overflow:hidden; border-radius:52px;';
+        phone.appendChild(layer);
+
+        // SVG-монета с буквой F (data-uri, окрашенная под тему)
+        function coinSVG(rot) {
+            return `<svg width="34" height="34" viewBox="0 0 40 40" style="transform:scaleX(${rot});">
+                <defs>
+                    <radialGradient id="cg" cx="38%" cy="32%" r="70%">
+                        <stop offset="0%" stop-color="${accentLight}"/>
+                        <stop offset="55%" stop-color="${accent}"/>
+                        <stop offset="100%" stop-color="${accentDark}"/>
+                    </radialGradient>
+                </defs>
+                <circle cx="20" cy="20" r="18" fill="url(#cg)" stroke="${accentDark}" stroke-width="1.5"/>
+                <circle cx="20" cy="20" r="14" fill="none" stroke="${accentDark}" stroke-width="1" opacity="0.5"/>
+                <path d="M15 12h10M15 12v16M15 20h7" stroke="${accentDark}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>`;
+        }
+
+        const coins = [];
+        for (let i = 0; i < count; i++) {
+            const el = document.createElement('div');
+            el.style.cssText = `position:absolute; left:${originX}px; top:${originY}px; will-change:transform,opacity; filter:drop-shadow(0 0 6px rgba(255,200,80,0.6));`;
+            el.innerHTML = coinSVG(1);
+            layer.appendChild(el);
+            const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.6;
+            const power = 7 + Math.random() * 7;
+            coins.push({
+                el,
+                x: 0, y: 0,
+                vx: Math.cos(angle) * power,
+                vy: Math.sin(angle) * power - 9,   // подброс вверх
+                rot: Math.random() * 360,
+                vrot: (Math.random() - 0.5) * 40,
+                phase: 'burst',
+                delay: Math.random() * 6,
+                life: 0
+            });
+        }
+
+        // Всплывающая надпись "+N F-coins" — тоже внутри рамки телефона
+        const note = document.createElement('div');
+        note.style.cssText = `position:absolute; left:50%; top:38%; transform:translate(-50%,-50%) scale(0.6); z-index:2001;
+            background:rgba(0,0,0,0.88); border:1.5px solid ${accent}; border-radius:22px; padding:12px 26px;
+            color:${accent}; font-weight:800; font-size:17px; text-align:center; pointer-events:none;
+            box-shadow:0 0 30px rgba(255,200,80,0.4); opacity:0; transition:all 0.4s cubic-bezier(.2,1.4,.4,1); font-family:inherit; white-space:nowrap;`;
+        note.innerHTML = `+${this.formatCoins(amount)} F-coins` + (reason ? `<br><span style="font-size:11px;font-weight:600;opacity:0.85;">${reason}</span>` : '');
+        layer.appendChild(note);
+        requestAnimationFrame(() => { note.style.opacity = '1'; note.style.transform = 'translate(-50%,-50%) scale(1)'; });
+
+        try {
+            const actx = new (window.AudioContext || window.webkitAudioContext)();
+            [880, 1100, 1320].forEach((freq, i) => {
+                const osc = actx.createOscillator(), g = actx.createGain();
+                osc.connect(g); g.connect(actx.destination);
+                osc.frequency.value = freq; osc.type = 'triangle';
+                g.gain.setValueAtTime(0.0001, actx.currentTime + i * 0.08);
+                g.gain.exponentialRampToValueAtTime(0.12, actx.currentTime + i * 0.08 + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + i * 0.08 + 0.3);
+                osc.start(actx.currentTime + i * 0.08);
+                osc.stop(actx.currentTime + i * 0.08 + 0.3);
+            });
+        } catch (e) {}
+
+        const gravity = 0.45;
+        const floorY = phoneH - originY - 30;
+        let frame = 0;
+
+        const animate = () => {
+            frame++;
+            if (frame > 150) { layer.remove(); return; }
+            let alive = false;
+            coins.forEach((c) => {
+                if (c.delay > 0) { c.delay--; alive = true; return; }
+                c.life++;
+                c.rot += c.vrot;
+
+                if (c.phase === 'burst') {
+                    c.vy += gravity;
+                    c.x += c.vx;
+                    c.y += c.vy;
+                    if (c.y > floorY) { c.y = floorY; c.vy *= -0.5; c.vx *= 0.7; }
+                    // через ~45 кадров — переход к полёту на баланс
+                    if (c.life > 45) { c.phase = 'fly'; c.flyT = 0; c.sx = c.x; c.sy = c.y; }
+                    alive = true;
+                } else if (c.phase === 'fly') {
+                    c.flyT += 0.045;
+                    const t = c.flyT < 1 ? c.flyT : 1;
+                    const ease = 1 - Math.pow(1 - t, 3);
+                    const destX = targetX - originX;
+                    const destY = targetY - originY;
+                    c.x = c.sx + (destX - c.sx) * ease;
+                    c.y = c.sy + (destY - c.sy) * ease;
+                    const scale = 1 - t * 0.55;
+                    c.el.style.opacity = t > 0.85 ? (1 - (t - 0.85) / 0.15) : 1;
+                    c.el.firstChild.style.transform = `scaleX(${Math.cos(c.rot * Math.PI / 180)}) scale(${scale})`;
+                    if (t >= 1) { c.el.remove(); c.done = true; }
+                    else alive = true;
+                }
+                if (!c.done) {
+                    c.el.style.transform = `translate(${c.x}px, ${c.y}px)`;
+                    if (c.phase === 'burst') c.el.firstChild.style.transform = `scaleX(${Math.cos(c.rot * Math.PI / 180)})`;
+                }
+            });
+
+            if (alive) requestAnimationFrame(animate);
+            else layer.remove();
+        };
+        requestAnimationFrame(animate);
+
+        // Страховка от зависания: гарантированно убрать слой через 2.5с
+        setTimeout(() => { if (layer && layer.parentNode) layer.remove(); }, 2500);
+
+        setTimeout(() => {
+            note.style.opacity = '0';
+            note.style.transform = 'translate(-50%,-90%) scale(0.85)';
+            setTimeout(() => note.remove(), 400);
+        }, 1500);
+    },
+            renderTempThemeSwitcher() {
+                const themes = [
+                    { id: 'original', color: '#FFD966' }, { id: 'tron', color: '#FF3B2E' },
+                    { id: 'predator', color: '#FF7A1A' }, { id: 'mk', color: '#FF1A2E' },
+                    { id: 'matrix', color: '#00FF41' }
+                ];
+                const wrap = document.createElement('div');
+                wrap.style.cssText = 'position:fixed; top:30px; left:50%; transform:translateX(-200px); z-index:300; display:flex; gap:5px; background:rgba(0,0,0,0.6); padding:5px; border-radius:20px;';
+                themes.forEach(t => {
+                    const dot = document.createElement('div');
+                    dot.style.cssText = `width:18px;height:18px;border-radius:50%;background:${t.color};cursor:pointer;border:1px solid #fff;`;
+                    dot.addEventListener('click', () => {
+                        document.getElementById('htmlRoot').setAttribute('data-theme', t.id);
+                        FocusStorage.setTheme(t.id);
+                    });
+                    wrap.appendChild(dot);
+                });
+                document.body.appendChild(wrap);
+            },
+            initAtmosphere(canvasId) {
+                const ac = document.getElementById(canvasId || 'atmosCanvas');
+                if (!ac) return;
+                const actx = ac.getContext('2d');
+                ac.width = 375; ac.height = 700;
+                let tronPulses=[], mkEmbers=[], mkDrips=[], mkFlash=0, mkBolt=null, matrixDrops=null, matrixColumns=0;
+                let predatorRadarAngle=0, predatorScanY=0, predatorT=0, predatorBlips=[{a:1.2,r:0.7},{a:3.8,r:0.5}], predatorReticle=null;
+                const matrixChars = 'アイウエオカキクケコサシスセソ0123456789ABCDEF'.split('');
+                let lastTheme=null, lastTrigger=0, washT=0;
+                function currentTheme() { const r = document.getElementById('htmlRoot') || document.documentElement; return r.getAttribute('data-theme') || 'original'; }
+                function cssColor(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function cssColorRgb(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function drawFullScreenWash() {
+                    washT += 0.008;
+                    const accRgb = cssColorRgb('--accent-rgb'), acc2Rgb = cssColorRgb('--accent-2-rgb');
+                    const x = ac.width*(0.5+Math.sin(washT)*0.5), y = ac.height*(0.5+Math.cos(washT*0.7)*0.5);
+                    const grad = actx.createRadialGradient(x,y,0,ac.width/2,ac.height/2,Math.max(ac.width,ac.height)*0.9);
+                    grad.addColorStop(0,'rgba('+accRgb+',0.05)'); grad.addColorStop(0.5,'rgba('+acc2Rgb+',0.035)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+                    actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                }
+                function drawTron() {
+                    if (Math.random() > 0.93) {
+                        const vertical = Math.random() > 0.5;
+                        tronPulses.push({ vertical, pos: Math.floor(Math.random()*(vertical?ac.width:ac.height)), t:-40, speed:3+Math.random()*2, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2'), len:60 });
+                    }
+                    tronPulses.forEach(p => {
+                        p.t += p.speed;
+                        const grad = p.vertical ? actx.createLinearGradient(p.pos,p.t-p.len,p.pos,p.t) : actx.createLinearGradient(p.t-p.len,p.pos,p.t,p.pos);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,p.color);
+                        actx.strokeStyle = grad; actx.lineWidth=2; actx.shadowBlur=8; actx.shadowColor=p.color;
+                        actx.beginPath();
+                        if (p.vertical) { actx.moveTo(p.pos,p.t-p.len); actx.lineTo(p.pos,p.t); } else { actx.moveTo(p.t-p.len,p.pos); actx.lineTo(p.t,p.pos); }
+                        actx.stroke();
+                    });
+                    actx.shadowBlur=0;
+                    tronPulses = tronPulses.filter(p => p.t < Math.max(ac.width,ac.height)+40);
+                }
+                function drawPredator() {
+                    predatorT += 0.01;
+                    for (let i=0;i<5;i++) {
+                        const x = ac.width/2+Math.sin(predatorT+i*2)*ac.width*0.35, y = ac.height/2+Math.cos(predatorT*0.7+i*1.7)*ac.height*0.4;
+                        const r = 60+Math.sin(predatorT*2+i)*20;
+                        const grad = actx.createRadialGradient(x,y,0,x,y,r);
+                        grad.addColorStop(0,'rgba('+cssColorRgb('--accent-rgb')+',0.05)'); grad.addColorStop(1,'rgba('+cssColorRgb('--accent-rgb')+',0)');
+                        actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                    }
+                    predatorScanY += 1.8; if (predatorScanY > ac.height+20) predatorScanY=-20;
+                    const acc2 = cssColorRgb('--accent-2-rgb');
+                    const lineGrad = actx.createLinearGradient(0,predatorScanY-15,0,predatorScanY+15);
+                    lineGrad.addColorStop(0,'rgba('+acc2+',0)'); lineGrad.addColorStop(0.5,'rgba('+acc2+',0.35)'); lineGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.fillStyle = lineGrad; actx.fillRect(0,predatorScanY-15,ac.width,30);
+                    actx.strokeStyle='rgba('+acc2+',0.5)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.moveTo(0,predatorScanY); actx.lineTo(ac.width,predatorScanY); actx.stroke();
+                    const rcx=ac.width-46, rcy=64, rr=34;
+                    actx.save();
+                    actx.strokeStyle='rgba('+acc2+',0.4)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.arc(rcx,rcy,rr,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.arc(rcx,rcy,rr*0.6,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx-rr,rcy); actx.lineTo(rcx+rr,rcy); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx,rcy-rr); actx.lineTo(rcx,rcy+rr); actx.stroke();
+                    predatorRadarAngle += 0.05;
+                    const sweepGrad = actx.createLinearGradient(rcx,rcy,rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr);
+                    sweepGrad.addColorStop(0,'rgba('+acc2+',0.6)'); sweepGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.strokeStyle = sweepGrad; actx.lineWidth=2;
+                    actx.beginPath(); actx.moveTo(rcx,rcy); actx.lineTo(rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr); actx.stroke();
+                    predatorBlips.forEach(b => {
+                        const bx=rcx+Math.cos(b.a)*rr*b.r, by=rcy+Math.sin(b.a)*rr*b.r;
+                        const diff = Math.abs(((predatorRadarAngle%(Math.PI*2))-b.a+Math.PI*3)%(Math.PI*2)-Math.PI);
+                        const blipAlpha = diff<0.5 ? 1-diff/0.5 : 0;
+                        if (blipAlpha>0) { actx.fillStyle='rgba('+acc2+','+blipAlpha+')'; actx.beginPath(); actx.arc(bx,by,2,0,Math.PI*2); actx.fill(); }
+                    });
+                    actx.restore();
+                    if (Math.random()>0.992 && !predatorReticle) predatorReticle = { x:40+Math.random()*(ac.width-80), y:90+Math.random()*(ac.height-220), life:1 };
+                    if (predatorReticle) {
+                        predatorReticle.life -= 0.012;
+                        if (predatorReticle.life<=0) predatorReticle=null;
+                        else {
+                            const a = Math.min(predatorReticle.life>0.85?(1-predatorReticle.life)/0.15:1,1) * Math.min(predatorReticle.life/0.15,1);
+                            const size = 22+(1-Math.min(predatorReticle.life,1))*6;
+                            actx.save(); actx.globalAlpha=a; actx.strokeStyle=cssColor('--accent'); actx.lineWidth=1.3;
+                            actx.beginPath(); actx.arc(predatorReticle.x,predatorReticle.y,size,0,Math.PI*2); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x-size-6,predatorReticle.y); actx.lineTo(predatorReticle.x-size+4,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x+size-4,predatorReticle.y); actx.lineTo(predatorReticle.x+size+6,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y-size-6); actx.lineTo(predatorReticle.x,predatorReticle.y-size+4); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y+size-4); actx.lineTo(predatorReticle.x,predatorReticle.y+size+6); actx.stroke();
+                            actx.font='8px monospace'; actx.fillStyle=cssColor('--accent'); actx.fillText('LOCKED', predatorReticle.x-16, predatorReticle.y+size+14);
+                            actx.restore();
+                        }
+                    }
+                }
+                function drawMK() {
+                    const phoneEl = document.querySelector('.phone');
+                    if (Math.random()>0.4) mkEmbers.push({ x:Math.random()*ac.width, y:ac.height+10, vx:(Math.random()-0.5)*0.6, vy:-0.6-Math.random()*1.2, size:1+Math.random()*2, life:1, decay:0.004+Math.random()*0.006, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2') });
+                    mkEmbers.forEach(e => {
+                        e.x+=e.vx; e.y+=e.vy; e.life-=e.decay;
+                        const fade=Math.max(e.life,0); actx.globalAlpha=fade; actx.fillStyle=e.color; actx.shadowBlur=6; actx.shadowColor=e.color;
+                        actx.beginPath(); actx.arc(e.x,e.y,e.size,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1; actx.shadowBlur=0;
+                    mkEmbers = mkEmbers.filter(e=>e.life>0 && e.y>-10);
+                    if (Math.random()>0.96) mkDrips.push({ x:20+Math.random()*(ac.width-40), y:-10, len:8+Math.random()*10, speed:1.2+Math.random()*1.5, life:1 });
+                    mkDrips.forEach(d => {
+                        d.y+=d.speed; d.life-=0.004;
+                        const fade=Math.max(d.life,0); actx.globalAlpha=fade;
+                        const grad = actx.createLinearGradient(d.x,d.y-d.len,d.x,d.y);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,cssColor('--accent'));
+                        actx.strokeStyle=grad; actx.lineWidth=2;
+                        actx.beginPath(); actx.moveTo(d.x,d.y-d.len); actx.lineTo(d.x,d.y); actx.stroke();
+                        actx.fillStyle=cssColor('--accent'); actx.beginPath(); actx.arc(d.x,d.y,1.4,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1;
+                    mkDrips = mkDrips.filter(d=>d.life>0 && d.y<ac.height+10);
+                    if (Date.now()-lastTrigger>6000 && Math.random()>0.5) {
+                        lastTrigger = Date.now(); mkFlash=1;
+                        const startX = 30+Math.random()*(ac.width-60);
+                        const points=[{x:startX,y:-5}]; let x=startX;
+                        for (let i=1;i<=9;i++) { const y=(ac.height/9)*i; x+=(Math.random()-0.5)*50; x=Math.max(10,Math.min(ac.width-10,x)); points.push({x,y}); }
+                        mkBolt = { points, life:1 };
+                        if (phoneEl) { phoneEl.classList.add('mk-shake'); setTimeout(()=>phoneEl.classList.remove('mk-shake'),280); }
+                    }
+                    if (mkBolt) {
+                        mkBolt.life -= 0.05;
+                        if (mkBolt.life<=0) mkBolt=null;
+                        else {
+                            actx.save(); actx.globalAlpha=Math.min(mkBolt.life*2,1);
+                            actx.strokeStyle='#7CD9FF'; actx.shadowBlur=14; actx.shadowColor='#3AB8FF'; actx.lineWidth=2;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.strokeStyle='#FFFFFF'; actx.lineWidth=0.8; actx.shadowBlur=4;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.restore();
+                        }
+                    }
+                    if (mkFlash>0) { actx.fillStyle='rgba(124,217,255,'+(mkFlash*0.16)+')'; actx.fillRect(0,0,ac.width,ac.height); mkFlash -= 0.08; }
+                }
+                function drawMatrix() {
+                    if (!matrixDrops) { matrixColumns = Math.floor(ac.width/13); matrixDrops = Array(matrixColumns).fill(0).map(()=>Math.random()*-30); }
+                    actx.fillStyle='rgba(0,0,0,0.08)'; actx.fillRect(0,0,ac.width,ac.height); actx.font='13px monospace';
+                    for (let i=0;i<matrixColumns;i++) {
+                        const text = matrixChars[Math.floor(Math.random()*matrixChars.length)];
+                        const y = matrixDrops[i]*13;
+                        const isHead = Math.random()>0.92;
+                        actx.fillStyle = isHead ? '#cfffd9' : 'rgba('+cssColorRgb('--accent-rgb')+',0.55)';
+                        actx.fillText(text, i*13, y);
+                        if (y>ac.height && Math.random()>0.975) matrixDrops[i]=0;
+                        matrixDrops[i]++;
+                    }
+                }
+                function loop() {
+                    const theme = currentTheme();
+                    if (theme !== lastTheme) {
+                        actx.clearRect(0,0,ac.width,ac.height);
+                        tronPulses=[]; mkEmbers=[]; mkDrips=[]; mkBolt=null; matrixDrops=null; predatorReticle=null;
+                        lastTheme = theme;
+                    }
+                    if (theme !== 'matrix') actx.clearRect(0,0,ac.width,ac.height);
+                    drawFullScreenWash();
+                    if (theme==='tron') drawTron();
+                    else if (theme==='predator') drawPredator();
+                    else if (theme==='mk') drawMK();
+                    else if (theme==='matrix') drawMatrix();
+                    requestAnimationFrame(loop);
+                }
+                loop();
+            }
+        };
+    }
+
+    FocusCore.applyStoredTheme();
+    FocusCore.initAtmosphere('atmosCanvas');
+
+    function playCoinSound() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.frequency.value = 880;
+            gainNode.gain.value = 0.15;
+            oscillator.start();
+            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.5);
+            oscillator.stop(audioCtx.currentTime + 0.5);
+        } catch(e) {}
+    }
+    function coinFX(amount, reason, sourceEl) {
+        if (typeof FocusCore !== 'undefined' && typeof FocusCore.coinBurst === 'function') {
+            FocusCore.coinBurst({ amount, reason, sourceEl });
+        } else {
+            showCoinAnimation(amount, reason);
+        }
+    }
+
+    function showCoinAnimation(amount, reason) {
+        const notification = document.createElement('div');
+        notification.className = 'coin-notification';
+        notification.innerHTML = `+${amount} F-coins<br><span style="font-size:10px;">${reason}</span>`;
+        document.body.appendChild(notification);
+        for (let i = 0; i < 10; i++) {
+            const coin = document.createElement('div');
+            coin.className = 'coin-particle';
+            coin.style.left = Math.random() * window.innerWidth + 'px';
+            coin.style.top = window.innerHeight / 2 + (Math.random() - 0.5) * 100 + 'px';
+            coin.style.animationDelay = Math.random() * 0.3 + 's';
+            document.body.appendChild(coin);
+            setTimeout(() => coin.remove(), 800);
+        }
+        playCoinSound();
+        setTimeout(() => notification.remove(), 1800);
+    }
+
+    let userCoins = FocusStorage.getUser().coins || 0;
+    document.getElementById('balanceValue').innerText = userCoins;
+
+    let selectedPlan = null;
+
+    function updateBalanceUI() {
+        document.getElementById('balanceValue').innerText = userCoins;
+        FocusStorage.saveUser({ coins: userCoins });
+    }
+
+    let coinAmount = 100;
+    // цена со скидкой на объём (стимул брать больше для ИИ-запросов)
+    function priceForCoins(n){
+        if (n >= 1000) return Math.round(n * 0.85);  // -15%
+        if (n >= 500) return Math.round(n * 0.90);   // -10%
+        return n;                                     // 1:1
+    }
+    function updateCoinUI(){
+        const price = priceForCoins(coinAmount);
+        document.getElementById('coinAmount').innerText = coinAmount;
+        let priceText = price + ' ₽';
+        if (price < coinAmount) priceText += ` (выгода ${coinAmount - price}₽)`;
+        document.getElementById('coinPrice').innerText = priceText;
+    }
+    updateCoinUI();
+
+    document.getElementById('coinPlus').addEventListener('click', () => {
+        coinAmount += 100; updateCoinUI();
+    });
+
+    document.getElementById('coinMinus').addEventListener('click', () => {
+        if (coinAmount > 100) { coinAmount -= 100; updateCoinUI(); }
+    });
+
+    document.getElementById('buyCoinsBtn').addEventListener('click', () => {
+        toast(`Покупка ${coinAmount} F-coin (симуляция). Оплата подключается с серверной частью.`);
+        userCoins += coinAmount;
+        // помечаем купленные монеты (только ими можно платить за ИИ)
+        let bought = 0;
+        try { bought = parseInt(localStorage.getItem('focus_coins_bought')) || 0; } catch(e){}
+        localStorage.setItem('focus_coins_bought', String(bought + coinAmount));
+        updateBalanceUI();
+        coinFX(coinAmount, 'Пополнение баланса', document.getElementById('buyCoinsBtn'));
+    });
+
+    document.querySelectorAll('.plan-card').forEach(card => {
+        card.addEventListener('click', () => {
+            selectedPlan = {
+                name: card.dataset.name,
+                priceCoin: parseInt(card.dataset.priceCoin),
+                priceRub: parseInt(card.dataset.priceRub)
+            };
+            showPurchaseModal();
+        });
+    });
+
+    function showPurchaseModal() {
+        const modal = document.getElementById('purchaseModal');
+        document.getElementById('modalTitle').innerText = `Купить «${selectedPlan.name}» (${selectedPlan.priceRub} ₽ / мес)`;
+        document.getElementById('modalBalance').innerText = userCoins + ' F-coins';
+        document.getElementById('modalNeeded').innerText = selectedPlan.priceCoin + ' F-coins';
+        const shortageRow = document.getElementById('shortageRow');
+        const totalRow = document.getElementById('totalRow');
+        const confirmBtn = document.getElementById('confirmBtn');
+
+        if (userCoins >= selectedPlan.priceCoin) {
+            shortageRow.style.display = 'none';
+            totalRow.style.display = 'none';
+            confirmBtn.innerText = 'Купить за F-coins';
+        } else {
+            const shortage = selectedPlan.priceCoin - userCoins;
+            shortageRow.style.display = 'flex';
+            document.getElementById('modalShortage').innerText = shortage + ' F-coins';
+            totalRow.style.display = 'flex';
+            document.getElementById('modalTotal').innerText = shortage + ' ₽';
+            confirmBtn.innerText = 'Доплатить ' + shortage + ' ₽';
+        }
+        modal.classList.add('show');
+    }
+
+    document.getElementById('confirmBtn').addEventListener('click', () => {
+        if (userCoins >= selectedPlan.priceCoin) {
+            userCoins -= selectedPlan.priceCoin;
+            updateBalanceUI();
+            coinFX(selectedPlan.priceCoin, `За подписку «${selectedPlan.name}»`, document.getElementById('confirmBtn'));
+            toast(`Подписка «${selectedPlan.name}» активирована! Списано ${selectedPlan.priceCoin} F-coins.`);
+        } else {
+            const shortage = selectedPlan.priceCoin - userCoins;
+            toast(`Подписка «${selectedPlan.name}» активирована! (доплата ${shortage} ₽ — симуляция)`);
+            userCoins = 0;
+            updateBalanceUI();
+        }
+        // Активируем подписку на 30 дней (метод сам посчитает дату окончания)
+        if (typeof FocusStorage.setSubscription === 'function') {
+            FocusStorage.setSubscription(selectedPlan.name, 30);
+        } else {
+            const until = new Date(Date.now() + 30*24*60*60*1000).toISOString();
+            FocusStorage.saveUser({ subscription: selectedPlan.name, subscriptionUntil: until });
+        }
+        document.getElementById('purchaseModal').classList.remove('show');
+    });
+
+    document.getElementById('cancelBtn').addEventListener('click', () => {
+        document.getElementById('purchaseModal').classList.remove('show');
+    });
+</script>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        });
+    }
+</script>
+    <script src="focus-chat-fab.js"></script>
+</body>
+</html>

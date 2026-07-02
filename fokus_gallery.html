@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="original" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FOCUS">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Галерея — FOCUS</title>
+<style>
+    :root, [data-theme="original"] { --accent:#FFD966; --accent-rgb:255,217,102; --accent-2:#7C8CFF; --accent-2-rgb:124,140,255; --accent-light:#FFE9A8; --accent-dark:#C9952E; --bg-1:#131319; --bg-2:#0d0d12; --text-strong:#FFFFFF; }
+    [data-theme="tron"] { --accent:#FF3B2E; --accent-rgb:255,59,46; --accent-2:#00E5FF; --accent-2-rgb:0,229,255; --accent-light:#FF8A6B; --accent-dark:#B8201A; --bg-1:#0a0a0d; --bg-2:#000000; --text-strong:#FFFFFF; }
+    [data-theme="predator"] { --accent:#FF7A1A; --accent-rgb:255,122,26; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#FFB347; --accent-dark:#B84D00; --bg-1:#0d120d; --bg-2:#050705; --text-strong:#FFFFFF; }
+    [data-theme="mk"] { --accent:#FF1A2E; --accent-rgb:255,26,46; --accent-2:#FFD700; --accent-2-rgb:255,215,0; --accent-light:#FF6B5C; --accent-dark:#8A0000; --bg-1:#14080a; --bg-2:#050202; --text-strong:#FFFFFF; }
+    [data-theme="matrix"] { --accent:#00FF41; --accent-rgb:0,255,65; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#7FFF9E; --accent-dark:#008F25; --bg-1:#050505; --bg-2:#000000; --text-strong:#FFFFFF; }
+    .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
+    @keyframes mkShake { 0%,100%{transform:translate(0,0);} 15%{transform:translate(-4px,2px) rotate(-0.4deg);} 30%{transform:translate(4px,-2px) rotate(0.4deg);} 45%{transform:translate(-3px,1px);} 60%{transform:translate(3px,-1px);} 75%{transform:translate(-2px,0);} }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif; background:#060608; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:12px; position:relative; overflow:hidden; }
+    body::before { content:''; position:fixed; width:600px; height:600px; background:radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%); top:10%; left:50%; transform:translateX(-50%); pointer-events:none; animation:ambientDrift 12s ease-in-out infinite; }
+    @keyframes ambientDrift { 0%,100%{opacity:.6;transform:translateX(-50%) scale(1);} 50%{opacity:1;transform:translateX(-50%) scale(1.15);} }
+    .phone { width:375px; height:700px; background:linear-gradient(165deg, var(--bg-1) 0%, var(--bg-2) 100%); border-radius:52px; box-shadow:0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--accent-rgb),0.06), 0 0 0 8px #1c1c24, 0 0 0 9px rgba(var(--accent-rgb),0.08), 0 0 60px rgba(var(--accent-rgb),0.04); overflow:hidden; display:flex; flex-direction:column; position:relative; }
+    .phone::before { content:''; position:absolute; inset:0; z-index:0; opacity:0.1; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    .phone::after { content:''; position:absolute; top:0; left:6%; right:6%; height:1px; background:linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.3), transparent); z-index:0; }
+    #atmosCanvas { position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:52px; }
+
+    .screen { flex:1; padding:18px 18px 12px; display:flex; flex-direction:column; height:100%; overflow:hidden; position:relative; z-index:1; }
+
+    .header-row { display:flex; align-items:center; gap:12px; margin-bottom:11px; }
+    .back-btn { width:36px; height:36px; border-radius:30px; background:rgba(var(--accent-rgb),0.07); border:1px solid rgba(var(--accent-rgb),0.2); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:0.3s ease; flex-shrink:0; }
+    .back-btn:active { transform:scale(0.92); }
+    .back-btn svg { width:16px; height:16px; color:var(--accent); }
+    .title { font-size:21px; font-weight:700; letter-spacing:0.2px; background:linear-gradient(135deg, var(--text-strong) 20%, var(--accent) 70%, var(--accent-dark) 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .title-icon { width:30px; height:30px; flex-shrink:0; border-radius:9px; background:radial-gradient(circle at 35% 30%, rgba(255,138,92,0.3), rgba(255,138,92,0.06)); border:0.5px solid rgba(255,138,92,0.4); display:flex; align-items:center; justify-content:center; margin-left:auto; }
+    .title-icon svg { width:17px; height:17px; color:#FF8A5C; }
+
+    /* Карточка метрик */
+    .metrics-card { background:linear-gradient(135deg, rgba(var(--accent-rgb),0.09), rgba(var(--accent-2-rgb),0.05)); border:1px solid rgba(var(--accent-rgb),0.22); border-radius:18px; padding:20px 16px; margin-bottom:12px; cursor:pointer; position:relative; overflow:hidden; transition:0.25s ease; }
+    .metrics-card::before { content:''; position:absolute; top:0; left:0; width:55px; height:4px; background:linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius:18px 0 8px 0; box-shadow:0 0 12px rgba(var(--accent-rgb),0.5); }
+    .metrics-card:active { transform:scale(0.98); }
+    .metrics-title { font-size:11px; font-weight:700; color:var(--accent-2); letter-spacing:0.3px; margin-bottom:16px; }
+    .metrics-grid { display:flex; justify-content:space-between; gap:10px; }
+    .metric { flex:1; text-align:center; }
+    .metric-label { font-size:11px; color:#9a9aab; margin-bottom:6px; }
+    .metric-value { font-size:26px; font-weight:700; color:#fff; line-height:1.1; }
+    .metric-unit { font-size:11px; color:#9a9aab; font-weight:500; }
+    .metric-divider { width:0.5px; background:rgba(255,255,255,0.1); }
+    .bmi-badge { display:inline-block; margin-top:3px; padding:1px 9px; border-radius:20px; font-size:9px; font-weight:700; background:rgba(120,220,150,0.18); color:#78DC96; border:0.5px solid rgba(120,220,150,0.3); }
+    .metrics-more { text-align:right; margin-top:14px; font-size:10px; color:var(--accent); opacity:0.75; font-weight:600; }
+
+    /* Подразделы */
+    .subsections { flex:1; overflow:hidden; }
+    .subsections::-webkit-scrollbar { display:none; }
+    .subsection-tile { display:flex; align-items:center; gap:12px; background:linear-gradient(135deg, rgba(35,35,46,0.55), rgba(22,22,30,0.55)); border:0.5px solid rgba(var(--accent-rgb),0.13); border-radius:14px; padding:9px 13px; margin-bottom:7px; cursor:pointer; transition:0.25s cubic-bezier(.2,.8,.2,1); position:relative; overflow:hidden; }
+    .subsection-tile::before { content:''; position:absolute; top:0; left:0; right:0; height:50%; background:linear-gradient(180deg, rgba(255,255,255,0.03), transparent); pointer-events:none; border-radius:15px 15px 0 0; }
+    .subsection-tile:active { transform:scale(0.98); }
+    .subsection-icon { width:38px; height:38px; flex-shrink:0; border-radius:11px; background:radial-gradient(circle at 35% 30%, rgba(var(--accent-rgb),0.16), rgba(var(--accent-rgb),0.04)); border:0.5px solid rgba(var(--accent-rgb),0.2); display:flex; align-items:center; justify-content:center; }
+    .subsection-icon svg { width:19px; height:19px; color:var(--accent); }
+    .subsection-info { flex:1; min-width:0; }
+    .subsection-title { font-size:13px; font-weight:700; color:#fff; margin-bottom:1px; }
+    .subsection-desc { font-size:9.5px; color:#9a9aab; line-height:1.3; }
+    .subsection-arrow { color:var(--accent); opacity:0.5; flex-shrink:0; }
+    .subsection-arrow svg { width:16px; height:16px; }
+
+    /* Цвета иконок подразделов */
+    .tile-gratitude .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,138,92,0.26), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,138,92,0.4); }
+    .tile-gratitude .subsection-icon svg { color:#FF8A5C; }
+    .tile-prayer .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,217,102,0.3), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,217,102,0.4); }
+    .tile-prayer .subsection-icon svg { color:var(--accent); }
+    .tile-temple .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(170,185,255,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(170,185,255,0.4); }
+    .tile-temple .subsection-icon svg { color:#AAB9FF; }
+    .tile-habits .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(120,220,150,0.26), rgba(var(--accent-rgb),0.04)); border-color:rgba(120,220,150,0.4); }
+    .tile-habits .subsection-icon svg { color:#78DC96; }
+    .tile-wish .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(200,170,255,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(200,170,255,0.4); }
+    .tile-wish .subsection-icon svg { color:#C8AAFF; }
+    .tile-nutrition .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(120,220,150,0.26), rgba(var(--accent-rgb),0.04)); border-color:rgba(120,220,150,0.4); }
+    .tile-nutrition .subsection-icon svg { color:#78DC96; }
+    .tile-workout .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,140,80,0.3), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,160,100,0.4); }
+    .tile-workout .subsection-icon svg { color:#FF9C64; }
+    .tile-training .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(150,170,255,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(170,185,255,0.4); }
+    .tile-training .subsection-icon svg { color:#AAB9FF; }
+    .tile-stats .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(200,170,255,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(200,170,255,0.4); }
+    .tile-stats .subsection-icon svg { color:#C8AAFF; }
+    .tile-meds .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,150,180,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,170,195,0.4); }
+    .tile-meds .subsection-icon svg { color:#FFAAC9; }
+    .tile-supp .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,138,92,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,150,110,0.4); }
+    .tile-supp .subsection-icon svg { color:#FF8A5C; }
+
+    /* Таб-бар */
+    .tab-bar { display:flex; justify-content:space-around; align-items:center; padding:6px 0 4px; background:rgba(18,18,24,0.9); backdrop-filter:blur(20px); border:0.5px solid rgba(255,255,255,0.06); margin-top:8px; border-radius:26px; flex-shrink:0; }
+    .tab-item { display:flex; flex-direction:column; align-items:center; gap:3px; color:#6e6e7e; font-size:9px; font-weight:600; cursor:pointer; padding:5px 14px; border-radius:20px; transition:0.25s ease; }
+    .tab-item.active { color:var(--accent); background:rgba(var(--accent-rgb),0.1); }
+    .tab-item svg { width:19px; height:19px; }
+
+    .toast { position:absolute; bottom:74px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,0.9); border:1px solid var(--accent); border-radius:20px; padding:9px 18px; color:var(--accent); font-size:12px; font-weight:600; z-index:500; opacity:0; transition:0.3s ease; pointer-events:none; white-space:nowrap; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* PWA-режим (установлено на телефон): на весь реальный экран, без макетной рамки */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; overflow: hidden !important; }
+    .phone {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding-top: env(safe-area-inset-top) !important;
+        padding-bottom: env(safe-area-inset-bottom) !important;
+        max-width: 100vw !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, #atmos, .atmos-canvas { border-radius: 0 !important; }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important;
+    }
+}
+
+/* Телефоны: приложение на весь экран без макетной рамки (надёжно, не зависит от PWA-режима) */
+@media (max-width: 600px) {
+    * { -webkit-user-select: none !important; user-select: none !important; -webkit-tap-highlight-color: transparent !important; }
+    input, textarea { -webkit-user-select: text !important; user-select: text !important; }
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; height: 100vh; height: 100dvh; display: block !important; }
+    body { display: flex !important; align-items: stretch !important; justify-content: flex-start !important; }
+    .phone {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    /* анимация/фон идут до самого верха под чёлку */
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important; border-radius: 0 !important;
+    }
+    /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
+    .screen, .session-area, .slideshow, .scroll-area {
+        padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+    }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+}
+
+    /* ===== ГАЛЕРЕЯ / ФОТОРЕДАКТОР ===== */
+    .scroll-area { flex:1; overflow-y:auto; scrollbar-width:none; }
+    .scroll-area::-webkit-scrollbar { display:none; }
+    .g-tabs { display:flex; gap:6px; background:rgba(0,0,0,0.25); border-radius:12px; padding:4px; margin-bottom:13px; }
+    .g-tab { flex:1; text-align:center; padding:9px 4px; border-radius:9px; font-size:12px; font-weight:700; color:#8e8e9e; cursor:pointer; }
+    .g-tab.on { background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; }
+    .g-pane { display:none; }
+    .g-pane.on { display:block; }
+    /* холст редактора */
+    .canvas-wrap { position:relative; width:100%; aspect-ratio:1; background:rgba(0,0,0,0.3); border:1px dashed rgba(var(--accent-rgb),0.25); border-radius:16px; overflow:hidden; margin-bottom:12px; display:flex; align-items:center; justify-content:center; }
+    #editorCanvas { max-width:100%; max-height:100%; display:none; }
+    .canvas-empty { text-align:center; color:#6e6e7e; font-size:12px; padding:20px; line-height:1.6; }
+    .canvas-empty svg { width:40px; height:40px; margin-bottom:10px; opacity:0.5; }
+    /* кнопки добавления фото */
+    .add-photos-row { display:flex; gap:8px; margin-bottom:13px; }
+    .add-photo-btn { flex:1; padding:11px; border-radius:12px; background:rgba(var(--accent-2-rgb),0.12); border:1px solid rgba(var(--accent-2-rgb),0.3); color:var(--accent-2); font-weight:700; font-size:12px; text-align:center; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; }
+    .add-photo-btn svg { width:16px; height:16px; }
+    .add-photo-btn:active { transform:scale(0.97); }
+    .photos-count { font-size:10px; color:#8e8e9e; text-align:center; margin-bottom:13px; }
+    /* секции инструментов */
+    .tool-section { margin-bottom:15px; }
+    .tool-label { font-size:11px; font-weight:700; color:var(--accent); margin-bottom:9px; letter-spacing:0.3px; }
+    .layout-grid, .filter-grid { display:flex; gap:8px; flex-wrap:wrap; }
+    .layout-opt { flex:1; min-width:60px; padding:10px 6px; border-radius:11px; background:rgba(255,255,255,0.05); border:1px solid transparent; text-align:center; font-size:10.5px; font-weight:600; color:#9a9aab; cursor:pointer; }
+    .layout-opt.on { background:rgba(var(--accent-rgb),0.14); color:var(--accent); border-color:rgba(var(--accent-rgb),0.4); }
+    .filter-opt { padding:8px 13px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid transparent; font-size:11.5px; font-weight:600; color:#9a9aab; cursor:pointer; }
+    .filter-opt.on { background:rgba(var(--accent-rgb),0.14); color:var(--accent); border-color:rgba(var(--accent-rgb),0.4); }
+    .caption-input { width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(var(--accent-rgb),0.16); border-radius:12px; padding:11px 14px; color:#fff; font-size:13px; font-family:inherit; outline:none; }
+    .caption-input:focus { border-color:var(--accent-2); }
+    .caption-input::placeholder { color:#6e6e7e; }
+    /* облачка с текстом */
+    .bubble-add-row { display:flex; gap:8px; }
+    .bubble-input { flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(var(--accent-rgb),0.16); border-radius:11px; padding:10px 13px; color:#fff; font-size:12.5px; font-family:inherit; outline:none; }
+    .bubble-input:focus { border-color:var(--accent-2); }
+    .bubble-input::placeholder { color:#6e6e7e; }
+    .bubble-add-btn { padding:10px 16px; border-radius:11px; background:rgba(var(--accent-2-rgb),0.14); border:1px solid rgba(var(--accent-2-rgb),0.3); color:var(--accent-2); font-weight:700; font-size:12px; cursor:pointer; flex-shrink:0; }
+    .bubble-add-btn:active { transform:scale(0.95); }
+    .bubble-hint { font-size:9.5px; color:#8e8e9e; margin-top:6px; }
+    /* облачко на холсте */
+    .canvas-bubble { position:absolute; background:#fff; color:#1a1a22; padding:7px 11px; border-radius:14px; font-size:12px; font-weight:600; max-width:55%; cursor:move; box-shadow:0 3px 10px rgba(0,0,0,0.3); user-select:none; touch-action:none; }
+    .canvas-bubble::after { content:''; position:absolute; bottom:-7px; left:16px; border:7px solid transparent; border-top-color:#fff; border-bottom:0; }
+    .canvas-bubble .bub-del { position:absolute; top:-8px; right:-8px; width:18px; height:18px; border-radius:50%; background:#FF3B3B; color:#fff; font-size:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    /* ИИ заглушка */
+    .ai-edit-btn { padding:13px; border-radius:13px; background:linear-gradient(135deg, rgba(200,170,255,0.16), rgba(var(--accent-rgb),0.05)); border:1px solid rgba(200,170,255,0.3); color:#C8AAFF; font-weight:700; font-size:12.5px; text-align:center; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .ai-edit-btn svg { width:16px; height:16px; }
+    /* действия */
+    .g-actions { display:flex; gap:9px; margin:15px 0; }
+    .g-action-btn { flex:1; padding:13px; border-radius:13px; font-size:13px; font-weight:700; cursor:pointer; text-align:center; display:flex; align-items:center; justify-content:center; gap:7px; }
+    .g-action-btn svg { width:16px; height:16px; }
+    .g-action-btn.save { background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; }
+    .g-action-btn.share { background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#d8d8e0; }
+    .g-action-btn:active { transform:scale(0.97); }
+    /* альбом */
+    .album-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+    .album-item { aspect-ratio:1; border-radius:13px; overflow:hidden; background:rgba(0,0,0,0.3); cursor:pointer; position:relative; }
+    .album-item img { width:100%; height:100%; object-fit:cover; }
+    .album-item .al-del { position:absolute; top:6px; right:6px; width:24px; height:24px; border-radius:50%; background:rgba(0,0,0,0.6); color:#fff; font-size:14px; display:flex; align-items:center; justify-content:center; }
+    .album-empty { text-align:center; color:#6e6e7e; font-size:12px; padding:40px 20px; line-height:1.6; grid-column:1/-1; }
+    .toast { position:absolute; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,0.9); border:1px solid var(--accent); border-radius:16px; padding:11px 18px; color:var(--accent); font-size:12px; font-weight:600; z-index:500; opacity:0; transition:0.3s ease; pointer-events:none; max-width:300px; width:max-content; text-align:center; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+</style>
+<script src="focus-analytics.js"></script>
+<body>
+<div class="phone">
+    <canvas id="atmosCanvas" width="375" height="700" style="width:375px;height:700px;"></canvas>
+    <div class="screen">
+        <div class="header-row">
+            <div class="back-btn" onclick="location.href='fokus_profile.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <div class="title">Галерея</div>
+            <div class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.5-3.5L9 20"/></svg></div>
+        </div>
+
+        <div class="g-tabs">
+            <div class="g-tab on" data-gtab="editor">Редактор</div>
+            <div class="g-tab" data-gtab="album">Мой альбом</div>
+        </div>
+
+        <div class="scroll-area">
+            <!-- РЕДАКТОР -->
+            <div class="g-pane on" id="pane-editor">
+                <div class="canvas-wrap" id="canvasWrap">
+                    <canvas id="editorCanvas"></canvas>
+                    <div class="canvas-empty" id="canvasEmpty">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.5-3.5L9 20"/></svg>
+                        Добавь до 3 фото<br>для создания коллажа
+                    </div>
+                </div>
+
+                <div class="add-photos-row">
+                    <div class="add-photo-btn" id="addPhotoBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                        Добавить фото
+                    </div>
+                    <div class="add-photo-btn" id="clearPhotosBtn" style="flex:0 0 auto;background:rgba(255,120,120,0.1);border-color:rgba(255,120,120,0.3);color:#FF8A7C;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+                    </div>
+                </div>
+                <div class="photos-count" id="photosCount">Фото: 0 / 3</div>
+
+                <div class="tool-section" id="layoutSection" style="display:none;">
+                    <div class="tool-label">РАСКЛАДКА КОЛЛАЖА</div>
+                    <div class="layout-grid" id="layoutGrid">
+                        <div class="layout-opt on" data-layout="horizontal">▤ Рядом</div>
+                        <div class="layout-opt" data-layout="vertical">▥ Стопкой</div>
+                        <div class="layout-opt" data-layout="grid">▦ Сеткой</div>
+                    </div>
+                </div>
+
+                <div class="tool-section" id="filterSection" style="display:none;">
+                    <div class="tool-label">ФИЛЬТР</div>
+                    <div class="filter-grid" id="filterGrid">
+                        <div class="filter-opt on" data-filter="none">Без</div>
+                        <div class="filter-opt" data-filter="bw">Ч/Б</div>
+                        <div class="filter-opt" data-filter="sepia">Сепия</div>
+                        <div class="filter-opt" data-filter="vintage">Винтаж</div>
+                        <div class="filter-opt" data-filter="cold">Холод</div>
+                        <div class="filter-opt" data-filter="warm">Тепло</div>
+                        <div class="filter-opt" data-filter="bright">Ярко</div>
+                    </div>
+                </div>
+
+                <div class="tool-section" id="bubbleSection" style="display:none;">
+                    <div class="tool-label">ОБЛАЧКО С ТЕКСТОМ</div>
+                    <div class="bubble-add-row">
+                        <input type="text" class="bubble-input" id="bubbleInput" placeholder="Текст реплики...">
+                        <div class="bubble-add-btn" id="bubbleAddBtn">+ Облачко</div>
+                    </div>
+                    <div class="bubble-hint">Облачко появится на фото — перетащи его пальцем куда нужно</div>
+                </div>
+
+                <div class="tool-section" id="captionSection" style="display:none;">
+                    <div class="tool-label">ПОДПИСЬ</div>
+                    <input type="text" class="caption-input" id="captionInput" placeholder="Добавь комментарий к фото...">
+                </div>
+
+                <div class="tool-section" id="aiSection" style="display:none;">
+                    <div class="tool-label">ИИ-ОБРАБОТКА</div>
+                    <div class="ai-edit-btn" id="aiEditBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/></svg>
+                        Обработать фото по описанию (ИИ)
+                    </div>
+                </div>
+
+                <div class="g-actions" id="gActions" style="display:none;">
+                    <div class="g-action-btn save" id="saveToAlbumBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+                        В альбом
+                    </div>
+                    <div class="g-action-btn share" id="shareBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+                        Поделиться
+                    </div>
+                </div>
+            </div>
+
+            <!-- АЛЬБОМ -->
+            <div class="g-pane" id="pane-album">
+                <div class="album-grid" id="albumGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="photoFileInput" accept="image/*" style="display:none;">
+    <div class="toast" id="toast"></div>
+</div>
+
+<script src="focus-storage.js"></script>
+<script type="module" src="firebase-auth-helper.js"></script>
+<script src="focus-core.js"></script>
+<script>
+    if (typeof FocusStorage === 'undefined') {
+        window.FocusStorage = {
+            _key:'focus_user',
+            getUser(){ try { return JSON.parse(localStorage.getItem(this._key)) || {}; } catch(e){ return {}; } },
+            saveUser(p){ const c=this.getUser(); const m={...c,...p}; localStorage.setItem(this._key, JSON.stringify(m)); return m; },
+            getTheme(){ return this.getUser().theme || 'original'; },
+            setTheme(id){ this.saveUser({ theme:id }); }
+        };
+    }
+    if (typeof FocusCore === 'undefined') {
+        window.FocusCore = {
+            applyStoredTheme(){ (document.getElementById('htmlRoot')||document.documentElement).setAttribute('data-theme', FocusStorage.getTheme()); },
+initAtmosphere(canvasId) {
+                const ac = document.getElementById(canvasId || 'atmosCanvas');
+                if (!ac) return;
+                const actx = ac.getContext('2d');
+                ac.width = 375; ac.height = 700;
+                let tronPulses=[], mkEmbers=[], mkDrips=[], mkFlash=0, mkBolt=null, matrixDrops=null, matrixColumns=0;
+                let predatorRadarAngle=0, predatorScanY=0, predatorT=0, predatorBlips=[{a:1.2,r:0.7},{a:3.8,r:0.5}], predatorReticle=null;
+                const matrixChars = 'アイウエオカキクケコサシスセソ0123456789ABCDEF'.split('');
+                let lastTheme=null, lastTrigger=0, washT=0;
+                function currentTheme() { const r = document.getElementById('htmlRoot') || document.documentElement; return r.getAttribute('data-theme') || 'original'; }
+                function cssColor(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function cssColorRgb(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function drawFullScreenWash() {
+                    washT += 0.008;
+                    const accRgb = cssColorRgb('--accent-rgb'), acc2Rgb = cssColorRgb('--accent-2-rgb');
+                    const x = ac.width*(0.5+Math.sin(washT)*0.5), y = ac.height*(0.5+Math.cos(washT*0.7)*0.5);
+                    const grad = actx.createRadialGradient(x,y,0,ac.width/2,ac.height/2,Math.max(ac.width,ac.height)*0.9);
+                    grad.addColorStop(0,'rgba('+accRgb+',0.05)'); grad.addColorStop(0.5,'rgba('+acc2Rgb+',0.035)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+                    actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                }
+                function drawTron() {
+                    if (Math.random() > 0.93) {
+                        const vertical = Math.random() > 0.5;
+                        tronPulses.push({ vertical, pos: Math.floor(Math.random()*(vertical?ac.width:ac.height)), t:-40, speed:3+Math.random()*2, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2'), len:60 });
+                    }
+                    tronPulses.forEach(p => {
+                        p.t += p.speed;
+                        const grad = p.vertical ? actx.createLinearGradient(p.pos,p.t-p.len,p.pos,p.t) : actx.createLinearGradient(p.t-p.len,p.pos,p.t,p.pos);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,p.color);
+                        actx.strokeStyle = grad; actx.lineWidth=2; actx.shadowBlur=8; actx.shadowColor=p.color;
+                        actx.beginPath();
+                        if (p.vertical) { actx.moveTo(p.pos,p.t-p.len); actx.lineTo(p.pos,p.t); } else { actx.moveTo(p.t-p.len,p.pos); actx.lineTo(p.t,p.pos); }
+                        actx.stroke();
+                    });
+                    actx.shadowBlur=0;
+                    tronPulses = tronPulses.filter(p => p.t < Math.max(ac.width,ac.height)+40);
+                }
+                function drawPredator() {
+                    predatorT += 0.01;
+                    for (let i=0;i<5;i++) {
+                        const x = ac.width/2+Math.sin(predatorT+i*2)*ac.width*0.35, y = ac.height/2+Math.cos(predatorT*0.7+i*1.7)*ac.height*0.4;
+                        const r = 60+Math.sin(predatorT*2+i)*20;
+                        const grad = actx.createRadialGradient(x,y,0,x,y,r);
+                        grad.addColorStop(0,'rgba('+cssColorRgb('--accent-rgb')+',0.05)'); grad.addColorStop(1,'rgba('+cssColorRgb('--accent-rgb')+',0)');
+                        actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                    }
+                    predatorScanY += 1.8; if (predatorScanY > ac.height+20) predatorScanY=-20;
+                    const acc2 = cssColorRgb('--accent-2-rgb');
+                    const lineGrad = actx.createLinearGradient(0,predatorScanY-15,0,predatorScanY+15);
+                    lineGrad.addColorStop(0,'rgba('+acc2+',0)'); lineGrad.addColorStop(0.5,'rgba('+acc2+',0.35)'); lineGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.fillStyle = lineGrad; actx.fillRect(0,predatorScanY-15,ac.width,30);
+                    actx.strokeStyle='rgba('+acc2+',0.5)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.moveTo(0,predatorScanY); actx.lineTo(ac.width,predatorScanY); actx.stroke();
+                    const rcx=ac.width-46, rcy=64, rr=34;
+                    actx.save();
+                    actx.strokeStyle='rgba('+acc2+',0.4)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.arc(rcx,rcy,rr,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.arc(rcx,rcy,rr*0.6,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx-rr,rcy); actx.lineTo(rcx+rr,rcy); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx,rcy-rr); actx.lineTo(rcx,rcy+rr); actx.stroke();
+                    predatorRadarAngle += 0.05;
+                    const sweepGrad = actx.createLinearGradient(rcx,rcy,rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr);
+                    sweepGrad.addColorStop(0,'rgba('+acc2+',0.6)'); sweepGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.strokeStyle = sweepGrad; actx.lineWidth=2;
+                    actx.beginPath(); actx.moveTo(rcx,rcy); actx.lineTo(rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr); actx.stroke();
+                    predatorBlips.forEach(b => {
+                        const bx=rcx+Math.cos(b.a)*rr*b.r, by=rcy+Math.sin(b.a)*rr*b.r;
+                        const diff = Math.abs(((predatorRadarAngle%(Math.PI*2))-b.a+Math.PI*3)%(Math.PI*2)-Math.PI);
+                        const blipAlpha = diff<0.5 ? 1-diff/0.5 : 0;
+                        if (blipAlpha>0) { actx.fillStyle='rgba('+acc2+','+blipAlpha+')'; actx.beginPath(); actx.arc(bx,by,2,0,Math.PI*2); actx.fill(); }
+                    });
+                    actx.restore();
+                    if (Math.random()>0.992 && !predatorReticle) predatorReticle = { x:40+Math.random()*(ac.width-80), y:90+Math.random()*(ac.height-220), life:1 };
+                    if (predatorReticle) {
+                        predatorReticle.life -= 0.012;
+                        if (predatorReticle.life<=0) predatorReticle=null;
+                        else {
+                            const a = Math.min(predatorReticle.life>0.85?(1-predatorReticle.life)/0.15:1,1) * Math.min(predatorReticle.life/0.15,1);
+                            const size = 22+(1-Math.min(predatorReticle.life,1))*6;
+                            actx.save(); actx.globalAlpha=a; actx.strokeStyle=cssColor('--accent'); actx.lineWidth=1.3;
+                            actx.beginPath(); actx.arc(predatorReticle.x,predatorReticle.y,size,0,Math.PI*2); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x-size-6,predatorReticle.y); actx.lineTo(predatorReticle.x-size+4,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x+size-4,predatorReticle.y); actx.lineTo(predatorReticle.x+size+6,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y-size-6); actx.lineTo(predatorReticle.x,predatorReticle.y-size+4); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y+size-4); actx.lineTo(predatorReticle.x,predatorReticle.y+size+6); actx.stroke();
+                            actx.font='8px monospace'; actx.fillStyle=cssColor('--accent'); actx.fillText('LOCKED', predatorReticle.x-16, predatorReticle.y+size+14);
+                            actx.restore();
+                        }
+                    }
+                }
+                function drawMK() {
+                    const phoneEl = document.querySelector('.phone');
+                    if (Math.random()>0.4) mkEmbers.push({ x:Math.random()*ac.width, y:ac.height+10, vx:(Math.random()-0.5)*0.6, vy:-0.6-Math.random()*1.2, size:1+Math.random()*2, life:1, decay:0.004+Math.random()*0.006, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2') });
+                    mkEmbers.forEach(e => {
+                        e.x+=e.vx; e.y+=e.vy; e.life-=e.decay;
+                        const fade=Math.max(e.life,0); actx.globalAlpha=fade; actx.fillStyle=e.color; actx.shadowBlur=6; actx.shadowColor=e.color;
+                        actx.beginPath(); actx.arc(e.x,e.y,e.size,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1; actx.shadowBlur=0;
+                    mkEmbers = mkEmbers.filter(e=>e.life>0 && e.y>-10);
+                    if (Math.random()>0.96) mkDrips.push({ x:20+Math.random()*(ac.width-40), y:-10, len:8+Math.random()*10, speed:1.2+Math.random()*1.5, life:1 });
+                    mkDrips.forEach(d => {
+                        d.y+=d.speed; d.life-=0.004;
+                        const fade=Math.max(d.life,0); actx.globalAlpha=fade;
+                        const grad = actx.createLinearGradient(d.x,d.y-d.len,d.x,d.y);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,cssColor('--accent'));
+                        actx.strokeStyle=grad; actx.lineWidth=2;
+                        actx.beginPath(); actx.moveTo(d.x,d.y-d.len); actx.lineTo(d.x,d.y); actx.stroke();
+                        actx.fillStyle=cssColor('--accent'); actx.beginPath(); actx.arc(d.x,d.y,1.4,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1;
+                    mkDrips = mkDrips.filter(d=>d.life>0 && d.y<ac.height+10);
+                    if (Date.now()-lastTrigger>6000 && Math.random()>0.5) {
+                        lastTrigger = Date.now(); mkFlash=1;
+                        const startX = 30+Math.random()*(ac.width-60);
+                        const points=[{x:startX,y:-5}]; let x=startX;
+                        for (let i=1;i<=9;i++) { const y=(ac.height/9)*i; x+=(Math.random()-0.5)*50; x=Math.max(10,Math.min(ac.width-10,x)); points.push({x,y}); }
+                        mkBolt = { points, life:1 };
+                        if (phoneEl) { phoneEl.classList.add('mk-shake'); setTimeout(()=>phoneEl.classList.remove('mk-shake'),280); }
+                    }
+                    if (mkBolt) {
+                        mkBolt.life -= 0.05;
+                        if (mkBolt.life<=0) mkBolt=null;
+                        else {
+                            actx.save(); actx.globalAlpha=Math.min(mkBolt.life*2,1);
+                            actx.strokeStyle='#7CD9FF'; actx.shadowBlur=14; actx.shadowColor='#3AB8FF'; actx.lineWidth=2;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.strokeStyle='#FFFFFF'; actx.lineWidth=0.8; actx.shadowBlur=4;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.restore();
+                        }
+                    }
+                    if (mkFlash>0) { actx.fillStyle='rgba(124,217,255,'+(mkFlash*0.16)+')'; actx.fillRect(0,0,ac.width,ac.height); mkFlash -= 0.08; }
+                }
+                function drawMatrix() {
+                    if (!matrixDrops) { matrixColumns = Math.floor(ac.width/13); matrixDrops = Array(matrixColumns).fill(0).map(()=>Math.random()*-30); }
+                    actx.fillStyle='rgba(0,0,0,0.08)'; actx.fillRect(0,0,ac.width,ac.height); actx.font='13px monospace';
+                    for (let i=0;i<matrixColumns;i++) {
+                        const text = matrixChars[Math.floor(Math.random()*matrixChars.length)];
+                        const y = matrixDrops[i]*13;
+                        const isHead = Math.random()>0.92;
+                        actx.fillStyle = isHead ? '#cfffd9' : 'rgba('+cssColorRgb('--accent-rgb')+',0.55)';
+                        actx.fillText(text, i*13, y);
+                        if (y>ac.height && Math.random()>0.975) matrixDrops[i]=0;
+                        matrixDrops[i]++;
+                    }
+                }
+                function loop() {
+                    const theme = currentTheme();
+                    if (theme !== lastTheme) {
+                        actx.clearRect(0,0,ac.width,ac.height);
+                        tronPulses=[]; mkEmbers=[]; mkDrips=[]; mkBolt=null; matrixDrops=null; predatorReticle=null;
+                        lastTheme = theme;
+                    }
+                    if (theme !== 'matrix') actx.clearRect(0,0,ac.width,ac.height);
+                    drawFullScreenWash();
+                    if (theme==='tron') drawTron();
+                    else if (theme==='predator') drawPredator();
+                    else if (theme==='mk') drawMK();
+                    else if (theme==='matrix') drawMatrix();
+                    requestAnimationFrame(loop);
+                }
+                loop();
+            }        };
+    }
+
+    FocusCore.applyStoredTheme();
+    FocusCore.initAtmosphere('atmosCanvas');
+
+    function toast(msg){
+        const t=document.getElementById('toast');
+        t.innerText=msg; t.classList.add('show');
+        clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'), 2000);
+    }
+    function escapeHtml(s){ const d=document.createElement('div'); d.innerText=String(s==null?'':s); return d.innerHTML; }
+
+    // ===== Вкладки =====
+    document.querySelectorAll('.g-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.g-tab').forEach(t => t.classList.remove('on'));
+            document.querySelectorAll('.g-pane').forEach(p => p.classList.remove('on'));
+            tab.classList.add('on');
+            document.getElementById('pane-' + tab.dataset.gtab).classList.add('on');
+            if (tab.dataset.gtab === 'album') renderAlbum();
+        });
+    });
+
+    // ===== Редактор =====
+    const CANVAS_SIZE = 1000;
+    const canvas = document.getElementById('editorCanvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    canvas.width = CANVAS_SIZE; canvas.height = CANVAS_SIZE;
+
+    let photos = [];          // загруженные Image
+    let layout = 'horizontal';
+    let filter = 'none';
+    let bubbles = [];         // {text, x, y} в долях 0..1
+
+    const filterMap = {
+        none:   'none',
+        bw:     'grayscale(1)',
+        sepia:  'sepia(0.8)',
+        vintage:'sepia(0.4) contrast(1.1) brightness(0.95) saturate(1.2)',
+        cold:   'saturate(1.1) hue-rotate(-12deg) brightness(1.02)',
+        warm:   'sepia(0.25) saturate(1.3) brightness(1.05)',
+        bright: 'brightness(1.18) contrast(1.05) saturate(1.15)'
+    };
+
+    // Ручная обработка пикселей (работает в Safari iOS, где ctx.filter не пашет)
+    function applyPixelFilter(ctx, w, h, name){
+        if (name === 'none') return;
+        let imageData;
+        try { imageData = ctx.getImageData(0, 0, w, h); }
+        catch(e){ toast('Фильтр недоступен: ' + (e.message||'ошибка')); return; }
+        const d = imageData.data;
+        const clamp = v => v < 0 ? 0 : (v > 255 ? 255 : v);
+        for (let i = 0; i < d.length; i += 4) {
+            let r = d[i], g = d[i+1], b = d[i+2];
+            switch(name){
+                case 'bw': {
+                    const gray = 0.299*r + 0.587*g + 0.114*b;
+                    r = g = b = gray;
+                    break;
+                }
+                case 'sepia': {
+                    const nr = 0.393*r + 0.769*g + 0.189*b;
+                    const ng = 0.349*r + 0.686*g + 0.168*b;
+                    const nb = 0.272*r + 0.534*g + 0.131*b;
+                    r = clamp(nr); g = clamp(ng); b = clamp(nb);
+                    break;
+                }
+                case 'vintage': {
+                    // лёгкая сепия + контраст + чуть темнее
+                    const gray = 0.299*r + 0.587*g + 0.114*b;
+                    r = clamp(r*0.6 + gray*0.4 + 18);
+                    g = clamp(g*0.65 + gray*0.35 + 8);
+                    b = clamp(b*0.7 + gray*0.3 - 6);
+                    r = clamp((r-128)*1.12 + 128);
+                    g = clamp((g-128)*1.12 + 128);
+                    b = clamp((b-128)*1.12 + 128);
+                    break;
+                }
+                case 'cold': {
+                    r = clamp(r * 0.92);
+                    b = clamp(b * 1.12 + 6);
+                    g = clamp(g * 1.02);
+                    break;
+                }
+                case 'warm': {
+                    r = clamp(r * 1.12 + 10);
+                    g = clamp(g * 1.04);
+                    b = clamp(b * 0.88);
+                    break;
+                }
+                case 'bright': {
+                    r = clamp((r-128)*1.06 + 128 + 22);
+                    g = clamp((g-128)*1.06 + 128 + 22);
+                    b = clamp((b-128)*1.06 + 128 + 22);
+                    break;
+                }
+            }
+            d[i] = r; d[i+1] = g; d[i+2] = b;
+        }
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    function drawCollage(){
+        if (photos.length === 0) {
+            canvas.style.display = 'none';
+            document.getElementById('canvasEmpty').style.display = 'block';
+            return;
+        }
+        canvas.style.display = 'block';
+        document.getElementById('canvasEmpty').style.display = 'none';
+
+        ctx.clearRect(0,0,CANVAS_SIZE,CANVAS_SIZE);
+        ctx.fillStyle = '#0d0d12';
+        ctx.fillRect(0,0,CANVAS_SIZE,CANVAS_SIZE);
+
+        const gap = 8;
+        const n = photos.length;
+        // вычисляем прямоугольники под раскладку
+        let rects = [];
+        if (n === 1) {
+            rects = [[0,0,CANVAS_SIZE,CANVAS_SIZE]];
+        } else if (layout === 'horizontal') {
+            const w = (CANVAS_SIZE - gap*(n-1))/n;
+            rects = photos.map((_,i)=>[i*(w+gap),0,w,CANVAS_SIZE]);
+        } else if (layout === 'vertical') {
+            const h = (CANVAS_SIZE - gap*(n-1))/n;
+            rects = photos.map((_,i)=>[0,i*(h+gap),CANVAS_SIZE,h]);
+        } else { // grid
+            if (n === 2) {
+                const w=(CANVAS_SIZE-gap)/2;
+                rects=[[0,0,w,CANVAS_SIZE],[w+gap,0,w,CANVAS_SIZE]];
+            } else { // 3 — одно большое сверху, два снизу
+                const h=(CANVAS_SIZE-gap)/2, w=(CANVAS_SIZE-gap)/2;
+                rects=[[0,0,CANVAS_SIZE,h],[0,h+gap,w,h],[w+gap,h+gap,w,h]];
+            }
+        }
+        // рисуем фото с object-fit:cover
+        photos.forEach((img, i) => {
+            const [x,y,w,h] = rects[i];
+            const ir = img.width/img.height, rr = w/h;
+            let sw,sh,sx,sy;
+            if (ir > rr) { sh=img.height; sw=img.height*rr; sx=(img.width-sw)/2; sy=0; }
+            else { sw=img.width; sh=img.width/rr; sx=0; sy=(img.height-sh)/2; }
+            ctx.drawImage(img, sx,sy,sw,sh, x,y,w,h);
+        });
+        // применяем фильтр попиксельно (надёжно в Safari iOS)
+        applyPixelFilter(ctx, CANVAS_SIZE, CANVAS_SIZE, filter);
+    }
+
+    // загрузка фото
+    document.getElementById('addPhotoBtn').addEventListener('click', () => {
+        if (photos.length >= 3) { toast('Максимум 3 фото'); return; }
+        document.getElementById('photoFileInput').click();
+    });
+    document.getElementById('photoFileInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        // без лимита размера — фото в полном качестве (в памяти, не в localStorage)
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                photos.push(img);
+                updateEditorUI();
+                drawCollage();
+            };
+            img.onerror = () => toast('Не удалось открыть фото');
+            img.src = reader.result;
+        };
+        reader.onerror = () => toast('Не удалось прочитать файл');
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    });
+
+    document.getElementById('clearPhotosBtn').addEventListener('click', () => {
+        photos = []; bubbles = []; renderBubbles();
+        updateEditorUI(); drawCollage();
+        document.getElementById('captionInput').value = '';
+    });
+
+    function updateEditorUI(){
+        document.getElementById('photosCount').innerText = 'Фото: ' + photos.length + ' / 3';
+        const show = photos.length > 0 ? 'block' : 'none';
+        ['filterSection','bubbleSection','captionSection','aiSection'].forEach(id => document.getElementById(id).style.display = show);
+        document.getElementById('gActions').style.display = photos.length>0 ? 'flex' : 'none';
+        document.getElementById('layoutSection').style.display = photos.length > 1 ? 'block' : 'none';
+    }
+
+    // раскладка
+    document.querySelectorAll('.layout-opt').forEach(o => o.addEventListener('click', () => {
+        document.querySelectorAll('.layout-opt').forEach(x => x.classList.remove('on'));
+        o.classList.add('on'); layout = o.dataset.layout; drawCollage();
+    }));
+    // фильтр
+    document.querySelectorAll('.filter-opt').forEach(o => o.addEventListener('click', () => {
+        document.querySelectorAll('.filter-opt').forEach(x => x.classList.remove('on'));
+        o.classList.add('on'); filter = o.dataset.filter; drawCollage();
+    }));
+
+    // ===== Облачка с текстом =====
+    const canvasWrap = document.getElementById('canvasWrap');
+    document.getElementById('bubbleAddBtn').addEventListener('click', () => {
+        const text = document.getElementById('bubbleInput').value.trim();
+        if (!text) { toast('Введи текст облачка'); return; }
+        if (photos.length === 0) { toast('Сначала добавь фото'); return; }
+        bubbles.push({ text, x:0.1, y:0.1 });
+        document.getElementById('bubbleInput').value = '';
+        renderBubbles();
+    });
+
+    function renderBubbles(){
+        // удалить старые DOM-облачка
+        canvasWrap.querySelectorAll('.canvas-bubble').forEach(b => b.remove());
+        bubbles.forEach((b, idx) => {
+            const el = document.createElement('div');
+            el.className = 'canvas-bubble';
+            el.style.left = (b.x*100) + '%';
+            el.style.top = (b.y*100) + '%';
+            el.innerHTML = escapeHtml(b.text) + '<div class="bub-del" data-bub="'+idx+'">×</div>';
+            canvasWrap.appendChild(el);
+            makeBubbleDraggable(el, b);
+        });
+        canvasWrap.querySelectorAll('.bub-del').forEach(el => el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            bubbles.splice(parseInt(el.dataset.bub), 1);
+            renderBubbles();
+        }));
+    }
+
+    function makeBubbleDraggable(el, bub){
+        let dragging = false;
+        function down(e){ dragging = true; e.preventDefault(); }
+        function move(e){
+            if (!dragging) return;
+            const rect = canvasWrap.getBoundingClientRect();
+            const cx = (e.touches?e.touches[0].clientX:e.clientX) - rect.left;
+            const cy = (e.touches?e.touches[0].clientY:e.clientY) - rect.top;
+            bub.x = Math.max(0, Math.min(0.8, cx/rect.width));
+            bub.y = Math.max(0, Math.min(0.9, cy/rect.height));
+            el.style.left = (bub.x*100)+'%'; el.style.top = (bub.y*100)+'%';
+            e.preventDefault();
+        }
+        function up(){ dragging = false; }
+        el.addEventListener('mousedown', down); window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+        el.addEventListener('touchstart', down, {passive:false}); window.addEventListener('touchmove', move, {passive:false}); window.addEventListener('touchend', up);
+    }
+
+    // ===== Финальная отрисовка (фото + облачка) для сохранения/шеринга =====
+    function renderFinal(){
+        drawCollage(); // фото с фильтром
+        // дорисовываем облачка
+        bubbles.forEach(b => {
+            const x = b.x*CANVAS_SIZE, y = b.y*CANVAS_SIZE;
+            ctx.font = 'bold 34px -apple-system, sans-serif';
+            const metrics = ctx.measureText(b.text);
+            const padX=20, padY=14, tw=Math.min(metrics.width, CANVAS_SIZE*0.55), th=40;
+            ctx.fillStyle = '#fff';
+            // скруглённый прямоугольник
+            const rx=x, ry=y, rw=tw+padX*2, rh=th+padY;
+            ctx.beginPath();
+            ctx.roundRect(rx, ry, rw, rh, 18);
+            ctx.fill();
+            // хвостик
+            ctx.beginPath(); ctx.moveTo(rx+30, ry+rh); ctx.lineTo(rx+44, ry+rh); ctx.lineTo(rx+30, ry+rh+14); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#1a1a22';
+            ctx.fillText(b.text, rx+padX, ry+padY+26, CANVAS_SIZE*0.55);
+        });
+        // подпись снизу
+        const caption = document.getElementById('captionInput').value.trim();
+        if (caption) {
+            ctx.fillStyle = 'rgba(0,0,0,0.55)';
+            ctx.fillRect(0, CANVAS_SIZE-70, CANVAS_SIZE, 70);
+            ctx.fillStyle = '#fff';
+            ctx.font = '28px -apple-system, sans-serif';
+            ctx.fillText(caption, 24, CANVAS_SIZE-28, CANVAS_SIZE-48);
+        }
+    }
+
+    // ===== Сохранение в альбом =====
+    const ALBUM_KEY = 'focus_gallery_album';
+    function getAlbum(){ try { return JSON.parse(localStorage.getItem(ALBUM_KEY))||[]; } catch(e){ return []; } }
+    function saveAlbum(a){ localStorage.setItem(ALBUM_KEY, JSON.stringify(a)); }
+
+    document.getElementById('saveToAlbumBtn').addEventListener('click', () => {
+        if (photos.length === 0) { toast('Добавь фото'); return; }
+        renderFinal();
+        // в альбом — сжатое превью (localStorage маленький; полное качество — через "Поделиться/Скачать")
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        const album = getAlbum();
+        album.push({ id:Date.now(), img:dataUrl, date:new Date().toISOString() });
+        try {
+            saveAlbum(album);
+            toast('✓ Сохранено в альбом (для полного качества — «Поделиться»)');
+        } catch(err) {
+            album.pop();
+            toast('Альбом заполнен. Скачай фото через «Поделиться» или удали старые');
+        }
+    });
+
+    // ===== Поделиться =====
+    document.getElementById('shareBtn').addEventListener('click', async () => {
+        if (photos.length === 0) { toast('Добавь фото'); return; }
+        renderFinal();
+        canvas.toBlob(async (blob) => {
+            const file = new File([blob], 'focus-photo.jpg', { type:'image/jpeg' });
+            if (navigator.canShare && navigator.canShare({ files:[file] })) {
+                try { await navigator.share({ files:[file], text:'Создано в FOCUS 🎯' }); }
+                catch(e){}
+            } else {
+                // фолбэк — скачать
+                const a = document.createElement('a');
+                a.href = canvas.toDataURL('image/jpeg', 0.8);
+                a.download = 'focus-photo.jpg'; a.click();
+                toast('Фото скачано — делись в любой соцсети');
+            }
+        }, 'image/jpeg', 0.8);
+    });
+
+    // ИИ-обработка — заглушка
+    document.getElementById('aiEditBtn').addEventListener('click', () => {
+        toast('ИИ-обработка фото (убрать фон, улучшить) появится позже — это отдельная модель');
+    });
+
+    // ===== Альбом =====
+    function renderAlbum(){
+        const grid = document.getElementById('albumGrid');
+        const album = getAlbum();
+        if (album.length === 0) {
+            grid.innerHTML = '<div class="album-empty">📸 Альбом пуст.<br>Создай первый коллаж в редакторе.</div>';
+            return;
+        }
+        grid.innerHTML = '';
+        album.slice().reverse().forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'album-item';
+            div.innerHTML = `<img src="${item.img}"><div class="al-del" data-del="${item.id}">×</div>`;
+            grid.appendChild(div);
+        });
+        grid.querySelectorAll('.al-del').forEach(el => el.addEventListener('click', () => {
+            const album2 = getAlbum().filter(x => String(x.id) !== String(el.dataset.del));
+            saveAlbum(album2); renderAlbum();
+            toast('Удалено');
+        }));
+    }
+
+    updateEditorUI();
+    drawCollage();
+
+</script>
+<script src="focus-chat-fab.js"></script>
+<script>
+    if ("serviceWorker" in navigator) { window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }); }
+</script>
+</body>
+</html>

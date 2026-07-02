@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тест ИИ воркера</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background:#131319; color:#e8e8ee; padding:20px; max-width:600px; margin:0 auto; }
+  h1 { color:#FFD966; font-size:20px; }
+  button { background:linear-gradient(135deg,#FFD966,#7C8CFF); color:#0a0a0f; border:none; padding:14px 24px; border-radius:12px; font-size:16px; font-weight:700; cursor:pointer; width:100%; margin:10px 0; }
+  .result { background:rgba(0,0,0,0.4); border:1px solid rgba(124,140,255,0.3); border-radius:12px; padding:16px; margin-top:16px; font-size:13px; white-space:pre-wrap; word-break:break-word; line-height:1.5; }
+  .ok { border-color:#78DC96; color:#78DC96; }
+  .err { border-color:#ff6b6b; color:#ff9b9b; }
+  .step { font-size:12px; color:#9a9aab; margin:8px 0; }
+</style>
+</head>
+<body>
+<h1>🔬 Тест ИИ-воркера FOCUS</h1>
+<p class="step">Эта страница напрямую проверяет твой воркер и покажет точную причину если что-то не так.</p>
+
+<button onclick="testGet()">1. Проверить что воркер живой (GET)</button>
+<button onclick="testPost()">2. Отправить запрос к ИИ (POST «привет»)</button>
+
+<div id="result" class="result">Нажми кнопку выше для теста...</div>
+
+<script>
+const WORKER = 'https://focus-ai.playing-life-rama.workers.dev';
+const box = document.getElementById('result');
+
+async function testGet(){
+  box.className = 'result';
+  box.innerText = 'Проверяю воркер (GET)...';
+  try {
+    const res = await fetch(WORKER, { method: 'GET' });
+    const text = await res.text();
+    box.className = 'result ok';
+    box.innerText = '✓ Воркер ответил (статус ' + res.status + '):\n\n' + text + '\n\nЕсли тут «Только POST» — воркер ЖИВОЙ, всё ок с ним.';
+  } catch(e){
+    box.className = 'result err';
+    box.innerText = '✗ Воркер НЕ ответил на GET:\n\n' + e.message + '\n\nЗначит воркер недоступен по этому адресу.';
+  }
+}
+
+async function testPost(){
+  box.className = 'result';
+  box.innerText = 'Отправляю «привет» к ИИ через воркер...\n(это реальный запрос к DeepSeek)';
+  try {
+    const res = await fetch(WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [{ role:'user', content:'привет, ответь одним словом' }] })
+    });
+    const raw = await res.text();
+    let data;
+    try { data = JSON.parse(raw); } catch(e){ data = null; }
+
+    if (res.ok && data && data.ok && data.reply) {
+      box.className = 'result ok';
+      box.innerText = '🎉 ИИ РАБОТАЕТ! Ответ DeepSeek:\n\n"' + data.reply + '"\n\nЗначит воркер+ключ+баланс — всё ОК. Проблема была в приложении (старый код/кэш).';
+    } else {
+      box.className = 'result err';
+      box.innerText = '✗ ИИ вернул ошибку (статус ' + res.status + '):\n\n' + raw + '\n\n' +
+        '── Расшифровка ──\n' +
+        (res.status === 401 ? '401 = КЛЮЧ неправильный. Проверь DEEPSEEK_KEY в Cloudflare.' :
+         res.status === 402 ? '402 = НЕТ БАЛАНСА на DeepSeek.' :
+         res.status === 400 ? '400 = проблема запроса (возможно МОДЕЛЬ не та).' :
+         res.status === 404 ? '404 = МОДЕЛЬ не найдена. Смени модель в воркере.' :
+         res.status === 502 ? '502 = DeepSeek вернул ошибку (смотри detail выше).' :
+         'Смотри текст ошибки выше.');
+    }
+  } catch(e){
+    box.className = 'result err';
+    box.innerText = '✗ НЕ удалось соединиться с воркером (POST):\n\n' + e.message + '\n\n' +
+      'Это значит:\n' +
+      '• либо воркер не пускает запросы (CORS)\n' +
+      '• либо адрес воркера неправильный\n' +
+      '• либо блокировка сети/VPN';
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="original" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FOCUS">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>О себе — FOCUS</title>
+<style>
+    :root, [data-theme="original"] { --accent:#FFD966; --accent-rgb:255,217,102; --accent-2:#7C8CFF; --accent-2-rgb:124,140,255; --accent-light:#FFE9A8; --accent-dark:#C9952E; --bg-1:#131319; --bg-2:#0d0d12; --text-strong:#FFFFFF; }
+    [data-theme="tron"] { --accent:#FF3B2E; --accent-rgb:255,59,46; --accent-2:#00E5FF; --accent-2-rgb:0,229,255; --accent-light:#FF8A6B; --accent-dark:#B8201A; --bg-1:#0a0a0d; --bg-2:#000000; --text-strong:#FFFFFF; }
+    [data-theme="predator"] { --accent:#FF7A1A; --accent-rgb:255,122,26; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#FFB347; --accent-dark:#B84D00; --bg-1:#0d120d; --bg-2:#050705; --text-strong:#FFFFFF; }
+    [data-theme="mk"] { --accent:#FF1A2E; --accent-rgb:255,26,46; --accent-2:#FFD700; --accent-2-rgb:255,215,0; --accent-light:#FF6B5C; --accent-dark:#8A0000; --bg-1:#14080a; --bg-2:#050202; --text-strong:#FFFFFF; }
+    [data-theme="matrix"] { --accent:#00FF41; --accent-rgb:0,255,65; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#7FFF9E; --accent-dark:#008F25; --bg-1:#050505; --bg-2:#000000; --text-strong:#FFFFFF; }
+    .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
+    @keyframes mkShake { 0%,100%{transform:translate(0,0);} 15%{transform:translate(-4px,2px) rotate(-0.4deg);} 30%{transform:translate(4px,-2px) rotate(0.4deg);} 45%{transform:translate(-3px,1px);} 60%{transform:translate(3px,-1px);} 75%{transform:translate(-2px,0);} }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif; background:#060608; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:12px; position:relative; overflow:hidden; }
+    body::before { content:''; position:fixed; width:600px; height:600px; background:radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%); top:10%; left:50%; transform:translateX(-50%); pointer-events:none; animation:ambientDrift 12s ease-in-out infinite; }
+    @keyframes ambientDrift { 0%,100%{opacity:.6;transform:translateX(-50%) scale(1);} 50%{opacity:1;transform:translateX(-50%) scale(1.15);} }
+    .phone { width:375px; height:700px; background:linear-gradient(165deg, var(--bg-1) 0%, var(--bg-2) 100%); border-radius:52px; box-shadow:0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--accent-rgb),0.06), 0 0 0 8px #1c1c24, 0 0 0 9px rgba(var(--accent-rgb),0.08), 0 0 60px rgba(var(--accent-rgb),0.04); overflow:hidden; display:flex; flex-direction:column; position:relative; }
+    .phone::before { content:''; position:absolute; inset:0; z-index:0; opacity:0.1; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    .phone::after { content:''; position:absolute; top:0; left:6%; right:6%; height:1px; background:linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.3), transparent); z-index:0; }
+    #atmosCanvas { position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:52px; }
+
+    .screen { flex:1; padding:18px 18px 12px; display:flex; flex-direction:column; height:100%; overflow:hidden; position:relative; z-index:1; }
+
+    .header-row { display:flex; align-items:center; gap:12px; margin-bottom:11px; }
+    .back-btn { width:36px; height:36px; border-radius:30px; background:rgba(var(--accent-rgb),0.07); border:1px solid rgba(var(--accent-rgb),0.2); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:0.3s ease; flex-shrink:0; }
+    .back-btn:active { transform:scale(0.92); }
+    .back-btn svg { width:16px; height:16px; color:var(--accent); }
+    .title { font-size:21px; font-weight:700; letter-spacing:0.2px; background:linear-gradient(135deg, var(--text-strong) 20%, var(--accent) 70%, var(--accent-dark) 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .title-icon { width:30px; height:30px; flex-shrink:0; border-radius:9px; background:radial-gradient(circle at 35% 30%, rgba(255,138,92,0.3), rgba(255,138,92,0.06)); border:0.5px solid rgba(255,138,92,0.4); display:flex; align-items:center; justify-content:center; margin-left:auto; }
+    .title-icon svg { width:17px; height:17px; color:#FF8A5C; }
+
+    /* Карточка метрик */
+    .metrics-card { background:linear-gradient(135deg, rgba(var(--accent-rgb),0.09), rgba(var(--accent-2-rgb),0.05)); border:1px solid rgba(var(--accent-rgb),0.22); border-radius:18px; padding:20px 16px; margin-bottom:12px; cursor:pointer; position:relative; overflow:hidden; transition:0.25s ease; }
+    .metrics-card::before { content:''; position:absolute; top:0; left:0; width:55px; height:4px; background:linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius:18px 0 8px 0; box-shadow:0 0 12px rgba(var(--accent-rgb),0.5); }
+    .metrics-card:active { transform:scale(0.98); }
+    .metrics-title { font-size:11px; font-weight:700; color:var(--accent-2); letter-spacing:0.3px; margin-bottom:16px; }
+    .metrics-grid { display:flex; justify-content:space-between; gap:10px; }
+    .metric { flex:1; text-align:center; }
+    .metric-label { font-size:11px; color:#9a9aab; margin-bottom:6px; }
+    .metric-value { font-size:26px; font-weight:700; color:#fff; line-height:1.1; }
+    .metric-unit { font-size:11px; color:#9a9aab; font-weight:500; }
+    .metric-divider { width:0.5px; background:rgba(255,255,255,0.1); }
+    .bmi-badge { display:inline-block; margin-top:3px; padding:1px 9px; border-radius:20px; font-size:9px; font-weight:700; background:rgba(120,220,150,0.18); color:#78DC96; border:0.5px solid rgba(120,220,150,0.3); }
+    .metrics-more { text-align:right; margin-top:14px; font-size:10px; color:var(--accent); opacity:0.75; font-weight:600; }
+
+    /* Подразделы */
+    .subsections { flex:1; overflow:hidden; }
+    .subsections::-webkit-scrollbar { display:none; }
+    .subsection-tile { display:flex; align-items:center; gap:12px; background:linear-gradient(135deg, rgba(35,35,46,0.55), rgba(22,22,30,0.55)); border:0.5px solid rgba(var(--accent-rgb),0.13); border-radius:14px; padding:9px 13px; margin-bottom:7px; cursor:pointer; transition:0.25s cubic-bezier(.2,.8,.2,1); position:relative; overflow:hidden; }
+    .subsection-tile::before { content:''; position:absolute; top:0; left:0; right:0; height:50%; background:linear-gradient(180deg, rgba(255,255,255,0.03), transparent); pointer-events:none; border-radius:15px 15px 0 0; }
+    .subsection-tile:active { transform:scale(0.98); }
+    .subsection-icon { width:38px; height:38px; flex-shrink:0; border-radius:11px; background:radial-gradient(circle at 35% 30%, rgba(var(--accent-rgb),0.16), rgba(var(--accent-rgb),0.04)); border:0.5px solid rgba(var(--accent-rgb),0.2); display:flex; align-items:center; justify-content:center; }
+    .subsection-icon svg { width:19px; height:19px; color:var(--accent); }
+    .subsection-info { flex:1; min-width:0; }
+    .subsection-title { font-size:13px; font-weight:700; color:#fff; margin-bottom:1px; }
+    .subsection-desc { font-size:9.5px; color:#9a9aab; line-height:1.3; }
+    .subsection-arrow { color:var(--accent); opacity:0.5; flex-shrink:0; }
+    .subsection-arrow svg { width:16px; height:16px; }
+
+    /* Цвета иконок подразделов */
+    .tile-gratitude .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,138,92,0.26), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,138,92,0.4); }
+    .tile-gratitude .subsection-icon svg { color:#FF8A5C; }
+    .tile-prayer .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,217,102,0.3), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,217,102,0.4); }
+    .tile-prayer .subsection-icon svg { color:var(--accent); }
+    .tile-temple .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(170,185,255,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(170,185,255,0.4); }
+    .tile-temple .subsection-icon svg { color:#AAB9FF; }
+    .tile-habits .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(120,220,150,0.26), rgba(var(--accent-rgb),0.04)); border-color:rgba(120,220,150,0.4); }
+    .tile-habits .subsection-icon svg { color:#78DC96; }
+    .tile-wish .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(200,170,255,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(200,170,255,0.4); }
+    .tile-wish .subsection-icon svg { color:#C8AAFF; }
+    .tile-nutrition .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(120,220,150,0.26), rgba(var(--accent-rgb),0.04)); border-color:rgba(120,220,150,0.4); }
+    .tile-nutrition .subsection-icon svg { color:#78DC96; }
+    .tile-workout .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,140,80,0.3), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,160,100,0.4); }
+    .tile-workout .subsection-icon svg { color:#FF9C64; }
+    .tile-training .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(150,170,255,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(170,185,255,0.4); }
+    .tile-training .subsection-icon svg { color:#AAB9FF; }
+    .tile-stats .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(200,170,255,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(200,170,255,0.4); }
+    .tile-stats .subsection-icon svg { color:#C8AAFF; }
+    .tile-meds .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,150,180,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,170,195,0.4); }
+    .tile-meds .subsection-icon svg { color:#FFAAC9; }
+    .tile-supp .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,138,92,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,150,110,0.4); }
+    .tile-supp .subsection-icon svg { color:#FF8A5C; }
+
+    /* Таб-бар */
+    .tab-bar { display:flex; justify-content:space-around; align-items:center; padding:6px 0 4px; background:rgba(18,18,24,0.9); backdrop-filter:blur(20px); border:0.5px solid rgba(255,255,255,0.06); margin-top:8px; border-radius:26px; flex-shrink:0; }
+    .tab-item { display:flex; flex-direction:column; align-items:center; gap:3px; color:#6e6e7e; font-size:9px; font-weight:600; cursor:pointer; padding:5px 14px; border-radius:20px; transition:0.25s ease; }
+    .tab-item.active { color:var(--accent); background:rgba(var(--accent-rgb),0.1); }
+    .tab-item svg { width:19px; height:19px; }
+
+    .toast { position:absolute; bottom:74px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,0.9); border:1px solid var(--accent); border-radius:20px; padding:9px 18px; color:var(--accent); font-size:12px; font-weight:600; z-index:500; opacity:0; transition:0.3s ease; pointer-events:none; white-space:nowrap; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* PWA-режим (установлено на телефон): на весь реальный экран, без макетной рамки */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; overflow: hidden !important; }
+    .phone {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding-top: env(safe-area-inset-top) !important;
+        padding-bottom: env(safe-area-inset-bottom) !important;
+        max-width: 100vw !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, #atmos, .atmos-canvas { border-radius: 0 !important; }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important;
+    }
+}
+
+/* Телефоны: приложение на весь экран без макетной рамки (надёжно, не зависит от PWA-режима) */
+@media (max-width: 600px) {
+    * { -webkit-user-select: none !important; user-select: none !important; -webkit-tap-highlight-color: transparent !important; }
+    input, textarea { -webkit-user-select: text !important; user-select: text !important; }
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; height: 100vh; height: 100dvh; display: block !important; }
+    body { display: flex !important; align-items: stretch !important; justify-content: flex-start !important; }
+    .phone {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    /* анимация/фон идут до самого верха под чёлку */
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important; border-radius: 0 !important;
+    }
+    /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
+    .screen, .session-area, .slideshow, .scroll-area {
+        padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+    }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+}
+
+    /* ===== О СЕБЕ ===== */
+    .scroll-area { flex:1; overflow-y:auto; scrollbar-width:none; }
+    .scroll-area::-webkit-scrollbar { display:none; }
+    .about-intro { background:linear-gradient(135deg, rgba(var(--accent-2-rgb),0.1), rgba(var(--accent-rgb),0.04)); border:1px solid rgba(var(--accent-2-rgb),0.25); border-radius:15px; padding:13px 14px; margin-bottom:14px; }
+    .about-intro-title { font-size:14px; font-weight:700; color:#fff; margin-bottom:4px; }
+    .about-intro-sub { font-size:11px; color:#9a9aab; line-height:1.5; }
+    .block { margin-bottom:13px; }
+    .block-label { font-size:11.5px; color:var(--accent); font-weight:700; margin-bottom:7px; display:flex; align-items:center; gap:7px; }
+    .block-label .em { font-size:14px; }
+    .block-input { width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(var(--accent-rgb),0.16); border-radius:12px; padding:12px 14px; color:#fff; font-size:13px; font-family:inherit; outline:none; resize:none; min-height:70px; line-height:1.5; }
+    .block-input:focus { border-color:var(--accent-2); }
+    .block-input::placeholder { color:#6e6e7e; line-height:1.5; }
+    .tone-section { background:rgba(0,0,0,0.2); border-radius:13px; padding:13px; margin:16px 0 13px; }
+    .tone-title { font-size:12px; font-weight:700; color:#fff; margin-bottom:9px; }
+    .tone-switch { display:flex; gap:8px; }
+    .tone-opt { flex:1; padding:11px 8px; border-radius:11px; text-align:center; font-size:12px; font-weight:700; cursor:pointer; background:rgba(255,255,255,0.05); color:#9a9aab; border:1px solid transparent; transition:0.2s; }
+    .tone-opt.on { background:rgba(var(--accent-2-rgb),0.16); color:var(--accent-2); border-color:rgba(var(--accent-2-rgb),0.4); }
+    .tone-desc { font-size:10px; color:#8e8e9e; margin-top:8px; line-height:1.4; text-align:center; }
+    .consent-box { background:rgba(255,200,90,0.07); border:1px solid rgba(255,200,90,0.22); border-radius:13px; padding:13px; margin-bottom:13px; }
+    .consent-title { font-size:11.5px; font-weight:700; color:#FFD98A; margin-bottom:7px; }
+    .consent-text { font-size:10px; color:#b8b8c8; line-height:1.6; margin-bottom:10px; }
+    .consent-check { display:flex; align-items:flex-start; gap:9px; cursor:pointer; }
+    .consent-checkbox { width:20px; height:20px; border-radius:6px; border:1.5px solid rgba(var(--accent-rgb),0.4); flex-shrink:0; display:flex; align-items:center; justify-content:center; margin-top:1px; transition:0.2s; }
+    .consent-checkbox.on { background:var(--accent); border-color:var(--accent); }
+    .consent-checkbox svg { width:13px; height:13px; color:#0a0a0f; opacity:0; }
+    .consent-checkbox.on svg { opacity:1; }
+    .consent-label { font-size:11px; color:#d8d8e0; line-height:1.4; }
+    .analyze-btn { padding:15px; border-radius:15px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; font-weight:700; font-size:14px; text-align:center; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:8px; }
+    .analyze-btn svg { width:18px; height:18px; }
+    .analyze-btn:active { transform:scale(0.98); }
+    .analyze-btn.disabled { opacity:0.45; pointer-events:none; }
+    .save-hint { font-size:10px; color:#78DC96; text-align:center; margin-bottom:14px; min-height:13px; }
+    .analysis-result { background:linear-gradient(135deg, rgba(var(--accent-2-rgb),0.1), rgba(var(--accent-rgb),0.04)); border:1px solid rgba(var(--accent-2-rgb),0.25); border-radius:15px; padding:15px; margin-bottom:14px; display:none; }
+    .analysis-result.show { display:block; }
+    .analysis-title { font-size:13px; font-weight:700; color:var(--accent-2); margin-bottom:10px; display:flex; align-items:center; gap:7px; }
+    .analysis-text { font-size:12px; color:#d8d8e0; line-height:1.7; }
+    .analysis-note { font-size:10px; color:#8e8e9e; margin-top:12px; padding-top:12px; border-top:0.5px solid rgba(255,255,255,0.08); line-height:1.5; }
+    .help-resources { background:rgba(120,170,255,0.08); border:1px solid rgba(120,170,255,0.25); border-radius:12px; padding:12px; margin-bottom:14px; }
+    .help-title { font-size:11.5px; font-weight:700; color:#AAB9FF; margin-bottom:6px; }
+    .help-text { font-size:10.5px; color:#b8b8c8; line-height:1.6; }
+    .toast { position:absolute; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,0.9); border:1px solid var(--accent); border-radius:16px; padding:11px 18px; color:var(--accent); font-size:12px; font-weight:600; z-index:500; opacity:0; transition:0.3s ease; pointer-events:none; max-width:300px; width:max-content; text-align:center; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+</style>
+<script src="focus-analytics.js"></script>
+<body>
+<div class="phone">
+    <canvas id="atmosCanvas" width="375" height="700" style="width:375px;height:700px;"></canvas>
+    <div class="screen">
+        <div class="header-row">
+            <div class="back-btn" onclick="location.href='fokus_profile.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <div class="title">О себе</div>
+            <div class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5.5 21a7 7 0 0 1 13 0"/></svg></div>
+        </div>
+
+        <div class="scroll-area">
+            <div class="about-intro">
+                <div class="about-intro-title">🪞 Познай себя</div>
+                <div class="about-intro-sub">Опиши свою историю и то, что для тебя важно. Это пространство только для тебя. ИИ бережно поможет разобраться в себе, подсветит сильные стороны и подскажет, куда расти.</div>
+            </div>
+
+            <div class="block">
+                <div class="block-label"><span class="em">📖</span> Моя история</div>
+                <textarea class="block-input" id="b_story" placeholder="Кто ты? Как ты себя видишь? Что для тебя важно в жизни..."></textarea>
+            </div>
+            <div class="block">
+                <div class="block-label"><span class="em">⭐</span> Ключевые моменты жизни</div>
+                <textarea class="block-input" id="b_moments" placeholder="События, которые тебя сформировали — хорошие и трудные..."></textarea>
+            </div>
+            <div class="block">
+                <div class="block-label"><span class="em">👪</span> Отношения с родителями</div>
+                <textarea class="block-input" id="b_parents" placeholder="Какими были/есть отношения с родителями, что вынес из семьи..."></textarea>
+            </div>
+            <div class="block">
+                <div class="block-label"><span class="em">❤️</span> Отношения с партнёрами</div>
+                <textarea class="block-input" id="b_relations" placeholder="Твой опыт в отношениях, что важно, что повторяется..."></textarea>
+            </div>
+            <div class="block">
+                <div class="block-label"><span class="em">🌫️</span> Мои страхи и тревоги</div>
+                <textarea class="block-input" id="b_fears" placeholder="Чего боишься, что тревожит, что мешает двигаться..."></textarea>
+            </div>
+            <div class="block">
+                <div class="block-label"><span class="em">🌟</span> Мечты и цели</div>
+                <textarea class="block-input" id="b_dreams" placeholder="К чему стремишься, каким хочешь стать..."></textarea>
+            </div>
+            <div class="block">
+                <div class="block-label"><span class="em">✍️</span> Свободно — что ещё хочешь сказать</div>
+                <textarea class="block-input" id="b_free" placeholder="Всё, что не вошло выше. Пиши как есть..."></textarea>
+            </div>
+
+            <div class="tone-section">
+                <div class="tone-title">Как тебе дать разбор?</div>
+                <div class="tone-switch">
+                    <div class="tone-opt on" data-tone="support">🤝 Поддержка</div>
+                    <div class="tone-opt" data-tone="direct">💬 Прямо и честно</div>
+                </div>
+                <div class="tone-desc" id="toneDesc">Бережно, с акцентом на сильные стороны и опору</div>
+            </div>
+
+            <div class="consent-box">
+                <div class="consent-title">⚠️ Важно понимать</div>
+                <div class="consent-text">Разбор от ИИ — это инструмент для самопознания, а не медицинская или психологическая помощь и не диагноз. ИИ может ошибаться. При серьёзных переживаниях обратись к специалисту. Твои записи приватны и используются только для разбора.</div>
+                <div class="consent-check" id="consentCheck">
+                    <div class="consent-checkbox" id="consentBox">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                    </div>
+                    <div class="consent-label">Я понимаю и соглашаюсь. Хочу получить разбор от ИИ.</div>
+                </div>
+            </div>
+
+            <div class="analyze-btn disabled" id="analyzeBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+                Получить разбор от ИИ
+            </div>
+            <div class="save-hint" id="saveHint"></div>
+
+            <div class="analysis-result" id="analysisResult">
+                <div class="analysis-title">🪞 Твой разбор</div>
+                <div class="analysis-text" id="analysisText"></div>
+                <div class="analysis-note" id="analysisNote"></div>
+            </div>
+        </div>
+    </div>
+    <div class="toast" id="toast"></div>
+</div>
+
+<script src="focus-storage.js"></script>
+<script src="focus-ai.js"></script>
+<script type="module" src="firebase-auth-helper.js"></script>
+<script src="focus-core.js"></script>
+<script>
+    if (typeof FocusStorage === 'undefined') {
+        window.FocusStorage = {
+            _key:'focus_user',
+            getUser(){ try { return JSON.parse(localStorage.getItem(this._key)) || {}; } catch(e){ return {}; } },
+            saveUser(p){ const c=this.getUser(); const m={...c,...p}; localStorage.setItem(this._key, JSON.stringify(m)); return m; },
+            getTheme(){ return this.getUser().theme || 'original'; },
+            setTheme(id){ this.saveUser({ theme:id }); }
+        };
+    }
+    if (typeof FocusCore === 'undefined') {
+        window.FocusCore = {
+            applyStoredTheme(){ (document.getElementById('htmlRoot')||document.documentElement).setAttribute('data-theme', FocusStorage.getTheme()); },
+initAtmosphere(canvasId) {
+                const ac = document.getElementById(canvasId || 'atmosCanvas');
+                if (!ac) return;
+                const actx = ac.getContext('2d');
+                ac.width = 375; ac.height = 700;
+                let tronPulses=[], mkEmbers=[], mkDrips=[], mkFlash=0, mkBolt=null, matrixDrops=null, matrixColumns=0;
+                let predatorRadarAngle=0, predatorScanY=0, predatorT=0, predatorBlips=[{a:1.2,r:0.7},{a:3.8,r:0.5}], predatorReticle=null;
+                const matrixChars = 'アイウエオカキクケコサシスセソ0123456789ABCDEF'.split('');
+                let lastTheme=null, lastTrigger=0, washT=0;
+                function currentTheme() { const r = document.getElementById('htmlRoot') || document.documentElement; return r.getAttribute('data-theme') || 'original'; }
+                function cssColor(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function cssColorRgb(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function drawFullScreenWash() {
+                    washT += 0.008;
+                    const accRgb = cssColorRgb('--accent-rgb'), acc2Rgb = cssColorRgb('--accent-2-rgb');
+                    const x = ac.width*(0.5+Math.sin(washT)*0.5), y = ac.height*(0.5+Math.cos(washT*0.7)*0.5);
+                    const grad = actx.createRadialGradient(x,y,0,ac.width/2,ac.height/2,Math.max(ac.width,ac.height)*0.9);
+                    grad.addColorStop(0,'rgba('+accRgb+',0.05)'); grad.addColorStop(0.5,'rgba('+acc2Rgb+',0.035)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+                    actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                }
+                function drawTron() {
+                    if (Math.random() > 0.93) {
+                        const vertical = Math.random() > 0.5;
+                        tronPulses.push({ vertical, pos: Math.floor(Math.random()*(vertical?ac.width:ac.height)), t:-40, speed:3+Math.random()*2, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2'), len:60 });
+                    }
+                    tronPulses.forEach(p => {
+                        p.t += p.speed;
+                        const grad = p.vertical ? actx.createLinearGradient(p.pos,p.t-p.len,p.pos,p.t) : actx.createLinearGradient(p.t-p.len,p.pos,p.t,p.pos);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,p.color);
+                        actx.strokeStyle = grad; actx.lineWidth=2; actx.shadowBlur=8; actx.shadowColor=p.color;
+                        actx.beginPath();
+                        if (p.vertical) { actx.moveTo(p.pos,p.t-p.len); actx.lineTo(p.pos,p.t); } else { actx.moveTo(p.t-p.len,p.pos); actx.lineTo(p.t,p.pos); }
+                        actx.stroke();
+                    });
+                    actx.shadowBlur=0;
+                    tronPulses = tronPulses.filter(p => p.t < Math.max(ac.width,ac.height)+40);
+                }
+                function drawPredator() {
+                    predatorT += 0.01;
+                    for (let i=0;i<5;i++) {
+                        const x = ac.width/2+Math.sin(predatorT+i*2)*ac.width*0.35, y = ac.height/2+Math.cos(predatorT*0.7+i*1.7)*ac.height*0.4;
+                        const r = 60+Math.sin(predatorT*2+i)*20;
+                        const grad = actx.createRadialGradient(x,y,0,x,y,r);
+                        grad.addColorStop(0,'rgba('+cssColorRgb('--accent-rgb')+',0.05)'); grad.addColorStop(1,'rgba('+cssColorRgb('--accent-rgb')+',0)');
+                        actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                    }
+                    predatorScanY += 1.8; if (predatorScanY > ac.height+20) predatorScanY=-20;
+                    const acc2 = cssColorRgb('--accent-2-rgb');
+                    const lineGrad = actx.createLinearGradient(0,predatorScanY-15,0,predatorScanY+15);
+                    lineGrad.addColorStop(0,'rgba('+acc2+',0)'); lineGrad.addColorStop(0.5,'rgba('+acc2+',0.35)'); lineGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.fillStyle = lineGrad; actx.fillRect(0,predatorScanY-15,ac.width,30);
+                    actx.strokeStyle='rgba('+acc2+',0.5)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.moveTo(0,predatorScanY); actx.lineTo(ac.width,predatorScanY); actx.stroke();
+                    const rcx=ac.width-46, rcy=64, rr=34;
+                    actx.save();
+                    actx.strokeStyle='rgba('+acc2+',0.4)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.arc(rcx,rcy,rr,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.arc(rcx,rcy,rr*0.6,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx-rr,rcy); actx.lineTo(rcx+rr,rcy); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx,rcy-rr); actx.lineTo(rcx,rcy+rr); actx.stroke();
+                    predatorRadarAngle += 0.05;
+                    const sweepGrad = actx.createLinearGradient(rcx,rcy,rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr);
+                    sweepGrad.addColorStop(0,'rgba('+acc2+',0.6)'); sweepGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.strokeStyle = sweepGrad; actx.lineWidth=2;
+                    actx.beginPath(); actx.moveTo(rcx,rcy); actx.lineTo(rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr); actx.stroke();
+                    predatorBlips.forEach(b => {
+                        const bx=rcx+Math.cos(b.a)*rr*b.r, by=rcy+Math.sin(b.a)*rr*b.r;
+                        const diff = Math.abs(((predatorRadarAngle%(Math.PI*2))-b.a+Math.PI*3)%(Math.PI*2)-Math.PI);
+                        const blipAlpha = diff<0.5 ? 1-diff/0.5 : 0;
+                        if (blipAlpha>0) { actx.fillStyle='rgba('+acc2+','+blipAlpha+')'; actx.beginPath(); actx.arc(bx,by,2,0,Math.PI*2); actx.fill(); }
+                    });
+                    actx.restore();
+                    if (Math.random()>0.992 && !predatorReticle) predatorReticle = { x:40+Math.random()*(ac.width-80), y:90+Math.random()*(ac.height-220), life:1 };
+                    if (predatorReticle) {
+                        predatorReticle.life -= 0.012;
+                        if (predatorReticle.life<=0) predatorReticle=null;
+                        else {
+                            const a = Math.min(predatorReticle.life>0.85?(1-predatorReticle.life)/0.15:1,1) * Math.min(predatorReticle.life/0.15,1);
+                            const size = 22+(1-Math.min(predatorReticle.life,1))*6;
+                            actx.save(); actx.globalAlpha=a; actx.strokeStyle=cssColor('--accent'); actx.lineWidth=1.3;
+                            actx.beginPath(); actx.arc(predatorReticle.x,predatorReticle.y,size,0,Math.PI*2); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x-size-6,predatorReticle.y); actx.lineTo(predatorReticle.x-size+4,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x+size-4,predatorReticle.y); actx.lineTo(predatorReticle.x+size+6,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y-size-6); actx.lineTo(predatorReticle.x,predatorReticle.y-size+4); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y+size-4); actx.lineTo(predatorReticle.x,predatorReticle.y+size+6); actx.stroke();
+                            actx.font='8px monospace'; actx.fillStyle=cssColor('--accent'); actx.fillText('LOCKED', predatorReticle.x-16, predatorReticle.y+size+14);
+                            actx.restore();
+                        }
+                    }
+                }
+                function drawMK() {
+                    const phoneEl = document.querySelector('.phone');
+                    if (Math.random()>0.4) mkEmbers.push({ x:Math.random()*ac.width, y:ac.height+10, vx:(Math.random()-0.5)*0.6, vy:-0.6-Math.random()*1.2, size:1+Math.random()*2, life:1, decay:0.004+Math.random()*0.006, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2') });
+                    mkEmbers.forEach(e => {
+                        e.x+=e.vx; e.y+=e.vy; e.life-=e.decay;
+                        const fade=Math.max(e.life,0); actx.globalAlpha=fade; actx.fillStyle=e.color; actx.shadowBlur=6; actx.shadowColor=e.color;
+                        actx.beginPath(); actx.arc(e.x,e.y,e.size,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1; actx.shadowBlur=0;
+                    mkEmbers = mkEmbers.filter(e=>e.life>0 && e.y>-10);
+                    if (Math.random()>0.96) mkDrips.push({ x:20+Math.random()*(ac.width-40), y:-10, len:8+Math.random()*10, speed:1.2+Math.random()*1.5, life:1 });
+                    mkDrips.forEach(d => {
+                        d.y+=d.speed; d.life-=0.004;
+                        const fade=Math.max(d.life,0); actx.globalAlpha=fade;
+                        const grad = actx.createLinearGradient(d.x,d.y-d.len,d.x,d.y);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,cssColor('--accent'));
+                        actx.strokeStyle=grad; actx.lineWidth=2;
+                        actx.beginPath(); actx.moveTo(d.x,d.y-d.len); actx.lineTo(d.x,d.y); actx.stroke();
+                        actx.fillStyle=cssColor('--accent'); actx.beginPath(); actx.arc(d.x,d.y,1.4,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1;
+                    mkDrips = mkDrips.filter(d=>d.life>0 && d.y<ac.height+10);
+                    if (Date.now()-lastTrigger>6000 && Math.random()>0.5) {
+                        lastTrigger = Date.now(); mkFlash=1;
+                        const startX = 30+Math.random()*(ac.width-60);
+                        const points=[{x:startX,y:-5}]; let x=startX;
+                        for (let i=1;i<=9;i++) { const y=(ac.height/9)*i; x+=(Math.random()-0.5)*50; x=Math.max(10,Math.min(ac.width-10,x)); points.push({x,y}); }
+                        mkBolt = { points, life:1 };
+                        if (phoneEl) { phoneEl.classList.add('mk-shake'); setTimeout(()=>phoneEl.classList.remove('mk-shake'),280); }
+                    }
+                    if (mkBolt) {
+                        mkBolt.life -= 0.05;
+                        if (mkBolt.life<=0) mkBolt=null;
+                        else {
+                            actx.save(); actx.globalAlpha=Math.min(mkBolt.life*2,1);
+                            actx.strokeStyle='#7CD9FF'; actx.shadowBlur=14; actx.shadowColor='#3AB8FF'; actx.lineWidth=2;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.strokeStyle='#FFFFFF'; actx.lineWidth=0.8; actx.shadowBlur=4;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.restore();
+                        }
+                    }
+                    if (mkFlash>0) { actx.fillStyle='rgba(124,217,255,'+(mkFlash*0.16)+')'; actx.fillRect(0,0,ac.width,ac.height); mkFlash -= 0.08; }
+                }
+                function drawMatrix() {
+                    if (!matrixDrops) { matrixColumns = Math.floor(ac.width/13); matrixDrops = Array(matrixColumns).fill(0).map(()=>Math.random()*-30); }
+                    actx.fillStyle='rgba(0,0,0,0.08)'; actx.fillRect(0,0,ac.width,ac.height); actx.font='13px monospace';
+                    for (let i=0;i<matrixColumns;i++) {
+                        const text = matrixChars[Math.floor(Math.random()*matrixChars.length)];
+                        const y = matrixDrops[i]*13;
+                        const isHead = Math.random()>0.92;
+                        actx.fillStyle = isHead ? '#cfffd9' : 'rgba('+cssColorRgb('--accent-rgb')+',0.55)';
+                        actx.fillText(text, i*13, y);
+                        if (y>ac.height && Math.random()>0.975) matrixDrops[i]=0;
+                        matrixDrops[i]++;
+                    }
+                }
+                function loop() {
+                    const theme = currentTheme();
+                    if (theme !== lastTheme) {
+                        actx.clearRect(0,0,ac.width,ac.height);
+                        tronPulses=[]; mkEmbers=[]; mkDrips=[]; mkBolt=null; matrixDrops=null; predatorReticle=null;
+                        lastTheme = theme;
+                    }
+                    if (theme !== 'matrix') actx.clearRect(0,0,ac.width,ac.height);
+                    drawFullScreenWash();
+                    if (theme==='tron') drawTron();
+                    else if (theme==='predator') drawPredator();
+                    else if (theme==='mk') drawMK();
+                    else if (theme==='matrix') drawMatrix();
+                    requestAnimationFrame(loop);
+                }
+                loop();
+            }        };
+    }
+
+    FocusCore.applyStoredTheme();
+    FocusCore.initAtmosphere('atmosCanvas');
+
+    function toast(msg){
+        const t=document.getElementById('toast');
+        t.innerText=msg; t.classList.add('show');
+        clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'), 2000);
+    }
+
+    const STORE_KEY = 'focus_about_me';
+    const FIELDS = ['b_story','b_moments','b_parents','b_relations','b_fears','b_dreams','b_free'];
+
+    // загрузка сохранённого
+    function loadData(){
+        try {
+            const data = JSON.parse(localStorage.getItem(STORE_KEY)) || {};
+            FIELDS.forEach(f => { if (data[f]) document.getElementById(f).value = data[f]; });
+            if (data.tone) setTone(data.tone);
+        } catch(e){}
+    }
+    function saveData(){
+        const data = {};
+        FIELDS.forEach(f => { data[f] = document.getElementById(f).value; });
+        data.tone = currentTone;
+        localStorage.setItem(STORE_KEY, JSON.stringify(data));
+    }
+    // автосохранение при вводе
+    FIELDS.forEach(f => {
+        document.getElementById(f).addEventListener('input', () => {
+            saveData();
+            const h = document.getElementById('saveHint');
+            h.innerText = '✓ Сохранено';
+            clearTimeout(window._sv); window._sv = setTimeout(()=>{ h.innerText=''; }, 1500);
+        });
+    });
+
+    // переключатель тона
+    let currentTone = 'support';
+    function setTone(tone){
+        currentTone = tone;
+        document.querySelectorAll('.tone-opt').forEach(o => o.classList.toggle('on', o.dataset.tone === tone));
+        document.getElementById('toneDesc').innerText = tone === 'support'
+            ? 'Бережно, с акцентом на сильные стороны и опору'
+            : 'Прямо и по делу, но с уважением — честный взгляд со стороны';
+    }
+    document.querySelectorAll('.tone-opt').forEach(o => o.addEventListener('click', () => { setTone(o.dataset.tone); saveData(); }));
+
+    // согласие
+    let consented = false;
+    const consentBox = document.getElementById('consentBox');
+    document.getElementById('consentCheck').addEventListener('click', () => {
+        consented = !consented;
+        consentBox.classList.toggle('on', consented);
+        document.getElementById('analyzeBtn').classList.toggle('disabled', !consented);
+    });
+
+    // детектор тревожных сигналов (для бережного направления к помощи)
+    function hasCrisisSignals(text){
+        const t = text.toLowerCase();
+        const signals = ['суицид','покончить','не хочу жить','убить себя','смысла нет жить','причиняю себе','режу себя','насил','избива','умереть хочу','свести счёты'];
+        return signals.some(s => t.includes(s));
+    }
+
+    // кнопка разбора
+    document.getElementById('analyzeBtn').addEventListener('click', async () => {
+        if (!consented) { toast('Сначала прими условия'); return; }
+        const allText = FIELDS.map(f => document.getElementById(f).value).join(' ').trim();
+        if (allText.length < 30) { toast('Напиши о себе побольше — так разбор будет точнее'); return; }
+
+        const result = document.getElementById('analysisResult');
+        const textEl = document.getElementById('analysisText');
+        const noteEl = document.getElementById('analysisNote');
+
+        // тревожные сигналы — бережно направляем к помощи, НЕ анализируем сами
+        if (hasCrisisSignals(allText)) {
+            textEl.innerHTML = 'Я вижу, что тебе сейчас по-настоящему тяжело, и хочу, чтобы ты знал — ты не один, и это важно.<br><br>То, что ты описываешь, заслуживает поддержки живого человека, который сможет быть рядом по-настоящему. Пожалуйста, обратись к специалисту или на линию доверия — это не слабость, это забота о себе.';
+            noteEl.innerHTML = '📞 Горячие линии и кризисные службы доступны бесплатно и анонимно. Если тебе или кому-то рядом угрожает опасность — звони 112.<br><br>Я рядом, но в таких вещах нужен живой специалист.';
+            result.classList.add('show');
+            result.scrollIntoView({ behavior:'smooth' });
+            return;
+        }
+
+        if (!window.fbAskAI) {
+            toast('ИИ-функция не загрузилась. Причина: ' + (window.FB_AUTH_READY ? 'helper есть, но fbAskAI нет' : 'Firebase SDK не загрузился (проверь интернет/VPN)'));
+            textEl.innerHTML = '⚠️ Модуль ИИ не загрузился.<br><span style="font-size:12px;color:#9a9aab;">' +
+                (typeof firebase === 'undefined' && !window.FB_AUTH_READY ? 'Firebase не подключился — возможно блокировка сети или VPN. Попробуй выключить VPN и обновить.' : 'Обнови страницу (удали иконку с экрана и открой заново).') +
+                '</span>';
+            result.classList.add('show');
+            return;
+        }
+
+        // собираем ВСЕ поля с правильными подписями
+        const labels = {
+            b_story: 'О себе (кто я, что важно)',
+            b_moments: 'Ключевые события жизни',
+            b_parents: 'Отношения с родителями/семьёй',
+            b_relations: 'Опыт в отношениях',
+            b_fears: 'Страхи и тревоги',
+            b_dreams: 'Мечты и цели',
+            b_free: 'Свободно о себе'
+        };
+        const parts = [];
+        FIELDS.forEach(f => {
+            const v = document.getElementById(f)?.value.trim();
+            if (v) parts.push(labels[f] + ': ' + v);
+        });
+        const userStory = parts.join('\n');
+
+        // тон: поддержка или прямо
+        const tone = (currentTone === 'direct')
+            ? 'Говори прямо и честно, без сюсюканья, но с уважением. Называй вещи своими именами, давай отрезвляющие но полезные наблюдения.'
+            : 'Говори бережно, с акцентом на сильные стороны и опору. Поддерживай, вселяй веру в человека.';
+
+        textEl.innerHTML = '<span style="opacity:0.7;">🪞 ИИ анализирует твою историю...</span>';
+        result.classList.add('show');
+        result.scrollIntoView({ behavior:'smooth' });
+
+        const messages = [
+            { role:'system', content:
+                'Ты — мудрый ассистент и психолог в приложении FOCUS. Человек рассказал о себе — своих страхах, мечтах, мыслях. Дай глубокий, персональный разбор его истории.\n' +
+                tone + '\n' +
+                'Структура разбора:\n' +
+                '1) Что видно о человеке (сильные стороны, ресурсы).\n' +
+                '2) Какие паттерны или внутренние конфликты заметны.\n' +
+                '3) Зоны роста — мягко, но честно.\n' +
+                '4) 2-3 конкретных практических шага что делать дальше.\n' +
+                'Пиши живым русским, тепло и по-человечески, обращайся на «ты». Это НЕ диагноз. Объём — 6-10 предложений.'
+            },
+            { role:'user', content: userStory }
+        ];
+
+        let res = await window.fbAskAI(messages, 900);
+        if (!res.ok) res = await window.fbAskAI(messages, 900);
+
+        if (res.ok && res.reply && res.reply.trim()) {
+            textEl.innerHTML = res.reply.trim().replace(/</g,'&lt;').replace(/\n/g,'<br>');
+            noteEl.innerHTML = '🪞 Это разбор для размышления, а не диагноз. За профессиональной оценкой обращайся к психологу.';
+            toast('Разбор готов ✓');
+        } else {
+            // показываем реальную причину чтобы понять что не так
+            textEl.innerHTML = '⚠️ Не удалось получить разбор.<br><span style="font-size:12px;color:#9a9aab;">Причина: ' + (res.error || 'неизвестно') + '</span><br><br>Проверь: обновлён ли воркер на Cloudflare и есть ли баланс DeepSeek.';
+            noteEl.innerHTML = '';
+        }
+    });
+
+    loadData();
+
+</script>
+<script src="focus-chat-fab.js"></script>
+<script>
+    if ("serviceWorker" in navigator) { window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }); }
+</script>
+</body>
+</html>

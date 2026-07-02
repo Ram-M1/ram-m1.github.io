@@ -1,0 +1,45 @@
+/* FOCUS — общие переменные тем оформления
+   Подключать на каждом экране: <link rel="stylesheet" href="focus-theme.css">
+   Один источник правды для всех 5 тем — правишь цвет здесь, меняется везде. */
+
+:root, [data-theme="original"] {
+    --accent: #FFD966; --accent-rgb: 255,217,102;
+    --accent-2: #7C8CFF; --accent-2-rgb: 124,140,255;
+    --accent-light: #FFE9A8; --accent-dark: #C9952E;
+    --bg-1: #131319; --bg-2: #0d0d12; --text-strong: #FFFFFF;
+}
+[data-theme="tron"] {
+    --accent: #FF3B2E; --accent-rgb: 255,59,46;
+    --accent-2: #00E5FF; --accent-2-rgb: 0,229,255;
+    --accent-light: #FF8A6B; --accent-dark: #B8201A;
+    --bg-1: #0a0a0d; --bg-2: #000000; --text-strong: #FFFFFF;
+}
+[data-theme="predator"] {
+    --accent: #FF7A1A; --accent-rgb: 255,122,26;
+    --accent-2: #39FF6A; --accent-2-rgb: 57,255,106;
+    --accent-light: #FFB347; --accent-dark: #B84D00;
+    --bg-1: #0d120d; --bg-2: #050705; --text-strong: #FFFFFF;
+}
+[data-theme="mk"] {
+    --accent: #FF1A2E; --accent-rgb: 255,26,46;
+    --accent-2: #FFD700; --accent-2-rgb: 255,215,0;
+    --accent-light: #FF6B5C; --accent-dark: #8A0000;
+    --bg-1: #14080a; --bg-2: #050202; --text-strong: #FFFFFF;
+}
+[data-theme="matrix"] {
+    --accent: #00FF41; --accent-rgb: 0,255,65;
+    --accent-2: #39FF6A; --accent-2-rgb: 57,255,106;
+    --accent-light: #7FFF9E; --accent-dark: #008F25;
+    --bg-1: #050505; --bg-2: #000000; --text-strong: #FFFFFF;
+}
+
+/* Общая тряска экрана для молнии Mortal Kombat — используется атмосферным движком */
+.phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
+@keyframes mkShake {
+    0%, 100% { transform: translate(0,0); }
+    15% { transform: translate(-4px,2px) rotate(-0.4deg); }
+    30% { transform: translate(4px,-2px) rotate(0.4deg); }
+    45% { transform: translate(-3px,1px); }
+    60% { transform: translate(3px,-1px); }
+    75% { transform: translate(-2px,0); }
+}

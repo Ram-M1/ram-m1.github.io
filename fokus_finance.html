@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="original" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FOCUS">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Финансы — FOCUS</title>
+<style>
+    :root, [data-theme="original"] { --accent:#FFD966; --accent-rgb:255,217,102; --accent-2:#7C8CFF; --accent-2-rgb:124,140,255; --accent-light:#FFE9A8; --accent-dark:#C9952E; --bg-1:#131319; --bg-2:#0d0d12; --text-strong:#FFFFFF; }
+    [data-theme="tron"] { --accent:#FF3B2E; --accent-rgb:255,59,46; --accent-2:#00E5FF; --accent-2-rgb:0,229,255; --accent-light:#FF8A6B; --accent-dark:#B8201A; --bg-1:#0a0a0d; --bg-2:#000000; --text-strong:#FFFFFF; }
+    [data-theme="predator"] { --accent:#FF7A1A; --accent-rgb:255,122,26; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#FFB347; --accent-dark:#B84D00; --bg-1:#0d120d; --bg-2:#050705; --text-strong:#FFFFFF; }
+    [data-theme="mk"] { --accent:#FF1A2E; --accent-rgb:255,26,46; --accent-2:#FFD700; --accent-2-rgb:255,215,0; --accent-light:#FF6B5C; --accent-dark:#8A0000; --bg-1:#14080a; --bg-2:#050202; --text-strong:#FFFFFF; }
+    [data-theme="matrix"] { --accent:#00FF41; --accent-rgb:0,255,65; --accent-2:#39FF6A; --accent-2-rgb:57,255,106; --accent-light:#7FFF9E; --accent-dark:#008F25; --bg-1:#050505; --bg-2:#000000; --text-strong:#FFFFFF; }
+    .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
+    @keyframes mkShake { 0%,100%{transform:translate(0,0);} 15%{transform:translate(-4px,2px) rotate(-0.4deg);} 30%{transform:translate(4px,-2px) rotate(0.4deg);} 45%{transform:translate(-3px,1px);} 60%{transform:translate(3px,-1px);} 75%{transform:translate(-2px,0);} }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif; background:#060608; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:12px; position:relative; overflow:hidden; }
+    body::before { content:''; position:fixed; width:600px; height:600px; background:radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%); top:10%; left:50%; transform:translateX(-50%); pointer-events:none; animation:ambientDrift 12s ease-in-out infinite; }
+    @keyframes ambientDrift { 0%,100%{opacity:.6;transform:translateX(-50%) scale(1);} 50%{opacity:1;transform:translateX(-50%) scale(1.15);} }
+    .phone { width:375px; height:700px; background:linear-gradient(165deg, var(--bg-1) 0%, var(--bg-2) 100%); border-radius:52px; box-shadow:0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--accent-rgb),0.06), 0 0 0 8px #1c1c24, 0 0 0 9px rgba(var(--accent-rgb),0.08), 0 0 60px rgba(var(--accent-rgb),0.04); overflow:hidden; display:flex; flex-direction:column; position:relative; }
+    .phone::before { content:''; position:absolute; inset:0; z-index:0; opacity:0.1; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    .phone::after { content:''; position:absolute; top:0; left:6%; right:6%; height:1px; background:linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.3), transparent); z-index:0; }
+    #atmosCanvas { position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:52px; }
+
+    .screen { flex:1; padding:18px 18px 12px; display:flex; flex-direction:column; height:100%; overflow:hidden; position:relative; z-index:1; }
+
+    .header-row { display:flex; align-items:center; gap:12px; margin-bottom:11px; }
+    .back-btn { width:36px; height:36px; border-radius:30px; background:rgba(var(--accent-rgb),0.07); border:1px solid rgba(var(--accent-rgb),0.2); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:0.3s ease; flex-shrink:0; }
+    .back-btn:active { transform:scale(0.92); }
+    .back-btn svg { width:16px; height:16px; color:var(--accent); }
+    .title { font-size:21px; font-weight:700; letter-spacing:0.2px; background:linear-gradient(135deg, var(--text-strong) 20%, var(--accent) 70%, var(--accent-dark) 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .title-icon { width:30px; height:30px; flex-shrink:0; border-radius:9px; background:radial-gradient(circle at 35% 30%, rgba(255,138,92,0.3), rgba(255,138,92,0.06)); border:0.5px solid rgba(255,138,92,0.4); display:flex; align-items:center; justify-content:center; margin-left:auto; }
+    .title-icon svg { width:17px; height:17px; color:#FF8A5C; }
+
+    /* Карточка метрик */
+    .metrics-card { background:linear-gradient(135deg, rgba(var(--accent-rgb),0.09), rgba(var(--accent-2-rgb),0.05)); border:1px solid rgba(var(--accent-rgb),0.22); border-radius:18px; padding:20px 16px; margin-bottom:12px; cursor:pointer; position:relative; overflow:hidden; transition:0.25s ease; }
+    .metrics-card::before { content:''; position:absolute; top:0; left:0; width:55px; height:4px; background:linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius:18px 0 8px 0; box-shadow:0 0 12px rgba(var(--accent-rgb),0.5); }
+    .metrics-card:active { transform:scale(0.98); }
+    .metrics-title { font-size:11px; font-weight:700; color:var(--accent-2); letter-spacing:0.3px; margin-bottom:16px; }
+    .metrics-grid { display:flex; justify-content:space-between; gap:10px; }
+    .metric { flex:1; text-align:center; }
+    .metric-label { font-size:11px; color:#9a9aab; margin-bottom:6px; }
+    .metric-value { font-size:26px; font-weight:700; color:#fff; line-height:1.1; }
+    .metric-unit { font-size:11px; color:#9a9aab; font-weight:500; }
+    .metric-divider { width:0.5px; background:rgba(255,255,255,0.1); }
+    .bmi-badge { display:inline-block; margin-top:3px; padding:1px 9px; border-radius:20px; font-size:9px; font-weight:700; background:rgba(120,220,150,0.18); color:#78DC96; border:0.5px solid rgba(120,220,150,0.3); }
+    .metrics-more { text-align:right; margin-top:14px; font-size:10px; color:var(--accent); opacity:0.75; font-weight:600; }
+
+    /* Подразделы */
+    .subsections { flex:1; overflow:hidden; }
+    .subsections::-webkit-scrollbar { display:none; }
+    .subsection-tile { display:flex; align-items:center; gap:12px; background:linear-gradient(135deg, rgba(35,35,46,0.55), rgba(22,22,30,0.55)); border:0.5px solid rgba(var(--accent-rgb),0.13); border-radius:14px; padding:9px 13px; margin-bottom:7px; cursor:pointer; transition:0.25s cubic-bezier(.2,.8,.2,1); position:relative; overflow:hidden; }
+    .subsection-tile::before { content:''; position:absolute; top:0; left:0; right:0; height:50%; background:linear-gradient(180deg, rgba(255,255,255,0.03), transparent); pointer-events:none; border-radius:15px 15px 0 0; }
+    .subsection-tile:active { transform:scale(0.98); }
+    .subsection-icon { width:38px; height:38px; flex-shrink:0; border-radius:11px; background:radial-gradient(circle at 35% 30%, rgba(var(--accent-rgb),0.16), rgba(var(--accent-rgb),0.04)); border:0.5px solid rgba(var(--accent-rgb),0.2); display:flex; align-items:center; justify-content:center; }
+    .subsection-icon svg { width:19px; height:19px; color:var(--accent); }
+    .subsection-info { flex:1; min-width:0; }
+    .subsection-title { font-size:13px; font-weight:700; color:#fff; margin-bottom:1px; }
+    .subsection-desc { font-size:9.5px; color:#9a9aab; line-height:1.3; }
+    .subsection-arrow { color:var(--accent); opacity:0.5; flex-shrink:0; }
+    .subsection-arrow svg { width:16px; height:16px; }
+
+    /* Цвета иконок подразделов */
+    .tile-gratitude .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,138,92,0.26), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,138,92,0.4); }
+    .tile-gratitude .subsection-icon svg { color:#FF8A5C; }
+    .tile-prayer .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,217,102,0.3), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,217,102,0.4); }
+    .tile-prayer .subsection-icon svg { color:var(--accent); }
+    .tile-temple .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(170,185,255,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(170,185,255,0.4); }
+    .tile-temple .subsection-icon svg { color:#AAB9FF; }
+    .tile-habits .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(120,220,150,0.26), rgba(var(--accent-rgb),0.04)); border-color:rgba(120,220,150,0.4); }
+    .tile-habits .subsection-icon svg { color:#78DC96; }
+    .tile-wish .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(200,170,255,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(200,170,255,0.4); }
+    .tile-wish .subsection-icon svg { color:#C8AAFF; }
+    .tile-nutrition .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(120,220,150,0.26), rgba(var(--accent-rgb),0.04)); border-color:rgba(120,220,150,0.4); }
+    .tile-nutrition .subsection-icon svg { color:#78DC96; }
+    .tile-workout .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,140,80,0.3), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,160,100,0.4); }
+    .tile-workout .subsection-icon svg { color:#FF9C64; }
+    .tile-training .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(150,170,255,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(170,185,255,0.4); }
+    .tile-training .subsection-icon svg { color:#AAB9FF; }
+    .tile-stats .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(200,170,255,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(200,170,255,0.4); }
+    .tile-stats .subsection-icon svg { color:#C8AAFF; }
+    .tile-meds .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,150,180,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,170,195,0.4); }
+    .tile-meds .subsection-icon svg { color:#FFAAC9; }
+    .tile-supp .subsection-icon { background:radial-gradient(circle at 35% 30%, rgba(255,138,92,0.28), rgba(var(--accent-rgb),0.04)); border-color:rgba(255,150,110,0.4); }
+    .tile-supp .subsection-icon svg { color:#FF8A5C; }
+
+    /* Таб-бар */
+    .tab-bar { display:flex; justify-content:space-around; align-items:center; padding:6px 0 4px; background:rgba(18,18,24,0.9); backdrop-filter:blur(20px); border:0.5px solid rgba(255,255,255,0.06); margin-top:8px; border-radius:26px; flex-shrink:0; }
+    .tab-item { display:flex; flex-direction:column; align-items:center; gap:3px; color:#6e6e7e; font-size:9px; font-weight:600; cursor:pointer; padding:5px 14px; border-radius:20px; transition:0.25s ease; }
+    .tab-item.active { color:var(--accent); background:rgba(var(--accent-rgb),0.1); }
+    .tab-item svg { width:19px; height:19px; }
+
+    .toast { position:absolute; bottom:74px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,0.9); border:1px solid var(--accent); border-radius:20px; padding:9px 18px; color:var(--accent); font-size:12px; font-weight:600; z-index:500; opacity:0; transition:0.3s ease; pointer-events:none; white-space:nowrap; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* PWA-режим (установлено на телефон): на весь реальный экран, без макетной рамки */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; overflow: hidden !important; }
+    .phone {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding-top: env(safe-area-inset-top) !important;
+        padding-bottom: env(safe-area-inset-bottom) !important;
+        max-width: 100vw !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, #atmos, .atmos-canvas { border-radius: 0 !important; }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important;
+    }
+}
+
+/* Телефоны: приложение на весь экран без макетной рамки (надёжно, не зависит от PWA-режима) */
+@media (max-width: 600px) {
+    * { -webkit-user-select: none !important; user-select: none !important; -webkit-tap-highlight-color: transparent !important; }
+    input, textarea { -webkit-user-select: text !important; user-select: text !important; }
+    html, body { background: var(--bg-1, #0d0d12) !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; height: 100vh; height: 100dvh; display: block !important; }
+    body { display: flex !important; align-items: stretch !important; justify-content: flex-start !important; }
+    .phone {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    .phone::before, .phone::after { display: none !important; }
+    /* анимация/фон идут до самого верха под чёлку */
+    #atmosCanvas, #cosmicCanvas, #medCanvas, .atmos-canvas, canvas#atmos {
+        width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+        position: absolute !important; inset: 0 !important; border-radius: 0 !important;
+    }
+    /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
+    .screen, .session-area, .slideshow, .scroll-area {
+        padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+    }
+    .modal, .slideshow, .session-area { border-radius: 0 !important; }
+}
+
+    /* ===== ФИНАНСЫ ===== */
+    .scroll-area { flex:1; overflow-y:auto; scrollbar-width:none; }
+    .scroll-area::-webkit-scrollbar { display:none; }
+    input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+    input[type=number] { -moz-appearance:textfield; appearance:textfield; }
+    input[type=date]::-webkit-calendar-picker-indicator { filter:invert(1) brightness(1.5); }
+    .fin-tabs { display:flex; gap:6px; background:rgba(0,0,0,0.25); border-radius:12px; padding:4px; margin-bottom:13px; }
+    .fin-tab { flex:1; text-align:center; padding:9px 4px; border-radius:9px; font-size:11.5px; font-weight:700; color:#8e8e9e; cursor:pointer; }
+    .fin-tab.on { background:linear-gradient(135deg, #78DC96, var(--accent-2)); color:#0a0a0f; }
+    .fin-pane { display:none; }
+    .fin-pane.on { display:block; }
+    /* баланс */
+    .fin-tab { flex:1; text-align:center; padding:9px 2px; border-radius:9px; font-size:10.5px; font-weight:700; color:#8e8e9e; cursor:pointer; }
+    .fin-tab.on { background:linear-gradient(135deg, #78DC96, var(--accent-2)); color:#0a0a0f; }
+    .fin-tab { flex:1; text-align:center; padding:9px 1px; border-radius:8px; font-size:9.5px; font-weight:700; color:#8e8e9e; cursor:pointer; }
+    .fin-tab.on { background:linear-gradient(135deg, #78DC96, var(--accent-2)); color:#0a0a0f; }
+    .fam-member { display:flex; align-items:center; gap:11px; padding:11px 0; border-bottom:0.5px solid rgba(255,255,255,0.05); }
+    .fam-member:last-child { border-bottom:none; }
+    .fam-avatar { width:42px; height:42px; border-radius:50%; flex-shrink:0; background:linear-gradient(135deg, #C8AAFF, var(--accent-2)); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:#0a0a0f; }
+    .fam-body { flex:1; min-width:0; }
+    .fam-name { font-size:13.5px; font-weight:600; color:#fff; }
+    .fam-stats { font-size:10.5px; color:#9a9aab; margin-top:2px; }
+    .fam-stats .in { color:#78DC96; }
+    .fam-stats .out { color:#FF8A7C; }
+    .fam-net { font-size:13px; font-weight:700; flex-shrink:0; }
+    .fam-net.plus { color:#78DC96; }
+    .fam-net.minus { color:#FF8A7C; }
+
+    /* === ЧЕКИ === */
+    .scan-in-modal { display:none; margin-bottom:13px; }
+    .scan-in-modal.show { display:block; }
+    .scan-modal-btn { padding:12px; border-radius:11px; background:rgba(120,220,150,0.14); border:1px solid rgba(120,220,150,0.35); color:#78DC96; font-weight:700; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .scan-modal-btn svg { width:17px; height:17px; }
+    .scan-modal-btn:active { transform:scale(0.97); }
+    .scan-modal-hint { font-size:9.5px; color:#8e8e9e; margin-top:6px; line-height:1.4; text-align:center; }
+    .scan-btn { width:100%; padding:16px; border-radius:15px; background:linear-gradient(135deg, #78DC96, var(--accent-2)); color:#0a0a0f; font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; margin-bottom:13px; }
+    .scan-btn svg { width:20px; height:20px; }
+    .scan-btn:active { transform:scale(0.98); }
+    .compare-result { background:rgba(0,0,0,0.2); border-radius:12px; padding:12px; margin-top:10px; }
+    .compare-prod { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:0.5px solid rgba(255,255,255,0.05); }
+    .compare-prod:last-child { border-bottom:none; }
+    .compare-emoji { font-size:18px; width:24px; text-align:center; flex-shrink:0; }
+    .compare-info { flex:1; min-width:0; }
+    .compare-name { font-size:12.5px; color:#fff; font-weight:600; }
+    .compare-prices { font-size:10.5px; color:#9a9aab; margin-top:1px; }
+    .compare-delta { font-size:12px; font-weight:700; flex-shrink:0; }
+    .compare-delta.up { color:#FF8A7C; }
+    .compare-delta.down { color:#78DC96; }
+    .compare-delta.same { color:#9a9aab; }
+    .soon-card { background:linear-gradient(135deg, rgba(200,170,255,0.1), rgba(120,170,255,0.05)); border:1px solid rgba(200,170,255,0.25); border-radius:15px; padding:15px; margin-top:13px; }
+    .soon-badge { display:inline-block; font-size:9px; font-weight:700; padding:3px 9px; border-radius:7px; background:rgba(200,170,255,0.2); color:#C8AAFF; margin-bottom:9px; }
+    .soon-title { font-size:14px; font-weight:700; color:#fff; margin-bottom:7px; }
+    .soon-list { font-size:11.5px; color:#b8b8c8; line-height:1.8; }
+    .soon-list b { color:#C8AAFF; }
+
+    .balance-hero { background:linear-gradient(135deg, rgba(120,220,150,0.14), rgba(var(--accent-rgb),0.05)); border:1px solid rgba(120,220,150,0.3); border-radius:18px; padding:18px; margin-bottom:14px; position:relative; overflow:hidden; }
+    .balance-hero::before { content:''; position:absolute; top:0; left:0; width:54px; height:3px; background:linear-gradient(90deg, #78DC96, var(--accent)); border-radius:18px 0 6px 0; }
+    .bh-label { font-size:11px; color:#9a9aab; font-weight:600; margin-bottom:4px; }
+    .bh-value { font-size:30px; font-weight:700; color:#fff; }
+    .bh-value.neg { color:#FF8A7C; }
+    .bh-row { display:flex; gap:10px; margin-top:14px; }
+    .bh-cell { flex:1; background:rgba(0,0,0,0.2); border-radius:12px; padding:10px 12px; }
+    .bh-cell-label { font-size:10px; color:#8e8e9e; margin-bottom:3px; }
+    .bh-cell-val { font-size:16px; font-weight:700; }
+    .bh-cell-val.income { color:#78DC96; }
+    .bh-cell-val.expense { color:#FF8A7C; }
+    /* быстрая запись */
+    .quick-add { display:flex; gap:8px; margin-bottom:14px; }
+    .qa-btn { flex:1; padding:13px; border-radius:13px; font-weight:700; font-size:13px; text-align:center; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; }
+    .qa-btn.income { background:rgba(120,220,150,0.14); border:1px solid rgba(120,220,150,0.35); color:#78DC96; }
+    .qa-btn.expense { background:rgba(255,138,124,0.12); border:1px solid rgba(255,138,124,0.32); color:#FF8A7C; }
+    .qa-btn:active { transform:scale(0.97); }
+    .qa-btn svg { width:16px; height:16px; }
+    /* список операций */
+    .panel { background:linear-gradient(135deg, rgba(35,35,46,0.5), rgba(22,22,30,0.5)); border:0.5px solid rgba(var(--accent-rgb),0.12); border-radius:15px; padding:14px; margin-bottom:13px; }
+    .panel-title { font-size:13px; font-weight:700; color:var(--accent); margin-bottom:12px; }
+    .tx-item { display:flex; align-items:center; gap:11px; padding:9px 0; border-bottom:0.5px solid rgba(255,255,255,0.05); }
+    .tx-item:last-child { border-bottom:none; }
+    .tx-icon { width:38px; height:38px; border-radius:11px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:18px; }
+    .tx-icon.income { background:rgba(120,220,150,0.14); }
+    .tx-icon.expense { background:rgba(255,138,124,0.12); }
+    .tx-body { flex:1; min-width:0; }
+    .tx-cat { font-size:13px; font-weight:600; color:#fff; }
+    .tx-meta { font-size:10px; color:#8e8e9e; margin-top:2px; display:flex; gap:7px; }
+    .tx-fam { color:#C8AAFF; }
+    .tx-amount { font-size:14px; font-weight:700; flex-shrink:0; }
+    .tx-amount.income { color:#78DC96; }
+    .tx-amount.expense { color:#FF8A7C; }
+    .tx-del { color:#ff6b6b; opacity:0.45; cursor:pointer; font-size:14px; flex-shrink:0; padding-left:4px; }
+    .empty-row { text-align:center; color:#6e6e7e; font-size:11.5px; padding:18px; line-height:1.5; }
+    /* категории-разбивка */
+    .cat-stat-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .cat-stat-icon { font-size:18px; width:24px; text-align:center; flex-shrink:0; }
+    .cat-stat-body { flex:1; min-width:0; }
+    .cat-stat-head { display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:4px; }
+    .cat-stat-name { color:#c8c8d0; }
+    .cat-stat-sum { color:#FF8A7C; font-weight:700; }
+    .cat-stat-track { height:7px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden; }
+    .cat-stat-fill { height:100%; border-radius:4px; background:linear-gradient(90deg, var(--accent-2), #FF8A7C); }
+    /* копилки */
+    .pig-card { background:rgba(0,0,0,0.22); border:0.5px solid rgba(120,220,150,0.16); border-radius:14px; padding:14px; margin-bottom:11px; }
+    .pig-top { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .pig-emoji { font-size:26px; flex-shrink:0; }
+    .pig-info { flex:1; min-width:0; }
+    .pig-name { font-size:14px; font-weight:700; color:#fff; }
+    .pig-target { font-size:11px; color:#9a9aab; }
+    .pig-del { color:#ff6b6b; opacity:0.5; cursor:pointer; flex-shrink:0; }
+    .pig-progress-track { height:9px; background:rgba(255,255,255,0.07); border-radius:5px; overflow:hidden; margin-bottom:8px; }
+    .pig-progress-fill { height:100%; border-radius:5px; background:linear-gradient(90deg, #78DC96, var(--accent)); transition:width 0.4s; }
+    .pig-bottom { display:flex; justify-content:space-between; align-items:center; }
+    .pig-plan { margin-top:11px; padding-top:11px; border-top:0.5px solid rgba(255,255,255,0.07); }
+    .pig-plan-row { font-size:11px; color:#b8b8c8; line-height:1.7; }
+    .pig-plan-row b { color:#78DC96; font-weight:700; }
+    .pig-plan.overdue .pig-plan-row { color:#FFB088; }
+    .pig-plan.done-plan .pig-plan-row { color:#78DC96; font-weight:600; }
+    .pig-saved { font-size:13px; font-weight:700; color:#78DC96; }
+    .pig-pct { font-size:11px; color:#9a9aab; }
+    .pig-add-btn { font-size:11px; font-weight:700; padding:6px 13px; border-radius:9px; background:rgba(120,220,150,0.14); border:1px solid rgba(120,220,150,0.3); color:#78DC96; cursor:pointer; }
+    .pig-add-btn:active { transform:scale(0.95); }
+    .add-pig-btn { width:100%; padding:13px; border-radius:13px; background:rgba(120,220,150,0.12); border:1px dashed rgba(120,220,150,0.35); color:#78DC96; font-weight:700; font-size:13px; cursor:pointer; }
+    .add-pig-btn:active { transform:scale(0.98); }
+    /* модалки */
+    .modal { position:absolute; inset:0; z-index:450; background:rgba(0,0,0,0.88); backdrop-filter:blur(8px); display:none; align-items:center; justify-content:center; border-radius:52px; padding:14px; }
+    .modal.show { display:flex; }
+    .modal-box { background:linear-gradient(165deg,#1c1c26,#15151c); border-radius:22px; width:100%; padding:18px; border:0.5px solid rgba(120,220,150,0.25); max-height:calc(100% - 16px); overflow-y:auto; scrollbar-width:none; }
+    .modal-title { font-size:16px; font-weight:700; color:#fff; margin-bottom:13px; }
+    .m-label { font-size:11px; color:var(--accent); font-weight:700; margin-bottom:7px; display:block; }
+    .m-input { width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(var(--accent-rgb),0.18); border-radius:11px; padding:12px 13px; color:#fff; font-size:15px; font-family:inherit; outline:none; margin-bottom:13px; }
+    .m-input:focus { border-color:#78DC96; }
+    .cat-pick { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:13px; }
+    .cat-pick-opt { padding:8px 12px; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer; background:rgba(255,255,255,0.05); color:#9a9aab; border:1px solid transparent; }
+    .cat-pick-opt.on { background:rgba(120,220,150,0.16); color:#78DC96; border-color:rgba(120,220,150,0.4); }
+    .fam-toggle { display:flex; align-items:center; gap:10px; padding:11px 13px; background:rgba(200,170,255,0.07); border:1px solid rgba(200,170,255,0.2); border-radius:11px; margin-bottom:13px; cursor:pointer; }
+    .fam-box { width:22px; height:22px; border-radius:6px; border:1.5px solid rgba(200,170,255,0.4); flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+    .fam-box.on { background:#C8AAFF; border-color:#C8AAFF; }
+    .fam-box svg { width:13px; height:13px; color:#0a0a0f; opacity:0; }
+    .fam-box.on svg { opacity:1; }
+    .fam-label { font-size:12px; color:#d8d8e0; }
+    .modal-btns { display:flex; gap:9px; }
+    .modal-btn { flex:1; padding:13px; border-radius:13px; font-size:13px; font-weight:700; cursor:pointer; text-align:center; border:none; font-family:inherit; }
+    .modal-btn.cancel { background:rgba(255,255,255,0.07); color:#9a9aab; }
+    .modal-btn.save { background:linear-gradient(135deg, #78DC96, var(--accent-2)); color:#0a0a0f; }
+    .modal-btn:active { transform:scale(0.97); }
+    .toast { position:absolute; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,0.9); border:1px solid var(--accent); border-radius:16px; padding:11px 18px; color:var(--accent); font-size:12px; font-weight:600; z-index:600; opacity:0; transition:0.3s ease; pointer-events:none; max-width:300px; width:max-content; text-align:center; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+</style>
+<script src="focus-analytics.js"></script>
+<body>
+<div class="phone">
+    <canvas id="atmosCanvas" width="375" height="700" style="width:375px;height:700px;"></canvas>
+    <div class="screen">
+        <div class="header-row">
+            <div class="back-btn" onclick="location.href='fokus_profile.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <div class="title">Финансы</div>
+            <div class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        </div>
+
+        <div class="fin-tabs">
+            <div class="fin-tab on" data-ftab="budget">💰 Бюджет</div>
+            <div class="fin-tab" data-ftab="analytics">📊 Анализ</div>
+            <div class="fin-tab" data-ftab="family">👨‍👩‍👧 Семья</div>
+            <div class="fin-tab" data-ftab="piggy">🐷 Копилки</div>
+        </div>
+
+        <div class="scroll-area">
+            <!-- БЮДЖЕТ -->
+            <div class="fin-pane on" id="pane-budget">
+                <div class="balance-hero">
+                    <div class="bh-label">Баланс за этот месяц</div>
+                    <div class="bh-value" id="balanceValue">0 ₽</div>
+                    <div class="bh-row">
+                        <div class="bh-cell"><div class="bh-cell-label">↗ Доходы</div><div class="bh-cell-val income" id="incomeValue">0 ₽</div></div>
+                        <div class="bh-cell"><div class="bh-cell-label">↘ Расходы</div><div class="bh-cell-val expense" id="expenseValue">0 ₽</div></div>
+                    </div>
+                </div>
+                <div class="quick-add">
+                    <div class="qa-btn income" id="addIncomeBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                        Доход
+                    </div>
+                    <div class="qa-btn expense" id="addExpenseBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+                        Расход
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">Последние операции</div>
+                    <div id="txList"></div>
+                </div>
+            </div>
+
+            <!-- АНАЛИЗ -->
+            <div class="fin-pane" id="pane-analytics">
+                <div class="panel">
+                    <div class="panel-title">Расходы по категориям</div>
+                    <div id="catStats"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">📈 Как меняются цены</div>
+                    <div style="font-size:11px;color:#9a9aab;line-height:1.5;margin-bottom:10px;">Сканируй чеки при записи расходов — FOCUS отследит, как дорожают твои покупки за 3 месяца.</div>
+                    <div class="scan-btn" id="compareBtn" style="background:rgba(120,220,150,0.14);border:1px solid rgba(120,220,150,0.35);color:#78DC96;font-size:13px;padding:12px;margin-bottom:0;">Сравнить цены за 3 месяца</div>
+                    <div id="compareResult"></div>
+                </div>
+                <div class="soon-card">
+                    <div class="soon-badge">СКОРО</div>
+                    <div class="soon-title">🗺️ Народный индекс цен</div>
+                    <div class="soon-list">
+                        Когда тысячи людей сканируют чеки, FOCUS покажет:<br>
+                        • <b>Где дешевле</b> — карта магазинов с ценами<br>
+                        • <b>Реальная инфляция</b> — по чекам людей<br>
+                        • <b>Цены на всё</b> — продукты, бензин, техника<br>
+                        • <b>Лучшие места</b> рядом с тобой
+                    </div>
+                </div>
+            </div>
+
+            <!-- СЕМЬЯ -->
+            <div class="fin-pane" id="pane-family">
+                <div class="balance-hero" style="background:linear-gradient(135deg, rgba(200,170,255,0.14), rgba(124,140,255,0.05));border-color:rgba(200,170,255,0.3);">
+                    <div class="bh-label">Общий семейный баланс</div>
+                    <div class="bh-value" id="famBalance">0 ₽</div>
+                    <div class="bh-row">
+                        <div class="bh-cell"><div class="bh-cell-label">↗ Внесено</div><div class="bh-cell-val income" id="famIncome">0 ₽</div></div>
+                        <div class="bh-cell"><div class="bh-cell-label">↘ Потрачено</div><div class="bh-cell-val expense" id="famExpense">0 ₽</div></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">Участники семьи</div>
+                    <div id="familyMembers"></div>
+                    <div class="add-pig-btn" id="inviteFamilyBtn" style="margin-top:6px;background:rgba(200,170,255,0.12);border-color:rgba(200,170,255,0.35);color:#C8AAFF;">+ Пригласить в семейный бюджет</div>
+                </div>
+                <div class="soon-card">
+                    <div class="soon-badge">СКОРО</div>
+                    <div class="soon-title">👨‍👩‍👧 Общий бюджет с близкими</div>
+                    <div class="soon-list">
+                        Свяжи аккаунты с семьёй — и увидите:<br>
+                        • <b>Кто сколько внёс</b> в общий бюджет<br>
+                        • <b>Кто сколько потратил</b> и на что<br>
+                        • <b>Общий баланс</b> семьи в реальном времени<br><br>
+                        Связь аккаунтов подключается с серверной частью.
+                    </div>
+                </div>
+            </div>
+
+            <!-- КОПИЛКИ -->
+            <div class="fin-pane" id="pane-piggy">
+                <div id="piggyList"></div>
+                <div class="add-pig-btn" id="addPiggyBtn">+ Новая копилка</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка операции -->
+    <div class="modal" id="txModal">
+        <div class="modal-box">
+            <div class="modal-title" id="txModalTitle">Расход</div>
+            <label class="m-label">СУММА (₽)</label>
+            <input type="number" class="m-input" id="txAmount" placeholder="0" inputmode="numeric">
+            <label class="m-label">КАТЕГОРИЯ</label>
+            <div class="cat-pick" id="catPick"></div>
+            <div class="scan-in-modal" id="scanInModal">
+                <div class="scan-modal-btn" id="scanModalBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10"/></svg>
+                    Сканировать чек
+                </div>
+                <div class="scan-modal-hint">Сумма и данные заполнятся из чека. Нет чека — впиши вручную ниже.</div>
+            </div>
+            <div id="manualFields">
+                <label class="m-label">ОПИСАНИЕ</label>
+                <input type="text" class="m-input" id="txDesc" placeholder="Напр: продукты на неделю">
+                <label class="m-label">ДАТА</label>
+                <input type="date" class="m-input" id="txDate">
+            </div>
+            <div class="fam-toggle" id="famToggle">
+                <div class="fam-box" id="famBox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+                <div class="fam-label">👨‍👩‍👧 Семейная трата (общий бюджет)</div>
+            </div>
+            <div class="modal-btns">
+                <button class="modal-btn cancel" id="cancelTx">Отмена</button>
+                <button class="modal-btn save" id="saveTx">Добавить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка копилки -->
+    <div class="modal" id="piggyModal">
+        <div class="modal-box">
+            <div class="modal-title">Новая копилка</div>
+            <label class="m-label">НА ЧТО КОПИШЬ</label>
+            <input type="text" class="m-input" id="pigName" placeholder="Напр: Отпуск, новый телефон...">
+            <label class="m-label">ЦЕЛЬ (₽)</label>
+            <input type="number" class="m-input" id="pigTarget" placeholder="50000" inputmode="numeric">
+            <label class="m-label">НАКОПИТЬ К ДАТЕ</label>
+            <input type="date" class="m-input" id="pigDeadline">
+            <label class="m-label">ЗНАЧОК</label>
+            <div class="cat-pick" id="pigEmojiPick"></div>
+            <div class="modal-btns">
+                <button class="modal-btn cancel" id="cancelPig">Отмена</button>
+                <button class="modal-btn save" id="savePig">Создать</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка пополнения копилки -->
+    <div class="modal" id="addToPigModal">
+        <div class="modal-box">
+            <div class="modal-title" id="addToPigTitle">Пополнить копилку</div>
+            <label class="m-label">СУММА (₽)</label>
+            <input type="number" class="m-input" id="pigAddAmount" placeholder="0" inputmode="numeric">
+            <div class="modal-btns">
+                <button class="modal-btn cancel" id="cancelPigAdd">Отмена</button>
+                <button class="modal-btn save" id="savePigAdd">Отложить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+</div>
+
+<script src="focus-storage.js"></script>
+<script type="module" src="firebase-auth-helper.js"></script>
+<script src="focus-core.js"></script>
+<script>
+    if (typeof FocusStorage === 'undefined') {
+        window.FocusStorage = {
+            _key:'focus_user',
+            getUser(){ try { return JSON.parse(localStorage.getItem(this._key)) || {}; } catch(e){ return {}; } },
+            saveUser(p){ const c=this.getUser(); const m={...c,...p}; localStorage.setItem(this._key, JSON.stringify(m)); return m; },
+            getTheme(){ return this.getUser().theme || 'original'; },
+            setTheme(id){ this.saveUser({ theme:id }); }
+        };
+    }
+    if (typeof FocusCore === 'undefined') {
+        window.FocusCore = {
+            applyStoredTheme(){ (document.getElementById('htmlRoot')||document.documentElement).setAttribute('data-theme', FocusStorage.getTheme()); },
+initAtmosphere(canvasId) {
+                const ac = document.getElementById(canvasId || 'atmosCanvas');
+                if (!ac) return;
+                const actx = ac.getContext('2d');
+                ac.width = 375; ac.height = 700;
+                let tronPulses=[], mkEmbers=[], mkDrips=[], mkFlash=0, mkBolt=null, matrixDrops=null, matrixColumns=0;
+                let predatorRadarAngle=0, predatorScanY=0, predatorT=0, predatorBlips=[{a:1.2,r:0.7},{a:3.8,r:0.5}], predatorReticle=null;
+                const matrixChars = 'アイウエオカキクケコサシスセソ0123456789ABCDEF'.split('');
+                let lastTheme=null, lastTrigger=0, washT=0;
+                function currentTheme() { const r = document.getElementById('htmlRoot') || document.documentElement; return r.getAttribute('data-theme') || 'original'; }
+                function cssColor(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function cssColorRgb(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+                function drawFullScreenWash() {
+                    washT += 0.008;
+                    const accRgb = cssColorRgb('--accent-rgb'), acc2Rgb = cssColorRgb('--accent-2-rgb');
+                    const x = ac.width*(0.5+Math.sin(washT)*0.5), y = ac.height*(0.5+Math.cos(washT*0.7)*0.5);
+                    const grad = actx.createRadialGradient(x,y,0,ac.width/2,ac.height/2,Math.max(ac.width,ac.height)*0.9);
+                    grad.addColorStop(0,'rgba('+accRgb+',0.05)'); grad.addColorStop(0.5,'rgba('+acc2Rgb+',0.035)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+                    actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                }
+                function drawTron() {
+                    if (Math.random() > 0.93) {
+                        const vertical = Math.random() > 0.5;
+                        tronPulses.push({ vertical, pos: Math.floor(Math.random()*(vertical?ac.width:ac.height)), t:-40, speed:3+Math.random()*2, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2'), len:60 });
+                    }
+                    tronPulses.forEach(p => {
+                        p.t += p.speed;
+                        const grad = p.vertical ? actx.createLinearGradient(p.pos,p.t-p.len,p.pos,p.t) : actx.createLinearGradient(p.t-p.len,p.pos,p.t,p.pos);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,p.color);
+                        actx.strokeStyle = grad; actx.lineWidth=2; actx.shadowBlur=8; actx.shadowColor=p.color;
+                        actx.beginPath();
+                        if (p.vertical) { actx.moveTo(p.pos,p.t-p.len); actx.lineTo(p.pos,p.t); } else { actx.moveTo(p.t-p.len,p.pos); actx.lineTo(p.t,p.pos); }
+                        actx.stroke();
+                    });
+                    actx.shadowBlur=0;
+                    tronPulses = tronPulses.filter(p => p.t < Math.max(ac.width,ac.height)+40);
+                }
+                function drawPredator() {
+                    predatorT += 0.01;
+                    for (let i=0;i<5;i++) {
+                        const x = ac.width/2+Math.sin(predatorT+i*2)*ac.width*0.35, y = ac.height/2+Math.cos(predatorT*0.7+i*1.7)*ac.height*0.4;
+                        const r = 60+Math.sin(predatorT*2+i)*20;
+                        const grad = actx.createRadialGradient(x,y,0,x,y,r);
+                        grad.addColorStop(0,'rgba('+cssColorRgb('--accent-rgb')+',0.05)'); grad.addColorStop(1,'rgba('+cssColorRgb('--accent-rgb')+',0)');
+                        actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
+                    }
+                    predatorScanY += 1.8; if (predatorScanY > ac.height+20) predatorScanY=-20;
+                    const acc2 = cssColorRgb('--accent-2-rgb');
+                    const lineGrad = actx.createLinearGradient(0,predatorScanY-15,0,predatorScanY+15);
+                    lineGrad.addColorStop(0,'rgba('+acc2+',0)'); lineGrad.addColorStop(0.5,'rgba('+acc2+',0.35)'); lineGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.fillStyle = lineGrad; actx.fillRect(0,predatorScanY-15,ac.width,30);
+                    actx.strokeStyle='rgba('+acc2+',0.5)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.moveTo(0,predatorScanY); actx.lineTo(ac.width,predatorScanY); actx.stroke();
+                    const rcx=ac.width-46, rcy=64, rr=34;
+                    actx.save();
+                    actx.strokeStyle='rgba('+acc2+',0.4)'; actx.lineWidth=1;
+                    actx.beginPath(); actx.arc(rcx,rcy,rr,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.arc(rcx,rcy,rr*0.6,0,Math.PI*2); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx-rr,rcy); actx.lineTo(rcx+rr,rcy); actx.stroke();
+                    actx.beginPath(); actx.moveTo(rcx,rcy-rr); actx.lineTo(rcx,rcy+rr); actx.stroke();
+                    predatorRadarAngle += 0.05;
+                    const sweepGrad = actx.createLinearGradient(rcx,rcy,rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr);
+                    sweepGrad.addColorStop(0,'rgba('+acc2+',0.6)'); sweepGrad.addColorStop(1,'rgba('+acc2+',0)');
+                    actx.strokeStyle = sweepGrad; actx.lineWidth=2;
+                    actx.beginPath(); actx.moveTo(rcx,rcy); actx.lineTo(rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr); actx.stroke();
+                    predatorBlips.forEach(b => {
+                        const bx=rcx+Math.cos(b.a)*rr*b.r, by=rcy+Math.sin(b.a)*rr*b.r;
+                        const diff = Math.abs(((predatorRadarAngle%(Math.PI*2))-b.a+Math.PI*3)%(Math.PI*2)-Math.PI);
+                        const blipAlpha = diff<0.5 ? 1-diff/0.5 : 0;
+                        if (blipAlpha>0) { actx.fillStyle='rgba('+acc2+','+blipAlpha+')'; actx.beginPath(); actx.arc(bx,by,2,0,Math.PI*2); actx.fill(); }
+                    });
+                    actx.restore();
+                    if (Math.random()>0.992 && !predatorReticle) predatorReticle = { x:40+Math.random()*(ac.width-80), y:90+Math.random()*(ac.height-220), life:1 };
+                    if (predatorReticle) {
+                        predatorReticle.life -= 0.012;
+                        if (predatorReticle.life<=0) predatorReticle=null;
+                        else {
+                            const a = Math.min(predatorReticle.life>0.85?(1-predatorReticle.life)/0.15:1,1) * Math.min(predatorReticle.life/0.15,1);
+                            const size = 22+(1-Math.min(predatorReticle.life,1))*6;
+                            actx.save(); actx.globalAlpha=a; actx.strokeStyle=cssColor('--accent'); actx.lineWidth=1.3;
+                            actx.beginPath(); actx.arc(predatorReticle.x,predatorReticle.y,size,0,Math.PI*2); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x-size-6,predatorReticle.y); actx.lineTo(predatorReticle.x-size+4,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x+size-4,predatorReticle.y); actx.lineTo(predatorReticle.x+size+6,predatorReticle.y); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y-size-6); actx.lineTo(predatorReticle.x,predatorReticle.y-size+4); actx.stroke();
+                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y+size-4); actx.lineTo(predatorReticle.x,predatorReticle.y+size+6); actx.stroke();
+                            actx.font='8px monospace'; actx.fillStyle=cssColor('--accent'); actx.fillText('LOCKED', predatorReticle.x-16, predatorReticle.y+size+14);
+                            actx.restore();
+                        }
+                    }
+                }
+                function drawMK() {
+                    const phoneEl = document.querySelector('.phone');
+                    if (Math.random()>0.4) mkEmbers.push({ x:Math.random()*ac.width, y:ac.height+10, vx:(Math.random()-0.5)*0.6, vy:-0.6-Math.random()*1.2, size:1+Math.random()*2, life:1, decay:0.004+Math.random()*0.006, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2') });
+                    mkEmbers.forEach(e => {
+                        e.x+=e.vx; e.y+=e.vy; e.life-=e.decay;
+                        const fade=Math.max(e.life,0); actx.globalAlpha=fade; actx.fillStyle=e.color; actx.shadowBlur=6; actx.shadowColor=e.color;
+                        actx.beginPath(); actx.arc(e.x,e.y,e.size,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1; actx.shadowBlur=0;
+                    mkEmbers = mkEmbers.filter(e=>e.life>0 && e.y>-10);
+                    if (Math.random()>0.96) mkDrips.push({ x:20+Math.random()*(ac.width-40), y:-10, len:8+Math.random()*10, speed:1.2+Math.random()*1.5, life:1 });
+                    mkDrips.forEach(d => {
+                        d.y+=d.speed; d.life-=0.004;
+                        const fade=Math.max(d.life,0); actx.globalAlpha=fade;
+                        const grad = actx.createLinearGradient(d.x,d.y-d.len,d.x,d.y);
+                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,cssColor('--accent'));
+                        actx.strokeStyle=grad; actx.lineWidth=2;
+                        actx.beginPath(); actx.moveTo(d.x,d.y-d.len); actx.lineTo(d.x,d.y); actx.stroke();
+                        actx.fillStyle=cssColor('--accent'); actx.beginPath(); actx.arc(d.x,d.y,1.4,0,Math.PI*2); actx.fill();
+                    });
+                    actx.globalAlpha=1;
+                    mkDrips = mkDrips.filter(d=>d.life>0 && d.y<ac.height+10);
+                    if (Date.now()-lastTrigger>6000 && Math.random()>0.5) {
+                        lastTrigger = Date.now(); mkFlash=1;
+                        const startX = 30+Math.random()*(ac.width-60);
+                        const points=[{x:startX,y:-5}]; let x=startX;
+                        for (let i=1;i<=9;i++) { const y=(ac.height/9)*i; x+=(Math.random()-0.5)*50; x=Math.max(10,Math.min(ac.width-10,x)); points.push({x,y}); }
+                        mkBolt = { points, life:1 };
+                        if (phoneEl) { phoneEl.classList.add('mk-shake'); setTimeout(()=>phoneEl.classList.remove('mk-shake'),280); }
+                    }
+                    if (mkBolt) {
+                        mkBolt.life -= 0.05;
+                        if (mkBolt.life<=0) mkBolt=null;
+                        else {
+                            actx.save(); actx.globalAlpha=Math.min(mkBolt.life*2,1);
+                            actx.strokeStyle='#7CD9FF'; actx.shadowBlur=14; actx.shadowColor='#3AB8FF'; actx.lineWidth=2;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.strokeStyle='#FFFFFF'; actx.lineWidth=0.8; actx.shadowBlur=4;
+                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
+                            actx.restore();
+                        }
+                    }
+                    if (mkFlash>0) { actx.fillStyle='rgba(124,217,255,'+(mkFlash*0.16)+')'; actx.fillRect(0,0,ac.width,ac.height); mkFlash -= 0.08; }
+                }
+                function drawMatrix() {
+                    if (!matrixDrops) { matrixColumns = Math.floor(ac.width/13); matrixDrops = Array(matrixColumns).fill(0).map(()=>Math.random()*-30); }
+                    actx.fillStyle='rgba(0,0,0,0.08)'; actx.fillRect(0,0,ac.width,ac.height); actx.font='13px monospace';
+                    for (let i=0;i<matrixColumns;i++) {
+                        const text = matrixChars[Math.floor(Math.random()*matrixChars.length)];
+                        const y = matrixDrops[i]*13;
+                        const isHead = Math.random()>0.92;
+                        actx.fillStyle = isHead ? '#cfffd9' : 'rgba('+cssColorRgb('--accent-rgb')+',0.55)';
+                        actx.fillText(text, i*13, y);
+                        if (y>ac.height && Math.random()>0.975) matrixDrops[i]=0;
+                        matrixDrops[i]++;
+                    }
+                }
+                function loop() {
+                    const theme = currentTheme();
+                    if (theme !== lastTheme) {
+                        actx.clearRect(0,0,ac.width,ac.height);
+                        tronPulses=[]; mkEmbers=[]; mkDrips=[]; mkBolt=null; matrixDrops=null; predatorReticle=null;
+                        lastTheme = theme;
+                    }
+                    if (theme !== 'matrix') actx.clearRect(0,0,ac.width,ac.height);
+                    drawFullScreenWash();
+                    if (theme==='tron') drawTron();
+                    else if (theme==='predator') drawPredator();
+                    else if (theme==='mk') drawMK();
+                    else if (theme==='matrix') drawMatrix();
+                    requestAnimationFrame(loop);
+                }
+                loop();
+            }        };
+    }
+
+    FocusCore.applyStoredTheme();
+    FocusCore.initAtmosphere('atmosCanvas');
+
+    function toast(msg){ const t=document.getElementById('toast'); t.innerText=msg; t.classList.add('show'); clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'),2000); }
+    function escapeHtml(s){ const d=document.createElement('div'); d.innerText=String(s==null?'':s); return d.innerHTML; }
+    function uid(){ return Date.now()+'_'+Math.floor(Math.random()*1000); }
+    function fmt(n){ return Math.round(n).toLocaleString('ru-RU') + ' ₽'; }
+    function num(v){ const n=parseInt(v); return isNaN(n)?0:n; }
+
+    const EXPENSE_CATS = [
+        {id:'food', name:'Еда', emoji:'🍔'}, {id:'transport', name:'Транспорт', emoji:'🚗'},
+        {id:'home', name:'Жильё', emoji:'🏠'}, {id:'fun', name:'Развлечения', emoji:'🎮'},
+        {id:'health', name:'Здоровье', emoji:'💊'}, {id:'clothes', name:'Одежда', emoji:'👕'},
+        {id:'kids', name:'Дети', emoji:'🧸'}, {id:'other', name:'Другое', emoji:'📦'}
+    ];
+    const INCOME_CATS = [
+        {id:'salary', name:'Зарплата', emoji:'💼'}, {id:'extra', name:'Подработка', emoji:'💵'},
+        {id:'gift', name:'Подарок', emoji:'🎁'}, {id:'other_inc', name:'Другое', emoji:'📈'}
+    ];
+    const PIG_EMOJIS = ['🏖️','📱','🚗','🏠','💍','✈️','🎓','💻','🎸','👶','💰','🎯','⌚','🛵','🏝️','🚀','🎁','👗','🛋️','🐶','🎮','📷','🚲','💎','🏔️','🎄','🏍️','⛵'];
+
+    let txs = [];   // [{id,type,amount,cat,family,date}]
+    let piggies = []; // [{id,name,target,saved,emoji}]
+    function load(){
+        try { txs = JSON.parse(localStorage.getItem('focus_fin_txs'))||[]; } catch(e){ txs=[]; }
+        try { piggies = JSON.parse(localStorage.getItem('focus_fin_piggies'))||[]; } catch(e){ piggies=[]; }
+    }
+    function saveTxs(){ localStorage.setItem('focus_fin_txs', JSON.stringify(txs)); }
+    function savePiggies(){ localStorage.setItem('focus_fin_piggies', JSON.stringify(piggies)); }
+
+    function catInfo(id){ return EXPENSE_CATS.concat(INCOME_CATS).find(c=>c.id===id) || {name:'Другое',emoji:'📦'}; }
+
+    // ===== вкладки =====
+    document.querySelectorAll('.fin-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.fin-tab').forEach(t=>t.classList.remove('on'));
+            document.querySelectorAll('.fin-pane').forEach(p=>p.classList.remove('on'));
+            tab.classList.add('on');
+            document.getElementById('pane-'+tab.dataset.ftab).classList.add('on');
+            if (tab.dataset.ftab==='analytics') renderCatStats();
+            if (tab.dataset.ftab==='piggy') renderPiggies();
+            if (tab.dataset.ftab==='family') renderFamily();
+        });
+    });
+
+    // ===== баланс + операции =====
+    function renderBudget(){
+        const income = txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+        const expense = txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+        const balance = income - expense;
+        const bv = document.getElementById('balanceValue');
+        bv.innerText = fmt(balance);
+        bv.className = 'bh-value' + (balance<0?' neg':'');
+        document.getElementById('incomeValue').innerText = fmt(income);
+        document.getElementById('expenseValue').innerText = fmt(expense);
+
+        const cont = document.getElementById('txList');
+        if (txs.length === 0) { cont.innerHTML = '<div class="empty-row">Операций пока нет.<br>Запиши первый доход или расход.</div>'; return; }
+        cont.innerHTML = '';
+        txs.slice().reverse().slice(0,30).forEach(t => {
+            const ci = catInfo(t.cat);
+            const div = document.createElement('div');
+            div.className = 'tx-item';
+            div.innerHTML = `
+                <div class="tx-icon ${t.type}">${ci.emoji}</div>
+                <div class="tx-body">
+                    <div class="tx-cat">${escapeHtml(ci.name)}${t.desc?' · '+escapeHtml(t.desc):''}</div>
+                    <div class="tx-meta"><span>${new Date(t.date).toLocaleDateString('ru-RU')}</span>${t.family?'<span class="tx-fam">👨‍👩‍👧 семья</span>':''}</div>
+                </div>
+                <div class="tx-amount ${t.type}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</div>
+                <div class="tx-del" data-del="${t.id}">×</div>`;
+            cont.appendChild(div);
+        });
+        cont.querySelectorAll('[data-del]').forEach(el=>el.addEventListener('click',()=>{
+            txs = txs.filter(t=>t.id!==el.dataset.del); saveTxs(); renderBudget();
+        }));
+    }
+
+    // модалка операции
+    const txModal = document.getElementById('txModal');
+    let txType = 'expense', txCat = 'food', txFamily = false;
+    function openTx(type){
+        txType = type; txFamily = false;
+        document.getElementById('famBox').classList.remove('on');
+        document.getElementById('txModalTitle').innerText = type==='income'?'Доход':'Расход';
+        document.getElementById('txModalTitle').style.color = type==='income'?'#78DC96':'#FF8A7C';
+        document.getElementById('txAmount').value = '';
+        document.getElementById('txDesc').value = '';
+        document.getElementById('txDate').value = new Date().toISOString().slice(0,10);
+        const cats = type==='income'?INCOME_CATS:EXPENSE_CATS;
+        txCat = cats[0].id;
+        const pick = document.getElementById('catPick');
+        pick.innerHTML = '';
+        cats.forEach((c,i) => {
+            const opt = document.createElement('div');
+            opt.className = 'cat-pick-opt'+(i===0?' on':'');
+            opt.innerHTML = c.emoji+' '+c.name;
+            opt.addEventListener('click', ()=>{ pick.querySelectorAll('.cat-pick-opt').forEach(x=>x.classList.remove('on')); opt.classList.add('on'); txCat=c.id; updateScanVisibility(); });
+            pick.appendChild(opt);
+        });
+        document.getElementById('famToggle').style.display = type==='expense'?'flex':'none';
+        updateScanVisibility();
+        txModal.classList.add('show');
+        setTimeout(()=>document.getElementById('txAmount').focus(),100);
+    }
+    // кнопка скана видна для расходов на товарных категориях (продукты и т.п.)
+    function updateScanVisibility(){
+        const scanCats = ['food','home','clothes','kids','health','other'];
+        const show = txType==='expense' && scanCats.includes(txCat);
+        document.getElementById('scanInModal').classList.toggle('show', show);
+    }
+    // скан чека в модалке — заглушка под бэкенд (потом: QR/фото → сумма автоматом)
+    document.getElementById('scanModalBtn').addEventListener('click', () => {
+        toast('Сканирование чека (QR/фото) подключается с серверной частью — сумма заполнится автоматом');
+    });
+    document.getElementById('addIncomeBtn').addEventListener('click', ()=>openTx('income'));
+    document.getElementById('addExpenseBtn').addEventListener('click', ()=>openTx('expense'));
+    document.getElementById('famToggle').addEventListener('click', ()=>{ txFamily=!txFamily; document.getElementById('famBox').classList.toggle('on',txFamily); });
+    document.getElementById('cancelTx').addEventListener('click', ()=>txModal.classList.remove('show'));
+    txModal.addEventListener('click',(e)=>{ if(e.target.id==='txModal') txModal.classList.remove('show'); });
+    document.getElementById('saveTx').addEventListener('click', ()=>{
+        const amount = num(document.getElementById('txAmount').value);
+        if (amount<=0){ toast('Введи сумму'); return; }
+        const desc = document.getElementById('txDesc').value.trim();
+        const dateVal = document.getElementById('txDate').value;
+        const date = dateVal ? new Date(dateVal).toISOString() : new Date().toISOString();
+        txs.push({ id:uid(), type:txType, amount, cat:txCat, family:txFamily, desc, date });
+        saveTxs(); txModal.classList.remove('show'); renderBudget();
+        toast(txType==='income'?'Доход записан':'Расход записан');
+    });
+
+    // ===== аналитика =====
+    function renderCatStats(){
+        const cont = document.getElementById('catStats');
+        const expenses = txs.filter(t=>t.type==='expense');
+        if (expenses.length===0){ cont.innerHTML='<div class="empty-row">Нет расходов для анализа.</div>'; return; }
+        const byCat = {};
+        expenses.forEach(t=>{ byCat[t.cat]=(byCat[t.cat]||0)+t.amount; });
+        const total = Object.values(byCat).reduce((s,v)=>s+v,0);
+        const sorted = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+        cont.innerHTML = sorted.map(([cat,sum])=>{
+            const ci = catInfo(cat);
+            const pct = Math.round(sum/total*100);
+            return `<div class="cat-stat-row">
+                <div class="cat-stat-icon">${ci.emoji}</div>
+                <div class="cat-stat-body">
+                    <div class="cat-stat-head"><span class="cat-stat-name">${escapeHtml(ci.name)}</span><span class="cat-stat-sum">${fmt(sum)} · ${pct}%</span></div>
+                    <div class="cat-stat-track"><div class="cat-stat-fill" style="width:${pct}%"></div></div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // ===== копилки =====
+    function renderPiggies(){
+        const cont = document.getElementById('piggyList');
+        if (piggies.length===0){ cont.innerHTML='<div class="empty-row">Копилок пока нет.<br>Создай цель и копи на мечту.</div>'; return; }
+        cont.innerHTML = '';
+        piggies.forEach(p => {
+            const pct = p.target>0 ? Math.min(100, Math.round(p.saved/p.target*100)) : 0;
+            const remaining = Math.max(0, p.target - p.saved);
+            // расчёт взносов до срока
+            let planHtml = '';
+            if (p.deadline && remaining > 0) {
+                const today = new Date(); today.setHours(0,0,0,0);
+                const dl = new Date(p.deadline); dl.setHours(0,0,0,0);
+                const days = Math.ceil((dl - today) / 86400000);
+                if (days > 0) {
+                    const perDay = Math.ceil(remaining / days);
+                    const perWeek = Math.ceil(remaining / (days/7));
+                    const dlStr = dl.toLocaleDateString('ru-RU', {day:'numeric', month:'long'});
+                    planHtml = `<div class="pig-plan">
+                        <div class="pig-plan-row">📅 До <b>${dlStr}</b> · осталось ${days} дн.</div>
+                        <div class="pig-plan-row">💪 Откладывай <b>${fmt(perDay)}/день</b> или <b>${fmt(perWeek)}/неделю</b></div>
+                    </div>`;
+                } else if (days <= 0) {
+                    planHtml = `<div class="pig-plan overdue"><div class="pig-plan-row">⏳ Срок истёк. Сдвинь дату или доложи ${fmt(remaining)}</div></div>`;
+                }
+            } else if (p.deadline && remaining === 0) {
+                planHtml = `<div class="pig-plan done-plan"><div class="pig-plan-row">🎉 Цель достигнута! Ты молодец</div></div>`;
+            }
+            const card = document.createElement('div');
+            card.className = 'pig-card';
+            card.innerHTML = `
+                <div class="pig-top">
+                    <div class="pig-emoji">${p.emoji||'🐷'}</div>
+                    <div class="pig-info"><div class="pig-name">${escapeHtml(p.name)}</div><div class="pig-target">Цель: ${fmt(p.target)}</div></div>
+                    <div class="pig-del" data-delpig="${p.id}">🗑</div>
+                </div>
+                <div class="pig-progress-track"><div class="pig-progress-fill" style="width:${pct}%"></div></div>
+                <div class="pig-bottom">
+                    <div><span class="pig-saved">${fmt(p.saved)}</span> <span class="pig-pct">· ${pct}%</span></div>
+                    <div class="pig-add-btn" data-addpig="${p.id}">+ Отложить</div>
+                </div>
+                ${planHtml}`;
+            cont.appendChild(card);
+        });
+        cont.querySelectorAll('[data-delpig]').forEach(el=>el.addEventListener('click',()=>{
+            piggies = piggies.filter(p=>p.id!==el.dataset.delpig); savePiggies(); renderPiggies();
+        }));
+        cont.querySelectorAll('[data-addpig]').forEach(el=>el.addEventListener('click',()=>openAddToPig(el.dataset.addpig)));
+    }
+
+    // модалка копилки
+    const piggyModal = document.getElementById('piggyModal');
+    let pigEmoji = PIG_EMOJIS[0];
+    document.getElementById('addPiggyBtn').addEventListener('click', ()=>{
+        document.getElementById('pigName').value=''; document.getElementById('pigTarget').value='';
+        const d = new Date(); d.setMonth(d.getMonth()+3);
+        document.getElementById('pigDeadline').value = d.toISOString().slice(0,10);
+        pigEmoji = PIG_EMOJIS[0];
+        const pick = document.getElementById('pigEmojiPick');
+        pick.innerHTML='';
+        PIG_EMOJIS.forEach((em,i)=>{
+            const opt=document.createElement('div');
+            opt.className='cat-pick-opt'+(i===0?' on':''); opt.innerText=em; opt.style.fontSize='18px';
+            opt.addEventListener('click',()=>{ pick.querySelectorAll('.cat-pick-opt').forEach(x=>x.classList.remove('on')); opt.classList.add('on'); pigEmoji=em; });
+            pick.appendChild(opt);
+        });
+        piggyModal.classList.add('show');
+    });
+    document.getElementById('cancelPig').addEventListener('click',()=>piggyModal.classList.remove('show'));
+    piggyModal.addEventListener('click',(e)=>{ if(e.target.id==='piggyModal') piggyModal.classList.remove('show'); });
+    document.getElementById('savePig').addEventListener('click',()=>{
+        const name=document.getElementById('pigName').value.trim();
+        const target=num(document.getElementById('pigTarget').value);
+        const deadline=document.getElementById('pigDeadline').value;
+        if(!name){ toast('Введи название'); return; }
+        if(target<=0){ toast('Введи сумму цели'); return; }
+        piggies.push({ id:uid(), name, target, saved:0, emoji:pigEmoji, deadline:deadline||null, created:new Date().toISOString() });
+        savePiggies(); piggyModal.classList.remove('show'); renderPiggies();
+        toast('Копилка создана 🐷');
+    });
+
+    // пополнить копилку
+    const addToPigModal = document.getElementById('addToPigModal');
+    let curPigId = null;
+    function openAddToPig(id){
+        curPigId = id;
+        const p = piggies.find(x=>x.id===id);
+        document.getElementById('addToPigTitle').innerText = 'Отложить в «'+p.name+'»';
+        document.getElementById('pigAddAmount').value='';
+        addToPigModal.classList.add('show');
+        setTimeout(()=>document.getElementById('pigAddAmount').focus(),100);
+    }
+    document.getElementById('cancelPigAdd').addEventListener('click',()=>addToPigModal.classList.remove('show'));
+    addToPigModal.addEventListener('click',(e)=>{ if(e.target.id==='addToPigModal') addToPigModal.classList.remove('show'); });
+    document.getElementById('savePigAdd').addEventListener('click',()=>{
+        const amount=num(document.getElementById('pigAddAmount').value);
+        if(amount<=0){ toast('Введи сумму'); return; }
+        const p = piggies.find(x=>x.id===curPigId);
+        p.saved += amount; savePiggies();
+        addToPigModal.classList.remove('show'); renderPiggies();
+        const pct = Math.round(p.saved/p.target*100);
+        toast(pct>=100 ? '🎉 Цель достигнута!' : 'Отложено! '+pct+'% цели');
+    });
+
+    // ===== ЧЕКИ =====
+    const RECEIPTS_KEY = 'focus_fin_receipts';
+    function getReceipts(){ try { return JSON.parse(localStorage.getItem(RECEIPTS_KEY))||[]; } catch(e){ return []; } }
+    function saveReceipts(r){ localStorage.setItem(RECEIPTS_KEY, JSON.stringify(r)); }
+
+    // демо-чеки с историей цен (показывают как будет работать сравнение)
+    function seedReceipts(){
+        let r = getReceipts();
+        if (r.length === 0) {
+            const now = new Date();
+            const monthAgo = new Date(now); monthAgo.setMonth(now.getMonth()-1);
+            const threeAgo = new Date(now); threeAgo.setMonth(now.getMonth()-3);
+            r = [
+                { id:'r1', shop:'Пятёрочка', date:threeAgo.toISOString(), total:842, items:[
+                    {name:'Молоко 3.2%', emoji:'🥛', price:72}, {name:'Хлеб', emoji:'🍞', price:45},
+                    {name:'Яйца C1', emoji:'🥚', price:89}, {name:'Курица кг', emoji:'🍗', price:210}
+                ]},
+                { id:'r2', shop:'Магнит', date:monthAgo.toISOString(), total:910, items:[
+                    {name:'Молоко 3.2%', emoji:'🥛', price:82}, {name:'Хлеб', emoji:'🍞', price:48},
+                    {name:'Яйца C1', emoji:'🥚', price:95}, {name:'Курица кг', emoji:'🍗', price:235}
+                ]},
+                { id:'r3', shop:'Пятёрочка', date:now.toISOString(), total:1024, items:[
+                    {name:'Молоко 3.2%', emoji:'🥛', price:95}, {name:'Хлеб', emoji:'🍞', price:52},
+                    {name:'Яйца C1', emoji:'🥚', price:99}, {name:'Курица кг', emoji:'🍗', price:268}
+                ]}
+            ];
+            saveReceipts(r);
+        }
+        return r;
+    }
+
+    // сравнение цен — РЕАЛЬНАЯ логика
+    document.getElementById('compareBtn').addEventListener('click', () => {
+        const receipts = seedReceipts();
+        // собираем историю цен по каждому продукту
+        const priceHistory = {};
+        receipts.forEach(r => {
+            (r.items||[]).forEach(it => {
+                if (!priceHistory[it.name]) priceHistory[it.name] = { emoji:it.emoji, points:[] };
+                priceHistory[it.name].points.push({ date:new Date(r.date), price:it.price });
+            });
+        });
+        // для каждого продукта: первая цена vs последняя
+        const result = document.getElementById('compareResult');
+        const rows = [];
+        Object.entries(priceHistory).forEach(([name, data]) => {
+            if (data.points.length < 2) return;
+            data.points.sort((a,b)=>a.date-b.date);
+            const first = data.points[0].price;
+            const last = data.points[data.points.length-1].price;
+            const delta = last - first;
+            const pct = Math.round(delta/first*100);
+            rows.push({ name, emoji:data.emoji, first, last, delta, pct });
+        });
+        if (rows.length === 0) {
+            result.innerHTML = '<div class="empty-row" style="margin-top:10px;">Нужно минимум 2 чека с одним продуктом для сравнения.</div>';
+            return;
+        }
+        rows.sort((a,b)=>b.pct-a.pct);
+        result.innerHTML = '<div class="compare-result">' + rows.map(r => {
+            const cls = r.pct>0?'up':(r.pct<0?'down':'same');
+            const arrow = r.pct>0?'↑':(r.pct<0?'↓':'=');
+            const sign = r.pct>0?'+':'';
+            return `<div class="compare-prod">
+                <div class="compare-emoji">${r.emoji}</div>
+                <div class="compare-info">
+                    <div class="compare-name">${escapeHtml(r.name)}</div>
+                    <div class="compare-prices">${r.first} ₽ → ${r.last} ₽</div>
+                </div>
+                <div class="compare-delta ${cls}">${arrow} ${sign}${r.pct}%</div>
+            </div>`;
+        }).join('') + '</div>';
+        toast('Сравнение готово');
+    });
+
+    // ===== СЕМЬЯ (демо; реальный коннект — с бэкендом) =====
+    function renderFamily(){
+        // мои реальные траты/доходы
+        const myIncome = txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+        const myExpense = txs.filter(t=>t.type==='expense' && t.family).reduce((s,t)=>s+t.amount,0);
+        const me = FocusStorage.getUser();
+        const myName = me.name || 'Я';
+
+        // участники: я (реальные данные) + демо-близкие (при бэкенде — реальные сконнекченные)
+        const members = [
+            { name:myName + ' (вы)', avatar:(myName[0]||'Я').toUpperCase(), income:myIncome, expense:myExpense, me:true },
+            { name:'Партнёр', avatar:'П', income:65000, expense:28400, me:false },
+            { name:'Родители', avatar:'Р', income:0, expense:12200, me:false }
+        ];
+        const totalIn = members.reduce((s,m)=>s+m.income,0);
+        const totalOut = members.reduce((s,m)=>s+m.expense,0);
+
+        document.getElementById('famBalance').innerText = fmt(totalIn - totalOut);
+        document.getElementById('famBalance').className = 'bh-value' + ((totalIn-totalOut)<0?' neg':'');
+        document.getElementById('famIncome').innerText = fmt(totalIn);
+        document.getElementById('famExpense').innerText = fmt(totalOut);
+
+        const cont = document.getElementById('familyMembers');
+        cont.innerHTML = members.map(m => {
+            const net = m.income - m.expense;
+            return `<div class="fam-member">
+                <div class="fam-avatar">${escapeHtml(m.avatar)}</div>
+                <div class="fam-body">
+                    <div class="fam-name">${escapeHtml(m.name)}</div>
+                    <div class="fam-stats"><span class="in">внёс ${fmt(m.income)}</span> · <span class="out">потратил ${fmt(m.expense)}</span></div>
+                </div>
+                <div class="fam-net ${net>=0?'plus':'minus'}">${net>=0?'+':''}${fmt(net)}</div>
+            </div>`;
+        }).join('');
+    }
+    document.getElementById('inviteFamilyBtn').addEventListener('click', () => {
+        toast('Приглашение в семейный бюджет подключается с серверной частью');
+    });
+
+    load();
+    renderBudget();
+
+</script>
+<script src="focus-chat-fab.js"></script>
+<script>
+    if ("serviceWorker" in navigator) { window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }); }
+</script>
+</body>
+</html>
