@@ -574,7 +574,7 @@
     .ai-expand-btn:active { transform:scale(0.92); }
     .ai-chat-overlay { position:fixed; inset:0; z-index:4000; background:rgba(5,5,12,0.6); backdrop-filter:blur(8px); display:none; align-items:flex-end; justify-content:center; }
     .ai-chat-overlay.show { display:flex; }
-    .ai-chat-window { width:100%; max-width:480px; height:82vh; background:linear-gradient(180deg,#14141c,#0d0d14); border-radius:24px 24px 0 0; display:flex; flex-direction:column; border:1px solid rgba(var(--accent-rgb),0.2); border-bottom:none; animation:chatUp 0.3s cubic-bezier(0.4,0,0.2,1); overflow:hidden; }
+    .ai-chat-window { width:100%; max-width:400px; height:82vh; background:linear-gradient(180deg,#14141c,#0d0d14); border-radius:24px 24px 0 0; display:flex; flex-direction:column; border:1px solid rgba(var(--accent-rgb),0.2); border-bottom:none; animation:chatUp 0.3s cubic-bezier(0.4,0,0.2,1); overflow:hidden; }
     @keyframes chatUp { from{transform:translateY(100%);} to{transform:translateY(0);} }
     .ai-chat-header { display:flex; align-items:center; gap:12px; padding:16px 18px; border-bottom:1px solid rgba(255,255,255,0.06); }
     .ai-chat-orb { width:36px; height:36px; border-radius:50%; background:radial-gradient(circle at 35% 30%, var(--accent), var(--accent-2) 70%); box-shadow:0 0 20px rgba(var(--accent-rgb),0.5); animation:orbPulse 2.5s ease-in-out infinite; flex-shrink:0; }
@@ -1588,12 +1588,11 @@
                 msgsBox.appendChild(d); scrollDown();
             }
 
+            var _greeted = false;
             function openChat(){
                 overlay.classList.add('show');
-                if (!history.length) {
-                    // приветствие в чате
-                    let astroHi = '';
-                    try { if (meUser.birthDate && window.FocusAstro) { const lp = FocusAstro.getLifePathNumber(meUser.birthDate); if (lp) astroHi = ' (число судьбы ' + lp + ')'; } } catch(e){}
+                if (!_greeted) {
+                    _greeted = true;
                     addMsg('bot', 'Привет' + (meUser.name ? ', ' + meUser.name : '') + '! Я ' + asstName + '. Могу дать совет, обсудить что угодно, или заполнить за тебя раздел — просто скажи «запиши что я поел», «отметь зарядку», «я спал 7 часов». Что нужно?');
                 }
                 setTimeout(()=> chatInput.focus(), 300);
@@ -1615,16 +1614,17 @@
                 try { if (meUser.birthDate && window.FocusAstro) astroCtx = FocusAstro.contextForAI(meUser); } catch(e){}
                 return 'Тебя зовут ' + asstName + '. Ты — умный персональный ассистент в приложении FOCUS (саморазвитие). ' +
                     'Помогаешь с привычками, здоровьем, мышлением, мотивацией, и МОЖЕШЬ ЗАПОЛНЯТЬ РАЗДЕЛЫ за пользователя.\n\n' +
-                    'РАЗДЕЛЫ которые можешь заполнить: зарядка (workout), питание (nutrition), сон (sleep), благодарность (gratitude).\n\n' +
-                    'КАК ЗАПОЛНЯТЬ: если человек просит что-то записать/отметить, СНАЧАЛА уточни детали дружелюбным вопросом (что именно ел, сколько часов спал, какие упражнения). Когда данные ясны — в КОНЦЕ ответа добавь СЛУЖЕБНУЮ СТРОКУ строго в формате:\n' +
-                    '[FILL:тип|данные]\n' +
-                    'где тип = workout/nutrition/sleep/gratitude, данные — что записать. Примеры:\n' +
-                    '[FILL:sleep|7.5] — сон 7.5 часов\n' +
-                    '[FILL:nutrition|Овсянка с бананом, кофе] — приём пищи\n' +
-                    '[FILL:workout|Отжимания 3х15, планка 1 мин] — зарядка\n' +
-                    '[FILL:gratitude|Благодарен за семью и здоровье] — благодарность\n' +
-                    'ВАЖНО: строку [FILL:...] добавляй ТОЛЬКО когда все нужные детали собраны. Если ещё уточняешь — не добавляй. Не показывай [FILL:] если просто советуешь. Пиши живым русским, коротко, тепло.' +
-                    (astroCtx ? ('\nТип личности человека: ' + astroCtx + '. Учитывай, адаптируй советы, но не упоминай астрологию без нужды.') : '');
+                    'РАЗДЕЛЫ: зарядка (workout), питание (nutrition), сон (sleep), благодарность (gratitude).\n\n' +
+                    'ГЛАВНОЕ ПРАВИЛО: НЕ задавай лишних вопросов. Если команда понятна — заполняй СРАЗУ, без уточнений.\n' +
+                    '- «заполни/отметь зарядку», «сделал зарядку» → сразу заполни стандартной зарядкой, НЕ спрашивай какие упражнения. [FILL:workout|Стандартная зарядка выполнена]\n' +
+                    '- «отметь сон», «я выспался» без часов → ставь 8 часов по умолчанию. [FILL:sleep|8]\n' +
+                    '- «запиши благодарность» без текста → [FILL:gratitude|День прожит с благодарностью]\n' +
+                    'Уточняй ТОЛЬКО если детали реально меняют суть И пользователь сам начал их называть. Например «запиши что я поел» — тут спроси ЧТО (без этого нечего записывать). Но «я поел овсянку» → сразу [FILL:nutrition|Овсянка].\n' +
+                    '«я спал 7 часов» → сразу [FILL:sleep|7]. «отжимания 3х15» → сразу [FILL:workout|Отжимания 3х15].\n\n' +
+                    'ФОРМАТ: когда заполняешь — в КОНЦЕ ответа добавь служебную строку [FILL:тип|данные] (тип = workout/nutrition/sleep/gratitude). Пользователь её не видит. Примеры:\n' +
+                    '[FILL:sleep|7.5]  [FILL:nutrition|Овсянка с бананом]  [FILL:workout|Зарядка выполнена]  [FILL:gratitude|Благодарен за семью]\n' +
+                    'Один короткий тёплый ответ + [FILL] если заполняешь. Если просто советуешь — без [FILL]. Пиши живым русским, коротко.' +
+                    (astroCtx ? ('\nТип личности: ' + astroCtx + '. Учитывай, но не упоминай астрологию без нужды.') : '');
             }
 
             // применяем заполнение раздела
