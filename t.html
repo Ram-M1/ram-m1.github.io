@@ -1,0 +1,21 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Тест</title></head><body style="font-family:sans-serif;padding:20px;font-size:18px;">
+<h2>Тест воркера</h2>
+<button onclick="go()" style="padding:20px;font-size:20px;width:100%;">НАЖМИ — тест ИИ</button>
+<pre id="o" style="background:#eee;padding:15px;margin-top:15px;white-space:pre-wrap;word-break:break-word;"></pre>
+<script>
+async function go(){
+  var o=document.getElementById('o');
+  o.textContent='Отправляю запрос...';
+  try{
+    var r=await fetch('https://focus-ai.playing-life-rama.workers.dev',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:[{role:'user',content:'привет'}]})
+    });
+    var t=await r.text();
+    o.textContent='СТАТУС: '+r.status+'\n\nОТВЕТ:\n'+t;
+  }catch(e){
+    o.textContent='ОШИБКА (это ловит catch):\n'+e.name+': '+e.message+'\n\n'+e.toString();
+  }
+}
+</script></body></html>
