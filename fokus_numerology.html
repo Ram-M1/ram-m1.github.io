@@ -7,54 +7,57 @@
 <link rel="stylesheet" href="focus-theme.css">
 <style>
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#060608; color:#e8e8ee; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; min-height:100vh; -webkit-font-smoothing:antialiased; display:flex; justify-content:center; }
-    .wrap { width:100%; max-width:390px; margin:0 auto; padding:18px 16px 60px; min-height:100vh; background:linear-gradient(165deg,#0d0d12,#060608); }
-    @media (min-width:600px){ .wrap { box-shadow:0 0 0 1px rgba(200,170,255,0.08), 0 40px 80px rgba(0,0,0,0.5); } }
-    .top { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
-    .back { width:40px; height:40px; border-radius:12px; background:rgba(200,170,255,0.1); border:1px solid rgba(200,170,255,0.25); display:flex; align-items:center; justify-content:center; cursor:pointer; }
-    .back svg { width:20px; height:20px; color:#C8AAFF; }
-    .top h1 { font-size:22px; font-weight:800; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Helvetica,Arial,sans-serif; background:#060608; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:12px; overflow:hidden; }
+    .phone { width:375px; height:700px; background:linear-gradient(165deg, var(--bg-1) 0%, var(--bg-2) 100%); border-radius:52px; box-shadow:0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--accent-rgb),0.06), 0 0 0 8px #1c1c24, 0 0 0 9px rgba(var(--accent-rgb),0.08); overflow:hidden; display:flex; flex-direction:column; position:relative; }
+    .scroll { flex:1; overflow-y:auto; scrollbar-width:none; padding:20px 18px 30px; }
+    .scroll::-webkit-scrollbar { display:none; }
+    @media (max-width:600px){ body{padding:0;} .phone{ width:100vw; height:100vh; height:100dvh; border-radius:0; box-shadow:none; } }
 
-    .hero { background:linear-gradient(165deg,#1a1626,#12101c); border:1px solid rgba(200,170,255,0.25); border-radius:24px; padding:28px 22px; text-align:center; margin-bottom:14px; position:relative; overflow:hidden; }
-    .hero::before { content:''; position:absolute; top:-40%; left:-40%; width:180%; height:180%; background:radial-gradient(circle, rgba(200,170,255,0.12), transparent 60%); animation:heroGlow 6s ease-in-out infinite; }
-    @keyframes heroGlow { 0%,100%{ transform:scale(1); opacity:0.6;} 50%{ transform:scale(1.15); opacity:1;} }
-    .hero-num { font-size:80px; font-weight:900; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; line-height:1; position:relative; }
-    .hero-title { font-size:22px; font-weight:800; color:#fff; margin:6px 0 10px; position:relative; }
-    .hero-desc { font-size:14px; color:#c8c8d0; line-height:1.55; position:relative; }
+    .top { display:flex; align-items:center; gap:11px; margin-bottom:18px; }
+    .back { width:36px; height:36px; border-radius:11px; background:rgba(var(--accent-rgb),0.1); border:0.5px solid rgba(var(--accent-rgb),0.2); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+    .back svg { width:17px; height:17px; color:var(--accent); }
+    .top h1 { font-size:19px; font-weight:700; color:#fff; letter-spacing:0.2px; }
 
-    .nums-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:16px; }
-    .num-cell { background:rgba(200,170,255,0.05); border:1px solid rgba(200,170,255,0.15); border-radius:16px; padding:14px 8px; text-align:center; cursor:pointer; transition:all 0.15s; }
-    .num-cell:active { transform:scale(0.96); background:rgba(200,170,255,0.1); }
-    .num-cell .n { font-size:30px; font-weight:800; color:#FFD966; }
-    .num-cell .l { font-size:10.5px; color:#9a9aab; margin-top:3px; line-height:1.3; }
+    .hero { background:linear-gradient(135deg, rgba(200,170,255,0.1), rgba(124,140,255,0.04)); border:0.5px solid rgba(200,170,255,0.22); border-radius:18px; padding:20px 18px; text-align:center; margin-bottom:11px; position:relative; overflow:hidden; }
+    .hero::before { content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:radial-gradient(circle, rgba(200,170,255,0.08), transparent 55%); }
+    .hero-num { font-size:52px; font-weight:800; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; line-height:1; position:relative; }
+    .hero-title { font-size:17px; font-weight:700; color:#fff; margin:5px 0 7px; position:relative; }
+    .hero-desc { font-size:12.5px; color:#c8c8d0; line-height:1.5; position:relative; }
 
-    .section-title { font-size:15px; font-weight:700; color:#C8AAFF; margin:20px 0 10px; }
-    .gen-btn { width:100%; padding:16px; margin-top:8px; border:none; border-radius:16px; background:linear-gradient(135deg,#C8AAFF,#FFD966); color:#0a0a0f; font-size:16px; font-weight:800; font-family:inherit; cursor:pointer; }
+    .nums-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:14px; }
+    .num-cell { background:linear-gradient(135deg, rgba(35,35,46,0.42), rgba(22,22,30,0.42)); border:0.5px solid rgba(var(--accent-rgb),0.12); border-radius:13px; padding:12px 6px; text-align:center; }
+    .num-cell .n { font-size:24px; font-weight:700; color:#FFD966; }
+    .num-cell .l { font-size:9.5px; color:#8e8e9e; margin-top:2px; line-height:1.3; }
+
+    .section-title { font-size:12px; font-weight:600; color:#C8AAFF; margin:16px 0 8px; letter-spacing:0.3px; }
+    .gen-btn { width:100%; padding:13px; border:none; border-radius:13px; background:linear-gradient(135deg,#C8AAFF,#FFD966); color:#0a0a0f; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; letter-spacing:0.2px; }
     .gen-btn:active { transform:scale(0.98); }
-    .forecast-card { background:rgba(200,170,255,0.05); border:1px solid rgba(200,170,255,0.15); border-radius:18px; padding:18px; font-size:14px; line-height:1.65; color:#e0e0e8; white-space:pre-wrap; margin-top:12px; }
+    .forecast-card { background:linear-gradient(135deg, rgba(35,35,46,0.42), rgba(22,22,30,0.42)); border:0.5px solid rgba(var(--accent-rgb),0.12); border-radius:14px; padding:15px; font-size:13px; line-height:1.6; color:#e0e0e8; white-space:pre-wrap; margin-top:8px; }
 
-    .compat-box { background:linear-gradient(165deg,#1a1626,#12101c); border:1px solid rgba(200,170,255,0.2); border-radius:20px; padding:20px; margin-top:20px; }
-    .compat-box h3 { font-size:16px; color:#fff; margin-bottom:6px; }
-    .compat-box p { font-size:12.5px; color:#9a9aab; margin-bottom:14px; line-height:1.5; }
-    .compat-input { width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(200,170,255,0.2); border-radius:12px; padding:13px; color:#fff; font-size:14px; font-family:inherit; outline:none; margin-bottom:12px; }
-    .compat-result { display:none; text-align:center; margin-top:14px; }
-    .compat-pct { font-size:44px; font-weight:900; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
-    .compat-desc { font-size:13px; color:#c8c8d0; line-height:1.55; margin-top:8px; }
+    .compat-box { background:linear-gradient(135deg, rgba(255,138,176,0.08), rgba(200,170,255,0.04)); border:0.5px solid rgba(255,138,176,0.2); border-radius:16px; padding:16px; margin-top:16px; }
+    .compat-box h3 { font-size:14px; color:#fff; margin-bottom:4px; font-weight:700; }
+    .compat-box p { font-size:11px; color:#9a9aab; margin-bottom:11px; line-height:1.5; }
+    .compat-input { width:100%; background:rgba(0,0,0,0.3); border:0.5px solid rgba(200,170,255,0.2); border-radius:11px; padding:11px; color:#fff; font-size:13px; font-family:inherit; outline:none; margin-bottom:10px; }
+    .compat-result { display:none; text-align:center; margin-top:12px; }
+    .compat-pct { font-size:34px; font-weight:800; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+    .compat-desc { font-size:12px; color:#c8c8d0; line-height:1.5; margin-top:6px; }
 
-    .no-data { text-align:center; color:#9a9aab; font-size:14px; padding:40px 20px; line-height:1.6; }
-    .no-data a { color:#C8AAFF; }
-    .loading { text-align:center; color:#C8AAFF; padding:20px; font-size:14px; }
+    .no-data { text-align:center; color:#9a9aab; font-size:13px; padding:40px 20px; line-height:1.6; }
+    .no-data a { color:#C8AAFF; text-decoration:none; }
+    .loading { text-align:center; color:#C8AAFF; padding:16px; font-size:13px; }
 </style>
 </head>
 <body>
-<div class="wrap">
-    <div class="top">
-        <div class="back" onclick="location.href='index.html'">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+<div class="phone">
+    <div class="scroll">
+        <div class="top">
+            <div class="back" onclick="location.href='index.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <h1>Нумерология</h1>
         </div>
-        <h1>Нумерология</h1>
+        <div id="content"></div>
     </div>
-    <div id="content"></div>
 </div>
 
 <script src="focus-astro.js"></script>
@@ -63,6 +66,7 @@
 <script type="module" src="firebase-auth-helper.js"></script>
 <script>
     const FS = (function(){ try { return JSON.parse(localStorage.getItem('focus_user')) || {}; } catch(e){ return {}; } })();
+    try { document.getElementById('htmlRoot').setAttribute('data-theme', FS.theme || localStorage.getItem('focus_theme') || 'original'); } catch(e){}
 
     function render(){
         const content = document.getElementById('content');
@@ -88,10 +92,10 @@
                 '<div class="num-cell"><div class="n">' + (nameNum||'—') + '</div><div class="l">Число<br>имени</div></div>' +
             '</div>' +
             '<div class="section-title">✦ Глубокий разбор от ИИ</div>' +
-            '<div id="forecastArea"><button class="gen-btn" id="genBtn">🔢 Раскрыть мой путь</button></div>' +
+            '<div id="forecastArea"><button class="gen-btn" id="genBtn">Раскрыть мой путь</button></div>' +
             '<div class="compat-box">' +
                 '<h3>💞 Совместимость</h3>' +
-                '<p>Узнай насколько вы совпадаете с партнёром по числам судьбы. Введи его число (1–9, 11, 22, 33).</p>' +
+                '<p>Узнай насколько вы совпадаете с партнёром. Введи его число судьбы (1–9, 11, 22, 33).</p>' +
                 '<input type="number" class="compat-input" id="compatInput" placeholder="Число судьбы партнёра">' +
                 '<button class="gen-btn" id="compatBtn" style="background:linear-gradient(135deg,#FF8AB0,#C8AAFF);">Проверить совместимость</button>' +
                 '<div class="compat-result" id="compatResult"><div class="compat-pct" id="compatPct"></div><div class="compat-desc" id="compatDesc"></div></div>' +
@@ -109,37 +113,29 @@
         const mission = FocusAstro.getMissionNumber(FS.birthDate);
         const aboutText = getAboutText();
         const messages = [
-            { role:'system', content:
-                'Ты — мудрый нумеролог в приложении FOCUS. Составь глубокий, вдохновляющий разбор жизненного пути человека. ' +
-                'У него: число судьбы, число души (' + soul + ' — внутренние желания), число миссии (' + mission + ' — предназначение), число имени, знак зодиака. ' +
-                'Учитывай тип личности и адаптируй разбор под него. Опирайся и на то, что человек рассказал о себе. ' +
-                'Пиши живым русским, 5-7 предложений. Раскрой сильные стороны, предназначение, на что обратить внимание. Лично, без клише.'
-            },
+            { role:'system', content: 'Ты — мудрый нумеролог в приложении FOCUS. Составь глубокий вдохновляющий разбор жизненного пути. У человека: число судьбы, число души (' + soul + ' — внутренние желания), число миссии (' + mission + ' — предназначение), число имени, знак зодиака. Учитывай тип личности, адаптируй. Опирайся на то что человек рассказал о себе. Живой русский, 4-6 предложений. Раскрой сильные стороны, предназначение. Лично, без клише.' },
             { role:'user', content: 'Мои данные: ' + numCtx + '. Число души: ' + soul + ', число миссии: ' + mission + '.\n' + (aboutText ? ('Обо мне: ' + aboutText + '\n') : '') + 'Раскрой мой путь.' }
         ];
         if (!window.fbAskAI) { area.innerHTML = '<div class="forecast-card">ИИ недоступен, обнови страницу.</div>'; return; }
-        let res = await window.fbAskAI(messages, 650);
-        if (res.ok && res.reply && res.reply.trim()) {
-            area.innerHTML = '<div class="forecast-card">' + res.reply.trim().replace(/</g,'&lt;') + '</div>';
-        } else {
-            area.innerHTML = '<div class="forecast-card">⚠️ Не удалось получить разбор. Причина: ' + (res.error || 'неизвестно') + '</div>';
-        }
+        let res = await window.fbAskAI(messages, 600);
+        area.innerHTML = (res.ok && res.reply && res.reply.trim())
+            ? '<div class="forecast-card">' + res.reply.trim().replace(/</g,'&lt;') + '</div>'
+            : '<div class="forecast-card">⚠️ Не удалось получить разбор. ' + (res.error || '') + '</div>';
     }
 
     function checkCompat(){
         const partnerNum = parseInt(document.getElementById('compatInput').value);
-        if (!partnerNum || isNaN(partnerNum)) { alert('Введи число судьбы партнёра'); return; }
+        if (!partnerNum || isNaN(partnerNum)) { document.getElementById('compatInput').style.borderColor = '#FF6B6B'; return; }
         const myNum = FocusAstro.getLifePathNumber(FS.birthDate);
         const pct = FocusAstro.getCompatibility(myNum, partnerNum);
-        const resEl = document.getElementById('compatResult');
         document.getElementById('compatPct').innerText = pct + '%';
         let desc;
-        if (pct >= 80) desc = 'Прекрасное совпадение! Ваши числа резонируют — вы дополняете и усиливаете друг друга.';
-        else if (pct >= 65) desc = 'Хорошая совместимость. У вас много общего, а различия делают союз интереснее.';
+        if (pct >= 80) desc = 'Прекрасное совпадение! Ваши числа резонируют — вы усиливаете друг друга.';
+        else if (pct >= 65) desc = 'Хорошая совместимость. Много общего, а различия делают союз интереснее.';
         else if (pct >= 50) desc = 'Средняя совместимость. Понадобится работа над пониманием, но это возможно.';
-        else desc = 'Непростое сочетание. Разные энергии — но противоположности иногда создают сильные пары.';
+        else desc = 'Непростое сочетание. Разные энергии — но противоположности создают сильные пары.';
         document.getElementById('compatDesc').innerText = desc;
-        resEl.style.display = 'block';
+        document.getElementById('compatResult').style.display = 'block';
     }
 
     function getAboutText(){
@@ -150,7 +146,6 @@
     }
 
     render();
-    try { document.getElementById('htmlRoot').setAttribute('data-theme', FS.theme || 'original'); } catch(e){}
 </script>
 <script>
     if ("serviceWorker" in navigator) { window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }); }

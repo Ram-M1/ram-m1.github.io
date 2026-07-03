@@ -572,33 +572,34 @@
     .ai-expand-btn { margin-left:auto; width:30px; height:30px; border-radius:9px; background:rgba(var(--accent-rgb),0.12); display:flex; align-items:center; justify-content:center; cursor:pointer; }
     .ai-expand-btn svg { width:16px; height:16px; color:var(--accent); }
     .ai-expand-btn:active { transform:scale(0.92); }
-    .ai-chat-overlay { position:fixed; inset:0; z-index:4000; background:rgba(5,5,12,0.6); backdrop-filter:blur(8px); display:none; align-items:flex-end; justify-content:center; }
+    .ai-chat-overlay { position:fixed; inset:0; z-index:4000; background:rgba(3,3,8,0.75); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; padding:12px; }
     .ai-chat-overlay.show { display:flex; }
-    .ai-chat-window { width:100%; max-width:400px; height:82vh; background:linear-gradient(180deg,#14141c,#0d0d14); border-radius:24px 24px 0 0; display:flex; flex-direction:column; border:1px solid rgba(var(--accent-rgb),0.2); border-bottom:none; animation:chatUp 0.3s cubic-bezier(0.4,0,0.2,1); overflow:hidden; }
-    @keyframes chatUp { from{transform:translateY(100%);} to{transform:translateY(0);} }
-    .ai-chat-header { display:flex; align-items:center; gap:12px; padding:16px 18px; border-bottom:1px solid rgba(255,255,255,0.06); }
-    .ai-chat-orb { width:36px; height:36px; border-radius:50%; background:radial-gradient(circle at 35% 30%, var(--accent), var(--accent-2) 70%); box-shadow:0 0 20px rgba(var(--accent-rgb),0.5); animation:orbPulse 2.5s ease-in-out infinite; flex-shrink:0; }
-    @keyframes orbPulse { 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.1);} }
-    .ai-chat-title { font-size:16px; font-weight:700; color:#fff; flex:1; }
-    .ai-chat-collapse { width:34px; height:34px; border-radius:10px; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; cursor:pointer; }
-    .ai-chat-collapse svg { width:20px; height:20px; color:#9a9aab; }
+    .ai-chat-window { width:375px; max-width:100%; height:700px; max-height:calc(100vh - 24px); background:linear-gradient(165deg, var(--bg-1), var(--bg-2)); border-radius:44px; display:flex; flex-direction:column; border:0.5px solid rgba(var(--accent-rgb),0.15); box-shadow:0 40px 80px rgba(0,0,0,0.6), 0 0 0 8px #1c1c24, 0 0 0 9px rgba(var(--accent-rgb),0.08); overflow:hidden; animation:chatUp 0.3s cubic-bezier(0.34,1.2,0.64,1); }
+    @keyframes chatUp { from{transform:translateY(30px); opacity:0;} to{transform:translateY(0); opacity:1;} }
+    @media (max-width:600px){ .ai-chat-overlay{ padding:0; } .ai-chat-window{ width:100vw; height:100vh; height:100dvh; max-height:100vh; border-radius:0; box-shadow:none; } }
+    .ai-chat-header { display:flex; align-items:center; gap:10px; padding:18px 18px 14px; border-bottom:0.5px solid rgba(255,255,255,0.06); }
+    .ai-chat-orb { width:32px; height:32px; border-radius:50%; background:radial-gradient(circle at 35% 30%, var(--accent), var(--accent-2) 70%); box-shadow:0 0 16px rgba(var(--accent-rgb),0.5); animation:orbPulse 2.5s ease-in-out infinite; flex-shrink:0; }
+    @keyframes orbPulse { 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.08);} }
+    .ai-chat-title { font-size:15px; font-weight:700; color:#fff; flex:1; }
+    .ai-chat-collapse { width:32px; height:32px; border-radius:10px; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    .ai-chat-collapse svg { width:18px; height:18px; color:#9a9aab; }
     .ai-chat-collapse:active { transform:scale(0.92); }
-    .ai-chat-messages { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; scrollbar-width:thin; }
-    .ai-chat-messages::-webkit-scrollbar { width:4px; } .ai-chat-messages::-webkit-scrollbar-thumb { background:rgba(var(--accent-rgb),0.3); border-radius:4px; }
-    .ai-msg { max-width:82%; padding:12px 15px; border-radius:16px; font-size:14px; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
-    .ai-msg.user { align-self:flex-end; background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#0a0a0f; border-bottom-right-radius:5px; }
+    .ai-chat-messages { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; scrollbar-width:none; }
+    .ai-chat-messages::-webkit-scrollbar { display:none; }
+    .ai-msg { max-width:82%; padding:11px 14px; border-radius:15px; font-size:13.5px; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
+    .ai-msg.user { align-self:flex-end; background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#0a0a0f; border-bottom-right-radius:5px; font-weight:500; }
     .ai-msg.bot { align-self:flex-start; background:rgba(255,255,255,0.06); color:#e8e8ee; border-bottom-left-radius:5px; }
-    .ai-msg.filled { align-self:center; background:rgba(120,220,150,0.12); border:1px solid rgba(120,220,150,0.3); color:#9dffbf; font-size:13px; text-align:center; max-width:90%; }
-    .ai-chat-typing { align-self:flex-start; color:#9a9aab; font-size:13px; padding:8px 15px; }
-    .ai-chat-input-row { display:flex; gap:8px; padding:14px 16px; border-top:1px solid rgba(255,255,255,0.06); align-items:center; }
-    .ai-chat-input { flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(var(--accent-rgb),0.2); border-radius:22px; padding:12px 16px; color:#fff; font-size:14px; font-family:inherit; outline:none; }
-    .ai-chat-mic, .ai-chat-send { width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+    .ai-msg.filled { align-self:center; background:rgba(120,220,150,0.12); border:0.5px solid rgba(120,220,150,0.3); color:#9dffbf; font-size:12px; text-align:center; max-width:90%; }
+    .ai-chat-typing { align-self:flex-start; color:#9a9aab; font-size:12.5px; padding:6px 14px; }
+    .ai-chat-input-row { display:flex; gap:7px; padding:12px 14px 16px; border-top:0.5px solid rgba(255,255,255,0.06); align-items:center; }
+    .ai-chat-input { flex:1; background:rgba(0,0,0,0.3); border:0.5px solid rgba(var(--accent-rgb),0.2); border-radius:20px; padding:11px 15px; color:#fff; font-size:13.5px; font-family:inherit; outline:none; }
+    .ai-chat-mic, .ai-chat-send { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
     .ai-chat-mic { background:rgba(var(--accent-rgb),0.12); }
-    .ai-chat-mic svg { width:20px; height:20px; color:var(--accent); }
+    .ai-chat-mic svg { width:18px; height:18px; color:var(--accent); }
     .ai-chat-mic.recording { background:rgba(255,90,90,0.2); animation:micPulse 1s infinite; }
-    @keyframes micPulse { 0%,100%{ box-shadow:0 0 0 0 rgba(255,90,90,0.4);} 50%{ box-shadow:0 0 0 8px rgba(255,90,90,0);} }
+    @keyframes micPulse { 0%,100%{ box-shadow:0 0 0 0 rgba(255,90,90,0.4);} 50%{ box-shadow:0 0 0 7px rgba(255,90,90,0);} }
     .ai-chat-send { background:linear-gradient(135deg,var(--accent),var(--accent-2)); }
-    .ai-chat-send svg { width:20px; height:20px; color:#0a0a0f; }
+    .ai-chat-send svg { width:18px; height:18px; color:#0a0a0f; }
     .ai-chat-mic:active, .ai-chat-send:active { transform:scale(0.9); }
 </style>
 <script src="focus-analytics.js"></script>
@@ -1537,20 +1538,54 @@
                 result.innerHTML = '<span class="check">✓</span> Отмечено: ' + labels + ' &nbsp;<span style="opacity:0.7;font-size:12px;">→ идёт в зачёт недели</span>';
                 input.value = '';
             } else {
-                // не быстрая команда — открываем полноценный чат с этим сообщением (единая логика: диалог + заполнение + история)
-                const msg = text;
-                input.value = '';
-                result.className = 'ai-result';
-                if (window._openAiChatWith) {
-                    window._openAiChatWith(msg);
+                // не быстрая команда — отвечаем прямо в компактном виде (та же логика, без открытия чата)
+                if (window.fbAskAI) {
+                    result.className = 'ai-result show';
+                    result.innerHTML = '<span class="ai-thinking">🧠 Думаю...</span>';
+                    let canAsk = true;
+                    try { if (FocusStorage.canUseAI) canAsk = FocusStorage.canUseAI('mentor', 'text').ok; } catch(e){}
+                    if (!canAsk) { result.innerHTML = '🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.'; return; }
+
+                    const meUser = (function(){ try { return JSON.parse(localStorage.getItem('focus_user')) || {}; } catch(e){ return {}; } })();
+                    const asstName = meUser.assistantName || 'ассистент';
+                    let astroCtx = '';
+                    try { if (meUser.birthDate && window.FocusAstro) astroCtx = FocusAstro.contextForAI(meUser); } catch(e){}
+
+                    // единая история (та же что в раскрытом чате)
+                    if (!window._focusChatHistory) window._focusChatHistory = [];
+                    window._focusChatHistory.push({ role:'user', content: text });
+
+                    const sysPrompt = window._focusChatSystemPrompt ? window._focusChatSystemPrompt() :
+                        ('Тебя зовут ' + asstName + '. Ты умный ассистент FOCUS. Отвечай коротко, по делу, живым русским.' + (astroCtx ? (' Тип личности: ' + astroCtx + '.') : ''));
+                    const prompt = [{ role: 'system', content: sysPrompt }, ...window._focusChatHistory.slice(-10)];
+
+                    let res = await window.fbAskAI(prompt, 500);
+                    if (res.ok && res.reply && res.reply.trim()) {
+                        let full = res.reply.trim();
+                        window._focusChatHistory.push({ role:'assistant', content: full });
+                        let reply = full;
+                        const fillMatch = reply.match(/\[FILL:([a-z]+)\|([^\]]+)\]/i);
+                        if (fillMatch && window._focusApplyFill) {
+                            reply = reply.replace(/\[FILL:[^\]]+\]/gi, '').trim();
+                            window._focusApplyFill(fillMatch[1].toLowerCase(), fillMatch[2].trim());
+                            result.innerHTML = '✅ ' + (reply || 'Записал!').replace(/</g,'&lt;');
+                        } else {
+                            result.innerHTML = '🧠 ' + reply.replace(/</g,'&lt;').replace(/\n/g,'<br>');
+                        }
+                        try { if (FocusStorage.useAI) FocusStorage.useAI('mentor', 'text'); } catch(e){}
+                        input.value = '';
+                    } else {
+                        result.className = 'ai-result show unknown';
+                        result.innerHTML = '⚠️ ИИ не ответил. ' + (res.error || '');
+                    }
+                    return;
                 } else {
                     result.className = 'ai-result show unknown';
-                    result.innerHTML = '🤔 Открой чат с ассистентом (кнопка разворота).';
+                    result.innerHTML = '🤔 Попробуй: «сделал зарядку», «я спал 7 часов», или задай вопрос.';
                 }
-                return;
             }
             clearTimeout(window._aiTimer);
-            window._aiTimer = setTimeout(() => { result.className = 'ai-result'; }, 6000);
+            window._aiTimer = setTimeout(() => { result.className = 'ai-result'; }, 8000);
         }
 
         sendBtn.addEventListener('click', process);
@@ -1572,7 +1607,9 @@
             const asstName = meUser.assistantName || 'Ассистент';
             chatTitle.innerText = asstName;
 
-            let history = []; // диалог для ИИ
+            // ЕДИНАЯ история для компактного и раскрытого вида (один ассистент)
+            if (!window._focusChatHistory) window._focusChatHistory = [];
+            let history = window._focusChatHistory;
 
             function scrollDown(){ msgsBox.scrollTop = msgsBox.scrollHeight; }
             function addMsg(role, text){
@@ -1588,23 +1625,23 @@
                 msgsBox.appendChild(d); scrollDown();
             }
 
-            var _greeted = false;
             function openChat(){
                 overlay.classList.add('show');
-                if (!_greeted) {
-                    _greeted = true;
+                // перерисовываем всю историю (что накопилось в компактном виде тоже)
+                msgsBox.innerHTML = '';
+                if (!history.length) {
                     addMsg('bot', 'Привет' + (meUser.name ? ', ' + meUser.name : '') + '! Я ' + asstName + '. Могу дать совет, обсудить что угодно, или заполнить за тебя раздел — просто скажи «запиши что я поел», «отметь зарядку», «я спал 7 часов». Что нужно?');
+                } else {
+                    history.forEach(function(m){
+                        if (m.role === 'user') addMsg('user', m.content);
+                        else if (m.role === 'assistant') addMsg('bot', m.content.replace(/\[FILL:[^\]]+\]/gi,'').trim());
+                    });
                 }
                 setTimeout(()=> chatInput.focus(), 300);
             }
             function closeChat(){ overlay.classList.remove('show'); }
 
             expandBtn.addEventListener('click', openChat);
-            // экспортируем чтобы компактный ассистент мог открыть чат с текстом
-            window._openAiChatWith = function(text){
-                openChat();
-                if (text) { chatInput.value = text; setTimeout(sendChat, 200); }
-            };
             collapseBtn.addEventListener('click', closeChat);
             overlay.addEventListener('click', (e)=>{ if (e.target === overlay) closeChat(); });
 
@@ -1626,6 +1663,7 @@
                     'Один короткий тёплый ответ + [FILL] если заполняешь. Если просто советуешь — без [FILL]. Пиши живым русским, коротко.' +
                     (astroCtx ? ('\nТип личности: ' + astroCtx + '. Учитывай, но не упоминай астрологию без нужды.') : '');
             }
+            window._focusChatSystemPrompt = systemPrompt;
 
             // применяем заполнение раздела
             function applyFill(type, data){
@@ -1661,6 +1699,37 @@
                     }
                 } catch(e){ addFilled('Не удалось записать: ' + e.message); }
             }
+
+            // версия для компактного ассистента (без вывода в чат — только запись данных)
+            window._focusApplyFill = function(type, data){
+                const today = new Date().toISOString().slice(0,10);
+                try {
+                    if (type === 'sleep') {
+                        const hours = parseFloat((data||'').replace(',','.')) || 8;
+                        let entries = JSON.parse(localStorage.getItem('focus_sleep_entries') || '[]');
+                        entries = entries.filter(e => e.date !== today);
+                        entries.push({ date: today, hours: hours, quality: 3, note: 'Записал ассистент' });
+                        localStorage.setItem('focus_sleep_entries', JSON.stringify(entries));
+                    } else if (type === 'nutrition') {
+                        let nt = {}; try { nt = JSON.parse(localStorage.getItem('focus_nutrition_today')) || {}; } catch(e){}
+                        if (nt.date !== today) nt = { date: today, meals: { breakfast:[], lunch:[], dinner:[], snack:[] } };
+                        if (!nt.meals) nt.meals = { breakfast:[], lunch:[], dinner:[], snack:[] };
+                        nt.meals.snack.push({ name: data, cal: 0, prot: 0, fat: 0, carb: 0, id: Date.now() });
+                        localStorage.setItem('focus_nutrition_today', JSON.stringify(nt));
+                        try { let d = JSON.parse(localStorage.getItem('focus_nutrition_finished')||'[]'); if(!d.includes(today)){d.push(today);localStorage.setItem('focus_nutrition_finished',JSON.stringify(d));} } catch(e){}
+                    } else if (type === 'workout') {
+                        markSectionDone('workout');
+                        try { localStorage.setItem('focus_workout_note_' + today, data); } catch(e){}
+                        if (window.FocusRewards) FocusRewards.mark('body', 'workout');
+                    } else if (type === 'gratitude') {
+                        let grats = []; try { grats = JSON.parse(localStorage.getItem('faith_gratitudes')||'[]'); } catch(e){}
+                        grats.push({ date: today, text: data });
+                        localStorage.setItem('faith_gratitudes', JSON.stringify(grats));
+                        markSectionDone('gratitude');
+                        if (window.FocusRewards) FocusRewards.mark('faith', 'gratitude');
+                    }
+                } catch(e){}
+            };
 
             async function sendChat(){
                 const text = chatInput.value.trim();
