@@ -112,3 +112,53 @@
 [data-theme="whitematrix"] .num-cell .l {
     color: #6a6250 !important;
 }
+
+/* ============================================================
+   WHITE MATRIX — универсальный контраст на светлой теме.
+   Ловит типовые классы карточек/плиток/кнопок по всему приложению.
+   ============================================================ */
+[data-theme="whitematrix"] .subsection-tile,
+[data-theme="whitematrix"] .metrics-card,
+[data-theme="whitematrix"] .link-card,
+[data-theme="whitematrix"] .menu-tile,
+[data-theme="whitematrix"] .nav-tile,
+[data-theme="whitematrix"] .list-tile,
+[data-theme="whitematrix"] .info-card,
+[data-theme="whitematrix"] .data-card,
+[data-theme="whitematrix"] .entry-card,
+[data-theme="whitematrix"] .log-card,
+[data-theme="whitematrix"] .item-card,
+[data-theme="whitematrix"] .glass-card,
+[data-theme="whitematrix"] .soft-card,
+[data-theme="whitematrix"] .tile,
+[data-theme="whitematrix"] .cardish,
+[data-theme="whitematrix"] .row-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(250,248,242,0.92)) !important;
+    border-color: rgba(201,154,46,0.28) !important;
+}
+/* Заголовки/крупный текст на светлой теме → тёмные */
+[data-theme="whitematrix"] .subsection-title,
+[data-theme="whitematrix"] .metric-value,
+[data-theme="whitematrix"] .tile-title,
+[data-theme="whitematrix"] .card-title,
+[data-theme="whitematrix"] .item-title,
+[data-theme="whitematrix"] .entry-title,
+[data-theme="whitematrix"] .section-name,
+[data-theme="whitematrix"] .big-num,
+[data-theme="whitematrix"] .value,
+[data-theme="whitematrix"] label,
+[data-theme="whitematrix"] .label {
+    color: #2a2419 !important;
+}
+/* Подписи/вторичный текст → тёмно-серый */
+[data-theme="whitematrix"] .subsection-sub,
+[data-theme="whitematrix"] .metric-label,
+[data-theme="whitematrix"] .tile-sub,
+[data-theme="whitematrix"] .card-sub,
+[data-theme="whitematrix"] .item-sub,
+[data-theme="whitematrix"] .entry-sub,
+[data-theme="whitematrix"] .muted,
+[data-theme="whitematrix"] .sub,
+[data-theme="whitematrix"] small {
+    color: #6a6250 !important;
+}

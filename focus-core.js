@@ -640,31 +640,68 @@ const FocusCore = {
             }
         }
 
-        // === CYBERPUNK: нейро-сеть узлов с импульсами ===
-        let cyberNodes = null, cyberFlows = null;
+        // === CYBERPUNK: 3D нейро-ландшафт волной (как согласовано) ===
+        let cbGrid = null, cbHubs = null, cbFlows = null, cbBokeh = null;
+        const CB_COLS = 14, CB_ROWS = 10;
+        function cbPoint(i, j, tt) {
+            const gx = (i / (CB_COLS - 1)) - 0.5, gz = j / (CB_ROWS - 1), persp = 0.35 + gz * 0.65;
+            const wave = Math.sin(gx * 6 + tt * 1.2) * 0.06 + Math.sin(gz * 5 - tt * 1.5) * 0.05 + Math.sin((gx + gz) * 8 + tt) * 0.03;
+            return { x: ac.width / 2 + gx * ac.width * 1.15 * persp, y: ac.height * 0.92 - gz * ac.height * 0.6 - wave * ac.height * persp, depth: 1 - gz };
+        }
         function drawCyberpunk() {
-            if (!cyberNodes) {
-                cyberNodes = []; for (let i = 0; i < 26; i++) cyberNodes.push({ x: Math.random() * ac.width, y: Math.random() * ac.height, vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3, h: Math.random(), ph: Math.random() * 6.28 });
-                cyberFlows = []; for (let i = 0; i < 10; i++) cyberFlows.push({ a: Math.floor(Math.random() * 26), b: Math.floor(Math.random() * 26), t: Math.random(), sp: 0.01 + Math.random() * 0.02 });
+            const tt = washT * 6;
+            if (!cbHubs) {
+                cbHubs = []; for (let k = 0; k < 8; k++) cbHubs.push({ i: 1 + Math.floor(Math.random() * (CB_COLS - 2)), j: 1 + Math.floor(Math.random() * (CB_ROWS - 3)), h: Math.random(), ph: Math.random() * 6.28 });
+                cbFlows = []; for (let i = 0; i < 10; i++) cbFlows.push({ j: Math.floor(Math.random() * CB_ROWS), p: Math.random(), sp: 0.004 + Math.random() * 0.008, h: Math.random() });
+                cbBokeh = []; for (let i = 0; i < 18; i++) cbBokeh.push({ x: Math.random() * ac.width, y: Math.random() * ac.height * 0.55, r: 10 + Math.random() * 34, h: Math.random(), tw: Math.random() * 6.28, sp: 0.2 + Math.random() * 0.4 });
             }
-            const cc = (h, a) => h < 0.4 ? 'rgba(61,214,255,' + a + ')' : (h < 0.72 ? 'rgba(255,61,224,' + a + ')' : 'rgba(120,180,255,' + a + ')');
-            for (let i = 0; i < cyberNodes.length; i++) {
-                const n = cyberNodes[i]; n.x += n.vx; n.y += n.vy;
-                if (n.x < 0 || n.x > ac.width) n.vx *= -1; if (n.y < 0 || n.y > ac.height) n.vy *= -1;
-                for (let j = i + 1; j < cyberNodes.length; j++) {
-                    const m = cyberNodes[j], dx = n.x - m.x, dy = n.y - m.y, d = dx * dx + dy * dy;
-                    if (d < 11000) { actx.strokeStyle = cc(n.h, (1 - Math.sqrt(d) / 105) * 0.28); actx.lineWidth = 0.6; actx.beginPath(); actx.moveTo(n.x, n.y); actx.lineTo(m.x, m.y); actx.stroke(); }
-                }
+            const cc = (h, a) => h < 0.35 ? 'rgba(0,220,255,' + a + ')' : (h < 0.62 ? 'rgba(60,255,180,' + a + ')' : (h < 0.82 ? 'rgba(255,61,224,' + a + ')' : 'rgba(150,120,255,' + a + ')'));
+            // боке-глубина
+            for (let i = 0; i < cbBokeh.length; i++) {
+                const b = cbBokeh[i]; b.tw += 0.02;
+                const a = (0.12 + 0.14 * Math.sin(b.tw)) * b.sp;
+                const g = actx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+                g.addColorStop(0, cc(b.h, a)); g.addColorStop(1, cc(b.h, 0));
+                actx.fillStyle = g; actx.beginPath(); actx.arc(b.x, b.y, b.r, 0, 6.28); actx.fill();
             }
-            for (let f = 0; f < cyberFlows.length; f++) {
-                const fl = cyberFlows[f]; fl.t += fl.sp; if (fl.t > 1) { fl.t = 0; fl.a = Math.floor(Math.random() * 26); fl.b = Math.floor(Math.random() * 26); }
-                const a = cyberNodes[fl.a], b = cyberNodes[fl.b]; if (!a || !b) continue;
-                const px = a.x + (b.x - a.x) * fl.t, py = a.y + (b.y - a.y) * fl.t;
-                actx.fillStyle = 'rgba(255,255,255,0.9)'; actx.beginPath(); actx.arc(px, py, 1.8, 0, 6.28); actx.fill();
+            // сетка-ландшафт
+            const pts = []; for (let j = 0; j < CB_ROWS; j++) { pts[j] = []; for (let i = 0; i < CB_COLS; i++) pts[j][i] = cbPoint(i, j, tt); }
+            actx.lineWidth = 1;
+            for (let j = 0; j < CB_ROWS; j++) for (let i = 0; i < CB_COLS; i++) {
+                const p = pts[j][i], dep = p.depth;
+                if (i < CB_COLS - 1) { const pr = pts[j][i + 1]; actx.strokeStyle = 'rgba(0,200,255,' + (0.07 + 0.26 * dep) + ')'; actx.beginPath(); actx.moveTo(p.x, p.y); actx.lineTo(pr.x, pr.y); actx.stroke(); }
+                if (j < CB_ROWS - 1) { const pd = pts[j + 1][i]; actx.strokeStyle = 'rgba(0,180,255,' + (0.05 + 0.2 * dep) + ')'; actx.beginPath(); actx.moveTo(p.x, p.y); actx.lineTo(pd.x, pd.y); actx.stroke(); }
+                if (i < CB_COLS - 1 && j < CB_ROWS - 1) { const pg = pts[j + 1][i + 1]; actx.strokeStyle = 'rgba(60,255,180,' + (0.03 + 0.1 * dep) + ')'; actx.beginPath(); actx.moveTo(p.x, p.y); actx.lineTo(pg.x, pg.y); actx.stroke(); }
             }
-            for (let i = 0; i < cyberNodes.length; i++) {
-                const n = cyberNodes[i], pulse = 0.5 + 0.5 * Math.sin(washT * 40 + n.ph);
-                actx.fillStyle = cc(n.h, 0.6 * pulse); actx.beginPath(); actx.arc(n.x, n.y, 1.8, 0, 6.28); actx.fill();
+            // импульсы по линиям
+            for (let f = 0; f < cbFlows.length; f++) {
+                const fl = cbFlows[f]; fl.p += fl.sp; if (fl.p > 1) fl.p -= 1;
+                const ii = fl.p * (CB_COLS - 1), i0 = Math.floor(ii), i1 = Math.min(CB_COLS - 1, i0 + 1), ff = ii - i0;
+                const pa = pts[fl.j][i0], pb = pts[fl.j][i1];
+                const fx = pa.x + (pb.x - pa.x) * ff, fy = pa.y + (pb.y - pa.y) * ff, dep = pa.depth;
+                const g = actx.createRadialGradient(fx, fy, 0, fx, fy, 7 * (0.5 + dep));
+                g.addColorStop(0, cc(fl.h, 0.9 * dep)); g.addColorStop(1, cc(fl.h, 0));
+                actx.fillStyle = g; actx.beginPath(); actx.arc(fx, fy, 7 * (0.5 + dep), 0, 6.28); actx.fill();
+            }
+            // узлы
+            for (let j = 0; j < CB_ROWS; j++) for (let i = 0; i < CB_COLS; i++) {
+                const p = pts[j][i], dep = p.depth;
+                actx.fillStyle = 'rgba(120,240,255,' + (0.18 + 0.45 * dep) + ')';
+                actx.beginPath(); actx.arc(p.x, p.y, (0.8 + 1.8 * dep), 0, 6.28); actx.fill();
+            }
+            // хабы-гексагоны
+            for (let k = 0; k < cbHubs.length; k++) {
+                const hb = cbHubs[k], p = pts[hb.j][hb.i], dep = p.depth, pulse = 0.6 + 0.4 * Math.sin(tt + hb.ph);
+                const rr = (5 + 8 * dep) * (0.85 + 0.2 * Math.sin(tt * 1.5 + hb.ph));
+                const g = actx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rr * 2.5);
+                g.addColorStop(0, cc(hb.h, 0.7 * pulse * dep)); g.addColorStop(0.5, cc(hb.h, 0.22 * pulse * dep)); g.addColorStop(1, cc(hb.h, 0));
+                actx.fillStyle = g; actx.beginPath(); actx.arc(p.x, p.y, rr * 2.5, 0, 6.28); actx.fill();
+                actx.strokeStyle = cc(hb.h, 0.6 * dep); actx.lineWidth = 1.2;
+                actx.beginPath();
+                for (let s = 0; s < 6; s++) { const ang = tt * 0.5 + s * Math.PI / 3; const hx = p.x + Math.cos(ang) * rr, hy = p.y + Math.sin(ang) * rr; if (s === 0) actx.moveTo(hx, hy); else actx.lineTo(hx, hy); }
+                actx.closePath(); actx.stroke();
+                actx.fillStyle = 'rgba(255,255,255,' + (pulse * dep) + ')'; actx.beginPath(); actx.arc(p.x, p.y, 2 * dep + 1, 0, 6.28); actx.fill();
+                actx.fillStyle = 'rgba(255,61,224,' + (0.8 * pulse * dep) + ')'; actx.beginPath(); actx.arc(p.x, p.y, 1 * dep + 0.5, 0, 6.28); actx.fill();
             }
         }
 
@@ -672,22 +709,25 @@ const FocusCore = {
         let goldDust = null, goldNodes = null;
         function drawWhiteMatrix() {
             if (!goldDust) {
-                goldDust = []; for (let i = 0; i < 45; i++) goldDust.push({ x: Math.random() * ac.width, y: Math.random() * ac.height, vx: (Math.random() - 0.5) * 0.2, vy: -0.15 - Math.random() * 0.4, r: 0.6 + Math.random() * 2, tw: Math.random() * 6.28 });
-                goldNodes = []; for (let i = 0; i < 14; i++) goldNodes.push({ x: Math.random() * ac.width, y: Math.random() * ac.height, vx: (Math.random() - 0.5) * 0.25, vy: (Math.random() - 0.5) * 0.25 });
+                goldDust = []; for (let i = 0; i < 70; i++) goldDust.push({ x: Math.random() * ac.width, y: Math.random() * ac.height, vx: (Math.random() - 0.5) * 0.3, vy: -0.2 - Math.random() * 0.6, r: 1 + Math.random() * 2.6, tw: Math.random() * 6.28 });
+                goldNodes = []; for (let i = 0; i < 22; i++) goldNodes.push({ x: Math.random() * ac.width, y: Math.random() * ac.height, vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3 });
             }
             for (let i = 0; i < goldNodes.length; i++) {
                 const n = goldNodes[i]; n.x += n.vx; n.y += n.vy;
                 if (n.x < 0 || n.x > ac.width) n.vx *= -1; if (n.y < 0 || n.y > ac.height) n.vy *= -1;
                 for (let j = i + 1; j < goldNodes.length; j++) {
                     const m = goldNodes[j], dx = n.x - m.x, dy = n.y - m.y, d = Math.sqrt(dx * dx + dy * dy);
-                    if (d < 120) { actx.strokeStyle = 'rgba(201,154,46,' + ((1 - d / 120) * 0.25) + ')'; actx.lineWidth = 0.6; actx.beginPath(); actx.moveTo(n.x, n.y); actx.lineTo(m.x, m.y); actx.stroke(); }
+                    if (d < 135) { actx.strokeStyle = 'rgba(201,154,46,' + ((1 - d / 135) * 0.35) + ')'; actx.lineWidth = 0.8; actx.beginPath(); actx.moveTo(n.x, n.y); actx.lineTo(m.x, m.y); actx.stroke(); }
                 }
             }
-            for (let i = 0; i < goldNodes.length; i++) { const n = goldNodes[i]; actx.fillStyle = 'rgba(201,154,46,0.6)'; actx.beginPath(); actx.arc(n.x, n.y, 1.8, 0, 6.28); actx.fill(); }
+            for (let i = 0; i < goldNodes.length; i++) { const n = goldNodes[i]; actx.fillStyle = 'rgba(201,154,46,0.7)'; actx.beginPath(); actx.arc(n.x, n.y, 2.4, 0, 6.28); actx.fill(); }
             for (let k = 0; k < goldDust.length; k++) {
                 const d = goldDust[k]; d.x += d.vx; d.y += d.vy; d.tw += 0.05;
                 if (d.y < -5) { d.y = ac.height + 5; d.x = Math.random() * ac.width; }
-                const a = (0.35 + 0.35 * Math.sin(d.tw)) * 0.7;
+                const a = (0.4 + 0.4 * Math.sin(d.tw)) * 0.8;
+                const g = actx.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r * 2.5);
+                g.addColorStop(0, 'rgba(230,190,90,' + a + ')'); g.addColorStop(1, 'rgba(201,154,46,0)');
+                actx.fillStyle = g; actx.beginPath(); actx.arc(d.x, d.y, d.r * 2.5, 0, 6.28); actx.fill();
                 actx.fillStyle = 'rgba(201,154,46,' + a + ')'; actx.beginPath(); actx.arc(d.x, d.y, d.r * 0.7, 0, 6.28); actx.fill();
             }
         }

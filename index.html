@@ -142,7 +142,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 16px;
+        margin-bottom: 10px;
     }
     .logo-left {
         display: flex;
@@ -274,8 +274,8 @@
         background: linear-gradient(135deg, rgba(var(--accent-2-rgb),0.07), rgba(var(--accent-rgb),0.04));
         border: 1px solid rgba(var(--accent-2-rgb),0.18);
         border-radius: 12px;
-        padding: 9px 13px;
-        margin-bottom: 12px;
+        padding: 7px 13px;
+        margin-bottom: 8px;
         position: relative;
     }
     .quote-container::before {
@@ -484,10 +484,13 @@
         width: 280px;
         padding: 20px;
         border: 0.5px solid rgba(var(--accent-rgb),0.18);
-        max-height: 75%;
+        max-height: 82%;
         overflow-y: auto;
         box-shadow: 0 0 40px rgba(var(--accent-rgb),0.06);
+        scrollbar-width: none;
+        -ms-overflow-style: none;
     }
+    .modal-content::-webkit-scrollbar { display: none; }
     .modal-title { font-size: 18px; font-weight: 700; color: var(--accent); text-align: center; margin-bottom: 4px; }
     .modal-sub { font-size: 11px; color: #8e8e9e; text-align: center; margin-bottom: 14px; }
     .sphere-toggle {
@@ -581,12 +584,13 @@
     .oracle-modal-box { background:linear-gradient(165deg,#1a1626,#12101c); border:1px solid rgba(200,170,255,0.3); border-radius:24px; padding:24px 20px; width:100%; max-width:340px; box-shadow:0 20px 60px rgba(124,92,255,0.25); }
     .oracle-modal-title { font-size:20px; font-weight:800; text-align:center; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:4px; }
     .oracle-modal-sub { font-size:12px; color:#9a9aab; text-align:center; margin-bottom:20px; }
-    .oracle-opt { display:flex; align-items:center; gap:14px; padding:16px; margin-bottom:11px; background:rgba(200,170,255,0.06); border:1px solid rgba(200,170,255,0.15); border-radius:16px; cursor:pointer; transition:all 0.15s; }
-    .oracle-opt:active { transform:scale(0.97); background:rgba(200,170,255,0.12); }
-    .oracle-opt-emoji { font-size:28px; }
+    .oracle-opt { display:flex; align-items:center; gap:14px; padding:14px; margin-bottom:10px; background:linear-gradient(135deg, rgba(200,170,255,0.08), rgba(255,217,102,0.03)); border:1px solid rgba(200,170,255,0.18); border-radius:16px; cursor:pointer; transition:all 0.15s; }
+    .oracle-opt:active { transform:scale(0.97); background:rgba(200,170,255,0.14); }
+    .oracle-opt-emoji { width:44px; height:44px; flex-shrink:0; border-radius:13px; background:radial-gradient(circle at 35% 30%, rgba(200,170,255,0.28), rgba(124,140,255,0.06)); border:0.5px solid rgba(200,170,255,0.35); display:flex; align-items:center; justify-content:center; }
+    .oracle-opt-emoji svg { width:22px; height:22px; }
     .oracle-opt-txt { display:flex; flex-direction:column; }
-    .oracle-opt-txt b { font-size:16px; color:#fff; }
-    .oracle-opt-txt span { font-size:12px; color:#9a9aab; }
+    .oracle-opt-txt b { font-size:15px; color:#fff; margin-bottom:1px; }
+    .oracle-opt-txt span { font-size:11px; color:#9a9aab; }
     .oracle-modal-close { text-align:center; padding:13px; margin-top:6px; color:#9a9aab; font-size:14px; cursor:pointer; }
 
     .ai-expand-btn { margin-left:auto; width:30px; height:30px; border-radius:9px; background:rgba(var(--accent-rgb),0.12); display:flex; align-items:center; justify-content:center; cursor:pointer; }
@@ -599,7 +603,7 @@
     @media (max-width:600px){ .ai-chat-overlay{ padding:0; } .ai-chat-window{ width:100vw; height:100vh; height:100dvh; max-height:100vh; border-radius:0; box-shadow:none; } }
     .ai-chat-header { display:flex; align-items:center; gap:10px; padding:18px 18px 14px; border-bottom:0.5px solid rgba(255,255,255,0.06); }
     .ai-chat-orb { width:34px; height:34px; flex-shrink:0; }
-    .ai-mini-orb { width:26px; height:26px; flex-shrink:0; }
+    .ai-mini-orb { width:40px; height:40px; flex-shrink:0; }
     @keyframes orbPulse { 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.08);} }
     .ai-chat-title { font-size:15px; font-weight:700; color:#fff; flex:1; }
     .ai-chat-collapse { width:32px; height:32px; border-radius:10px; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; cursor:pointer; }
@@ -703,7 +707,7 @@
 
         <div class="ai-focus-card">
             <div class="ai-card-head">
-                <canvas class="focus-orb-canvas ai-mini-orb" width="26" height="26"></canvas>
+                <canvas class="focus-orb-canvas ai-mini-orb" width="40" height="40"></canvas>
                 <span class="ai-card-title" id="assistantTitle">ИИ-ассистент Фокуса</span>
                 <div class="ai-expand-btn" id="aiExpandBtn" title="Открыть чат">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
@@ -972,15 +976,15 @@
                     <div class="oracle-modal-title">✦ Оракул Фокуса ✦</div>
                     <div class="oracle-modal-sub">Загляни за пределы обыденного</div>
                     <div class="oracle-opt" data-go="fokus_astro.html">
-                        <div class="oracle-opt-emoji">🌙</div>
+                        <div class="oracle-opt-emoji"><svg viewBox="0 0 24 24" fill="none" stroke="#C8AAFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/><circle cx="17" cy="7" r="0.5" fill="#C8AAFF"/><circle cx="19.5" cy="10.5" r="0.4" fill="#C8AAFF"/></svg></div>
                         <div class="oracle-opt-txt"><b>Астрология</b><span>Твой знак и прогноз судьбы</span></div>
                     </div>
                     <div class="oracle-opt" data-go="fokus_numerology.html">
-                        <div class="oracle-opt-emoji">🔢</div>
+                        <div class="oracle-opt-emoji"><svg viewBox="0 0 24 24" fill="none" stroke="#7C8CFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/></svg></div>
                         <div class="oracle-opt-txt"><b>Нумерология</b><span>Число судьбы и его тайна</span></div>
                     </div>
                     <div class="oracle-opt" data-go="oracle_menu.html">
-                        <div class="oracle-opt-emoji">🔮</div>
+                        <div class="oracle-opt-emoji"><svg viewBox="0 0 24 24" fill="none" stroke="#FFD966" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 5.5L21 9l-4.5 4 1.2 6.5L12 16.5 6.3 19.5 7.5 13 3 9l6-1.5z"/></svg></div>
                         <div class="oracle-opt-txt"><b>Оракул</b><span>Консультации специалистов</span></div>
                     </div>
                     <div class="oracle-modal-close" id="oracleModalClose">Закрыть</div>
