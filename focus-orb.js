@@ -171,14 +171,15 @@
       var hl=ctx.createRadialGradient(CX-R*0.35,CY-R*0.4,0,CX-R*0.35,CY-R*0.4,R*0.5);
       hl.addColorStop(0,'rgba(255,255,255,0.12)'); hl.addColorStop(1,'rgba(255,255,255,0)');
       ctx.fillStyle=hl;ctx.beginPath();ctx.arc(CX-R*0.35,CY-R*0.4,R*0.5,0,6.29);ctx.fill();
-
-      raf=requestAnimationFrame(draw);
     }
 
     // пауза когда не видно (экономия батареи)
     function visible(){ return canvas.offsetParent !== null; }
-    function loop(){ if(visible()){ if(!raf) draw(); } else { if(raf){ cancelAnimationFrame(raf); raf=null; } } }
-    draw();
+    function tick(){
+      if(visible()) draw();
+      raf = requestAnimationFrame(tick);
+    }
+    tick();
     // следим за сменой темы
     new MutationObserver(refreshTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
     canvas._orbStop = function(){ if(raf){cancelAnimationFrame(raf);raf=null;} };

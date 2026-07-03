@@ -119,13 +119,13 @@
     .section-label { font-size:10.5px; font-weight:700; color:var(--accent-2); margin:2px 2px 6px; letter-spacing:0.3px; }
 
     /* Раздел Темы — круг-свотч в карточке (5 в ряд, без обрезки) */
-    .themes-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; margin-bottom:18px; }
-    .theme-card { cursor:pointer; transition:0.25s ease; border-radius:12px; background:linear-gradient(135deg, rgba(35,35,46,0.55), rgba(22,22,30,0.55)); border:1.5px solid rgba(255,255,255,0.08); padding:7px 3px 6px; display:flex; flex-direction:column; align-items:center; gap:4px; position:relative; }
+    .themes-grid { display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; margin-bottom:18px; }
+    .theme-card { cursor:pointer; transition:0.25s ease; border-radius:10px; background:linear-gradient(135deg, rgba(35,35,46,0.55), rgba(22,22,30,0.55)); border:1.5px solid rgba(255,255,255,0.08); padding:6px 2px 5px; display:flex; flex-direction:column; align-items:center; gap:3px; position:relative; }
     .theme-card:active { transform:scale(0.94); }
     .theme-card.active { border-color:var(--accent); box-shadow:0 0 14px rgba(var(--accent-rgb),0.3); }
-    .theme-swatch { width:22px; height:22px; border-radius:50%; transition:0.25s ease; }
+    .theme-swatch { width:18px; height:18px; border-radius:50%; transition:0.25s ease; }
     .theme-card.active .theme-swatch { box-shadow:0 0 12px rgba(255,255,255,0.4); }
-    .theme-name { font-size:8.5px; color:#c8c8d2; font-weight:700; letter-spacing:0.1px; }
+    .theme-name { font-size:7px; color:#c8c8d2; font-weight:700; letter-spacing:-0.1px; text-align:center; line-height:1; }
     .theme-card.active .theme-name { color:#fff; }
     .theme-check { position:absolute; top:5px; right:5px; width:13px; height:13px; border-radius:50%; background:var(--accent); display:none; align-items:center; justify-content:center; }
     .theme-card.active .theme-check { display:flex; }
@@ -682,12 +682,12 @@ initAtmosphere(canvasId) {
 
     // --- Раздел Темы: круг-свотч в карточке ---
     const themes = [
-        { id:'original', name:'Original', swatch:'conic-gradient(#FFD966,#7C8CFF,#FFD966)' },
+        { id:'original', name:'Ориг', swatch:'conic-gradient(#FFD966,#7C8CFF,#FFD966)' },
         { id:'tron', name:'Tron', swatch:'conic-gradient(#FF3B2E,#00E5FF,#FF3B2E)' },
-        { id:'predator', name:'Predator', swatch:'conic-gradient(#FF7A1A,#39FF6A,#FF7A1A)' },
+        { id:'predator', name:'Pred', swatch:'conic-gradient(#FF7A1A,#39FF6A,#FF7A1A)' },
         { id:'mk', name:'Mortal', swatch:'conic-gradient(#FF1A2E,#FFD700,#FF1A2E)' },
         { id:'matrix', name:'Matrix', swatch:'conic-gradient(#00FF41,#39FF6A,#00FF41)' },
-        { id:'cyberpunk', name:'Cyberpunk', swatch:'conic-gradient(#3DD6FF,#FF3DE0,#3DD6FF)' },
+        { id:'cyberpunk', name:'Cyber', swatch:'conic-gradient(#3DD6FF,#FF3DE0,#3DD6FF)' },
         { id:'whitematrix', name:'White', swatch:'conic-gradient(#C99A2E,#ffffff,#E6BE5A)' }
     ];
     const grid = document.getElementById('themesGrid');

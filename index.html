@@ -2230,13 +2230,14 @@
         // ===== ТАЙМЕР ЖИЗНИ =====
         (function initLifeTimer(){
             var u; try { u = JSON.parse(localStorage.getItem('focus_user')) || {}; } catch(e){ return; }
-            if (!u.birthDate || !u.lifeGoal) return;
+            if (!u.birthDate) return;
+            var lifeGoal = parseInt(u.lifeGoal) || 90;
             var timerEl = document.getElementById('lifeTimer');
             if (!timerEl) return;
             var birth = new Date(u.birthDate + 'T00:00:00');
             if (isNaN(birth)) return;
             var target = new Date(birth);
-            target.setFullYear(birth.getFullYear() + parseInt(u.lifeGoal));
+            target.setFullYear(birth.getFullYear() + lifeGoal);
             timerEl.style.display = 'block';
             function update(){
                 var now = new Date();
@@ -2271,6 +2272,8 @@
                 }
             } catch(e){}
         })();
+        // гарантированно запускаем сферу-ассистента на главной
+        setTimeout(function(){ if (window.FocusOrb) window.FocusOrb.autoMount(); }, 300);
     })();
     </script>
 </body>

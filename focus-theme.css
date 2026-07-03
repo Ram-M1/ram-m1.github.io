@@ -56,3 +56,36 @@
     60% { transform: translate(3px,-1px); }
     75% { transform: translate(-2px,0); }
 }
+
+/* ===== КОНТРАСТ ТЕКСТА НА СВЕТЛОЙ ТЕМЕ (White Matrix) ===== */
+/* На светлом фоне белый/светлый текст невидим — принудительно делаем тёмным. */
+[data-theme="whitematrix"] {
+    color: #2a2419;
+}
+[data-theme="whitematrix"] h1,
+[data-theme="whitematrix"] h2,
+[data-theme="whitematrix"] h3,
+[data-theme="whitematrix"] .top h1,
+[data-theme="whitematrix"] .sign-name,
+[data-theme="whitematrix"] .hero-title,
+[data-theme="whitematrix"] .tile-title,
+[data-theme="whitematrix"] .card-title,
+[data-theme="whitematrix"] .quote-text,
+[data-theme="whitematrix"] .modal-title {
+    color: #2a2419 !important;
+}
+/* светло-серые подписи (типа #c8c8d0, #e0e0e8, #9a9aab) → тёмно-серый */
+[data-theme="whitematrix"] .sign-trait,
+[data-theme="whitematrix"] .forecast-card,
+[data-theme="whitematrix"] .card-sub,
+[data-theme="whitematrix"] .tile-sub,
+[data-theme="whitematrix"] .no-data,
+[data-theme="whitematrix"] .hint,
+[data-theme="whitematrix"] p {
+    color: #4a4436 !important;
+}
+/* тёмные карточки/поля на светлой теме → делаем светлыми чтоб текст читался */
+[data-theme="whitematrix"] .compat-input {
+    background: rgba(255,255,255,0.7) !important;
+    border-color: rgba(201,154,46,0.35) !important;
+}

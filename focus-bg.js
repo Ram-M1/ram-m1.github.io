@@ -9,18 +9,36 @@
   var canvas, ctx, raf, W, H, t=0, currentTheme='', engine=null;
 
   function makeCanvas(){
+    var host = document.querySelector('.phone') || document.body;
+    // рамка должна клиппить фон и содержать позиционированный слой
+    if (host !== document.body) {
+      var cs = getComputedStyle(host);
+      if (cs.position === 'static') host.style.position = 'relative';
+      host.style.overflow = 'hidden';
+    }
     canvas = document.createElement('canvas');
     canvas.id = 'focusThemeBg';
-    canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;';
-    document.body.insertBefore(canvas, document.body.firstChild);
+    canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;';
+    host.insertBefore(canvas, host.firstChild);
+    // контент рамки — поверх фона
+    if (host !== document.body && !document.getElementById('focusBgZfix')) {
+      var st = document.createElement('style');
+      st.id = 'focusBgZfix';
+      st.textContent = '.phone > *:not(#focusThemeBg){position:relative;z-index:1;}';
+      document.head.appendChild(st);
+    }
+    _host = host;
     ctx = canvas.getContext('2d');
     resize();
     window.addEventListener('resize', resize);
   }
+  var _host = null;
   function resize(){
     if(!canvas) return;
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
+    var w = _host && _host !== document.body ? _host.clientWidth : window.innerWidth;
+    var h = _host && _host !== document.body ? _host.clientHeight : window.innerHeight;
+    W = canvas.width = w;
+    H = canvas.height = h;
     if(engine && engine.onResize) engine.onResize();
   }
 
