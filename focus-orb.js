@@ -175,9 +175,12 @@
 
     // пауза когда не видно (экономия батареи)
     function visible(){ return canvas.offsetParent !== null; }
-    function tick(){
-      if(visible()) draw();
+    var _lf = 0;
+    function tick(ts){
       raf = requestAnimationFrame(tick);
+      if (ts - _lf < 33) return;   // ~30 FPS
+      _lf = ts;
+      if(visible()) draw();
     }
     tick();
     // следим за сменой темы

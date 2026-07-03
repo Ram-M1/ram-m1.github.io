@@ -375,7 +375,6 @@
 <script src="focus-storage.js"></script>
 <script type="module" src="firebase-auth-helper.js"></script>
 <script src="focus-core.js"></script>
-<script src="focus-bg.js"></script>
 <script>
     if (typeof FocusStorage === 'undefined') {
         window.FocusStorage = {
@@ -541,11 +540,61 @@ initAtmosphere(canvasId) {
                         matrixDrops[i]++;
                     }
                 }
+                // === CYBERPUNK: нейро-сеть узлов с импульсами ===
+                let cyberNodes=null, cyberFlows=null;
+                function drawCyberpunk() {
+                    if (!cyberNodes) {
+                        cyberNodes=[]; for (let i=0;i<26;i++) cyberNodes.push({x:Math.random()*ac.width,y:Math.random()*ac.height,vx:(Math.random()-0.5)*0.3,vy:(Math.random()-0.5)*0.3,h:Math.random(),ph:Math.random()*6.28});
+                        cyberFlows=[]; for (let i=0;i<10;i++) cyberFlows.push({a:Math.floor(Math.random()*26),b:Math.floor(Math.random()*26),t:Math.random(),sp:0.01+Math.random()*0.02});
+                    }
+                    function cc(h,a){ return h<0.4?'rgba(61,214,255,'+a+')':(h<0.72?'rgba(255,61,224,'+a+')':'rgba(120,180,255,'+a+')'); }
+                    for (let i=0;i<cyberNodes.length;i++){
+                        const n=cyberNodes[i]; n.x+=n.vx; n.y+=n.vy;
+                        if(n.x<0||n.x>ac.width)n.vx*=-1; if(n.y<0||n.y>ac.height)n.vy*=-1;
+                        for(let j=i+1;j<cyberNodes.length;j++){
+                            const m=cyberNodes[j], dx=n.x-m.x, dy=n.y-m.y, d=dx*dx+dy*dy;
+                            if(d<11000){ actx.strokeStyle=cc(n.h,(1-Math.sqrt(d)/105)*0.28); actx.lineWidth=0.6; actx.beginPath();actx.moveTo(n.x,n.y);actx.lineTo(m.x,m.y);actx.stroke(); }
+                        }
+                    }
+                    for (let f=0;f<cyberFlows.length;f++){
+                        const fl=cyberFlows[f]; fl.t+=fl.sp; if(fl.t>1){fl.t=0;fl.a=Math.floor(Math.random()*26);fl.b=Math.floor(Math.random()*26);}
+                        const a=cyberNodes[fl.a], b=cyberNodes[fl.b]; if(!a||!b)continue;
+                        const px=a.x+(b.x-a.x)*fl.t, py=a.y+(b.y-a.y)*fl.t;
+                        actx.fillStyle='rgba(255,255,255,0.9)'; actx.beginPath();actx.arc(px,py,1.8,0,6.28);actx.fill();
+                    }
+                    for (let i=0;i<cyberNodes.length;i++){
+                        const n=cyberNodes[i], pulse=0.5+0.5*Math.sin(washT*40+n.ph);
+                        actx.fillStyle=cc(n.h,0.6*pulse); actx.beginPath();actx.arc(n.x,n.y,1.8,0,6.28);actx.fill();
+                    }
+                }
+                // === WHITE MATRIX: золотые частицы вверх + узлы ===
+                let goldDust=null, goldNodes=null;
+                function drawWhiteMatrix() {
+                    if (!goldDust) {
+                        goldDust=[]; for(let i=0;i<45;i++) goldDust.push({x:Math.random()*ac.width,y:Math.random()*ac.height,vx:(Math.random()-0.5)*0.2,vy:-0.15-Math.random()*0.4,r:0.6+Math.random()*2,tw:Math.random()*6.28});
+                        goldNodes=[]; for(let i=0;i<14;i++) goldNodes.push({x:Math.random()*ac.width,y:Math.random()*ac.height,vx:(Math.random()-0.5)*0.25,vy:(Math.random()-0.5)*0.25});
+                    }
+                    for(let i=0;i<goldNodes.length;i++){
+                        const n=goldNodes[i]; n.x+=n.vx; n.y+=n.vy;
+                        if(n.x<0||n.x>ac.width)n.vx*=-1; if(n.y<0||n.y>ac.height)n.vy*=-1;
+                        for(let j=i+1;j<goldNodes.length;j++){
+                            const m=goldNodes[j], dx=n.x-m.x, dy=n.y-m.y, d=Math.sqrt(dx*dx+dy*dy);
+                            if(d<120){ actx.strokeStyle='rgba(201,154,46,'+((1-d/120)*0.25)+')'; actx.lineWidth=0.6; actx.beginPath();actx.moveTo(n.x,n.y);actx.lineTo(m.x,m.y);actx.stroke(); }
+                        }
+                    }
+                    for(let i=0;i<goldNodes.length;i++){ const n=goldNodes[i]; actx.fillStyle='rgba(201,154,46,0.6)';actx.beginPath();actx.arc(n.x,n.y,1.8,0,6.28);actx.fill(); }
+                    for(let k=0;k<goldDust.length;k++){
+                        const d=goldDust[k]; d.x+=d.vx; d.y+=d.vy; d.tw+=0.05;
+                        if(d.y<-5){d.y=ac.height+5;d.x=Math.random()*ac.width;}
+                        const a=(0.35+0.35*Math.sin(d.tw))*0.7;
+                        actx.fillStyle='rgba(201,154,46,'+a+')'; actx.beginPath();actx.arc(d.x,d.y,d.r*0.7,0,6.28);actx.fill();
+                    }
+                }
                 function loop() {
                     const theme = currentTheme();
                     if (theme !== lastTheme) {
                         actx.clearRect(0,0,ac.width,ac.height);
-                        tronPulses=[]; mkEmbers=[]; mkDrips=[]; mkBolt=null; matrixDrops=null; predatorReticle=null;
+                        tronPulses=[]; mkEmbers=[]; mkDrips=[]; mkBolt=null; matrixDrops=null; predatorReticle=null; cyberNodes=null; goldDust=null;
                         lastTheme = theme;
                     }
                     if (theme !== 'matrix') actx.clearRect(0,0,ac.width,ac.height);
@@ -554,6 +603,8 @@ initAtmosphere(canvasId) {
                     else if (theme==='predator') drawPredator();
                     else if (theme==='mk') drawMK();
                     else if (theme==='matrix') drawMatrix();
+                    else if (theme==='cyberpunk') drawCyberpunk();
+                    else if (theme==='whitematrix') drawWhiteMatrix();
                     requestAnimationFrame(loop);
                 }
                 loop();

@@ -89,3 +89,26 @@
     background: rgba(255,255,255,0.7) !important;
     border-color: rgba(201,154,46,0.35) !important;
 }
+
+/* White Matrix — тёмные карточки/кнопки делаем светлыми, чтоб тёмный текст читался */
+[data-theme="whitematrix"] .action-btn,
+[data-theme="whitematrix"] .stats-card,
+[data-theme="whitematrix"] .profile-id,
+[data-theme="whitematrix"] .num-cell,
+[data-theme="whitematrix"] .forecast-card,
+[data-theme="whitematrix"] .compat-box,
+[data-theme="whitematrix"] .theme-card,
+[data-theme="whitematrix"] .card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(250,248,242,0.9)) !important;
+    border-color: rgba(201,154,46,0.3) !important;
+}
+[data-theme="whitematrix"] .action-title,
+[data-theme="whitematrix"] .stats-value,
+[data-theme="whitematrix"] .num-cell .n {
+    color: #2a2419 !important;
+}
+[data-theme="whitematrix"] .action-sub,
+[data-theme="whitematrix"] .stats-label,
+[data-theme="whitematrix"] .num-cell .l {
+    color: #6a6250 !important;
+}
