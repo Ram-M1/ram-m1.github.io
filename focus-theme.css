@@ -32,6 +32,19 @@
     --accent-light: #7FFF9E; --accent-dark: #008F25;
     --bg-1: #050505; --bg-2: #000000; --text-strong: #FFFFFF;
 }
+[data-theme="cyberpunk"] {
+    --accent: #3DD6FF; --accent-rgb: 61,214,255;
+    --accent-2: #FF3DE0; --accent-2-rgb: 255,61,224;
+    --accent-light: #8CE8FF; --accent-dark: #0088B8;
+    --bg-1: #061838; --bg-2: #040818; --text-strong: #FFFFFF;
+}
+[data-theme="whitematrix"] {
+    --accent: #C99A2E; --accent-rgb: 201,154,46;
+    --accent-2: #E6BE5A; --accent-2-rgb: 230,190,90;
+    --accent-light: #F0D488; --accent-dark: #96721C;
+    --bg-1: #fafaf7; --bg-2: #f0f0ea; --text-strong: #2a2419;
+    --is-light: 1;
+}
 
 /* Общая тряска экрана для молнии Mortal Kombat — используется атмосферным движком */
 .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }

@@ -42,6 +42,23 @@
         --accent-light: #7FFF9E; --accent-dark: #008F25;
         --bg-1: #050505; --bg-2: #000000; --text-strong: #FFFFFF;
     }
+    [data-theme="cyberpunk"] {
+        --accent: #3DD6FF; --accent-rgb: 61,214,255;
+        --accent-2: #FF3DE0; --accent-2-rgb: 255,61,224;
+        --accent-light: #8CE8FF; --accent-dark: #0088B8;
+        --bg-1: #061838; --bg-2: #040818; --text-strong: #FFFFFF;
+    }
+    [data-theme="whitematrix"] {
+        --accent: #C99A2E; --accent-rgb: 201,154,46;
+        --accent-2: #E6BE5A; --accent-2-rgb: 230,190,90;
+        --accent-light: #F0D488; --accent-dark: #96721C;
+        --bg-1: #fafaf7; --bg-2: #f0f0ea; --text-strong: #2a2419;
+    }
+    /* White Matrix — светлая тема: тёмный текст, светлые карточки */
+    [data-theme="whitematrix"] .phone { box-shadow: 0 40px 80px rgba(0,0,0,0.2), 0 0 0 1px rgba(201,154,46,0.15), 0 0 0 8px #e8e4d8, 0 0 0 9px rgba(201,154,46,0.2), 0 0 60px rgba(201,154,46,0.1); }
+    [data-theme="whitematrix"] .app-name { background: linear-gradient(135deg, #2a2419 20%, #C99A2E 80%); -webkit-background-clip: text; background-clip: text; }
+    [data-theme="whitematrix"] .tile-title, [data-theme="whitematrix"] .quote-text { color: #2a2419; }
+    [data-theme="whitematrix"] .focus-tile { background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(250,248,242,0.85)); }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
         font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif;
@@ -83,6 +100,7 @@
         display: flex;
         flex-direction: column;
         position: relative;
+        z-index: 1;
     }
     .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
     @keyframes mkShake {
@@ -277,10 +295,12 @@
         letter-spacing: 0.1px;
     }
     .quote-author { font-size: 9px; color: var(--accent-2); letter-spacing: 0.6px; text-transform: uppercase; font-weight: 600; }
-    .life-timer { background:linear-gradient(135deg, rgba(255,120,80,0.1), rgba(var(--accent-rgb),0.04)); border:1px solid rgba(255,140,90,0.25); border-radius:13px; padding:12px 14px; margin-bottom:8px; text-align:center; }
-    .lt-label { font-size:11px; color:#FF9C64; font-weight:600; letter-spacing:0.5px; margin-bottom:4px; }
-    .lt-main { font-size:22px; font-weight:800; color:#fff; font-variant-numeric:tabular-nums; letter-spacing:0.5px; }
-    .lt-sub { font-size:11px; color:#9a9aab; margin-top:3px; }
+    .life-timer { background:linear-gradient(135deg, rgba(255,120,80,0.08), rgba(var(--accent-rgb),0.03)); border:0.5px solid rgba(255,140,90,0.2); border-radius:12px; padding:9px 12px; margin-bottom:8px; text-align:center; }
+    .lt-row { display:flex; align-items:center; justify-content:center; gap:7px; }
+    .lt-hourglass { width:15px; height:19px; flex-shrink:0; }
+    .lt-word { font-size:11px; color:#FF9C64; font-weight:600; }
+    .lt-time { font-size:14px; font-weight:800; color:var(--accent); font-variant-numeric:tabular-nums; letter-spacing:0.3px; text-shadow:0 0 12px rgba(var(--accent-rgb),0.4); }
+    .lt-sub { font-size:9.5px; color:#8a8a96; margin-top:4px; letter-spacing:0.1px; }
     .lt-bar { height:4px; background:rgba(255,255,255,0.08); border-radius:3px; margin-top:8px; overflow:hidden; }
     .lt-fill { height:100%; background:linear-gradient(90deg,#FF9C64,#FFD966); border-radius:3px; transition:width 0.5s; }
     .focus-grid {
@@ -578,7 +598,8 @@
     @keyframes chatUp { from{transform:translateY(30px); opacity:0;} to{transform:translateY(0); opacity:1;} }
     @media (max-width:600px){ .ai-chat-overlay{ padding:0; } .ai-chat-window{ width:100vw; height:100vh; height:100dvh; max-height:100vh; border-radius:0; box-shadow:none; } }
     .ai-chat-header { display:flex; align-items:center; gap:10px; padding:18px 18px 14px; border-bottom:0.5px solid rgba(255,255,255,0.06); }
-    .ai-chat-orb { width:32px; height:32px; border-radius:50%; background:radial-gradient(circle at 35% 30%, var(--accent), var(--accent-2) 70%); box-shadow:0 0 16px rgba(var(--accent-rgb),0.5); animation:orbPulse 2.5s ease-in-out infinite; flex-shrink:0; }
+    .ai-chat-orb { width:34px; height:34px; flex-shrink:0; }
+    .ai-mini-orb { width:26px; height:26px; flex-shrink:0; }
     @keyframes orbPulse { 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.08);} }
     .ai-chat-title { font-size:15px; font-weight:700; color:#fff; flex:1; }
     .ai-chat-collapse { width:32px; height:32px; border-radius:10px; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; cursor:pointer; }
@@ -659,21 +680,30 @@
                 </div>
             </div>
         </div>
+        <div class="life-timer" id="lifeTimer" style="display:none;">
+            <div class="lt-row">
+                <svg class="lt-hourglass" viewBox="0 0 24 30">
+                    <path d="M4 2 H20 M4 28 H20" stroke="#FF9C64" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M5 2 Q5 12 12 15 Q19 12 19 2 Z" fill="rgba(255,156,100,0.15)" stroke="#FF9C64" stroke-width="1.5"/>
+                    <path d="M5 28 Q5 18 12 15 Q19 18 19 28 Z" fill="rgba(255,156,100,0.15)" stroke="#FF9C64" stroke-width="1.5"/>
+                    <path d="M7 5 Q8 10 12 12 Q16 10 17 5 Z" fill="#FFD966"><animate attributeName="opacity" values="1;0.3;1" dur="3s" repeatCount="indefinite"/></path>
+                    <rect x="11" y="14" width="2" height="4" fill="#FFD966"><animate attributeName="opacity" values="0.4;1;0.4" dur="0.8s" repeatCount="indefinite"/></rect>
+                    <path d="M7 26 Q9 22 12 21 Q15 22 17 26 Z" fill="#FFD966"><animate attributeName="d" values="M8 26 Q10 24 12 23 Q14 24 16 26 Z;M7 26 Q9 22 12 21 Q15 22 17 26 Z;M8 26 Q10 24 12 23 Q14 24 16 26 Z" dur="3s" repeatCount="indefinite"/></path>
+                </svg>
+                <span class="lt-word">Осталось</span>
+                <span class="lt-time" id="ltMain">—</span>
+            </div>
+            <div class="lt-sub">Цени каждый день — это самое дорогое что у тебя есть</div>
+        </div>
+
         <div class="quote-container" id="quoteContainer">
             <div class="quote-text" id="quoteText">Загрузка...</div>
             <div class="quote-author" id="quoteAuthor"></div>
         </div>
 
-        <div class="life-timer" id="lifeTimer" style="display:none;">
-            <div class="lt-label">⏳ У тебя осталось</div>
-            <div class="lt-main" id="ltMain">—</div>
-            <div class="lt-sub" id="ltSub"></div>
-            <div class="lt-bar"><div class="lt-fill" id="ltFill"></div></div>
-        </div>
-
         <div class="ai-focus-card">
             <div class="ai-card-head">
-                <span class="ai-pulse"></span>
+                <canvas class="focus-orb-canvas ai-mini-orb" width="26" height="26"></canvas>
                 <span class="ai-card-title" id="assistantTitle">ИИ-ассистент Фокуса</span>
                 <div class="ai-expand-btn" id="aiExpandBtn" title="Открыть чат">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
@@ -696,7 +726,7 @@
         <div class="ai-chat-overlay" id="aiChatOverlay">
             <div class="ai-chat-window">
                 <div class="ai-chat-header">
-                    <div class="ai-chat-orb"></div>
+                    <canvas class="focus-orb-canvas ai-chat-orb" width="34" height="34"></canvas>
                     <div class="ai-chat-title" id="aiChatTitle">Ассистент</div>
                     <div class="ai-chat-collapse" id="aiChatCollapse" title="Свернуть">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
@@ -827,7 +857,34 @@
 <script src="focus-astro.js"></script>
 <script src="focus-ai.js"></script>
 <script type="module" src="firebase-auth-helper.js"></script>
+<script>
+    // Автовосстановление данных из облака: когда Firebase подтверждает вход,
+    // подтягиваем профиль + все данные (тренировки, дневники) в localStorage.
+    // Спасает при переустановке приложения и очистке кеша — ничего не теряется.
+    (function(){
+        var tries = 0;
+        var iv = setInterval(function(){
+            tries++;
+            if (window.fbOnAuthChange && window.FocusStorage) {
+                clearInterval(iv);
+                window.fbOnAuthChange(function(user){
+                    if (!user || !window.fbLoadUserData) return;
+                    window.fbLoadUserData().then(function(cloud){
+                        if (cloud) {
+                            FocusStorage.applyCloudData(cloud);
+                            // мягко обновим динамические части экрана, если открыт
+                            try { if (typeof window.refreshMainScreen === 'function') window.refreshMainScreen(); } catch(e){}
+                        }
+                    }).catch(function(){});
+                });
+            }
+            if (tries > 40) clearInterval(iv); // ~10 сек максимум ждём загрузку firebase
+        }, 250);
+    })();
+</script>
 <script src="focus-core.js"></script>
+<script src="focus-orb.js"></script>
+<script src="focus-bg.js"></script>
 <script>
     // ГАРД: если анкета не заполнена (нет имени ассистента или даты рождения) — на анкету
     (function(){
@@ -1627,6 +1684,7 @@
 
             function openChat(){
                 overlay.classList.add('show');
+                if (window.FocusOrb) window.FocusOrb.autoMount();
                 // перерисовываем всю историю (что накопилось в компактном виде тоже)
                 msgsBox.innerHTML = '';
                 if (!history.length) {
@@ -1975,15 +2033,15 @@
     .greet-spotlight::after { bottom:-3px; right:-3px; border-left:none; border-top:none; border-radius:0 0 8px 0; }
     .spot-corners { position:fixed; pointer-events:none; z-index:5002; }
     .spot-corners span { position:absolute; width:22px; height:22px; border:2.5px solid #FFD966; filter:drop-shadow(0 0 6px rgba(255,217,102,0.8)); }
-    .tour-glow { position:relative; z-index:5002 !important; animation:tourBreath 2s ease-in-out infinite; }
-    @keyframes tourBreath { 0%,100%{ filter:drop-shadow(0 0 6px rgba(200,170,255,0.5)); } 50%{ filter:drop-shadow(0 0 16px rgba(200,170,255,0.95)); } }
+    .tour-glow { position:relative; z-index:5002 !important; border-radius:16px; box-shadow:0 0 0 2px rgba(200,170,255,0.9), 0 0 18px 3px rgba(200,170,255,0.5); animation:tourBreath 2s ease-in-out infinite; }
+    .tour-glow::after { content:''; position:absolute; inset:0; border-radius:inherit; background:linear-gradient(135deg, rgba(35,35,46,0.9), rgba(22,22,30,0.9)); z-index:-1; }
+    @keyframes tourBreath { 0%,100%{ box-shadow:0 0 0 2px rgba(200,170,255,0.7), 0 0 14px 2px rgba(200,170,255,0.4); } 50%{ box-shadow:0 0 0 2px rgba(255,217,102,0.9), 0 0 22px 4px rgba(200,170,255,0.7); } }
     @keyframes spotScan { 0%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } 50%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(255,217,102,1), 0 0 32px 6px rgba(200,170,255,0.7), inset 0 0 25px rgba(200,170,255,0.2); } 100%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } }
     .greet-spotlight.pulsing { animation:spotScan 2.2s ease-in-out infinite; }
     .greet-box { position:fixed; left:50%; transform:translateX(-50%); width:calc(100% - 40px); max-width:350px; background:linear-gradient(165deg, rgba(30,26,48,0.97), rgba(20,16,32,0.97)); backdrop-filter:blur(20px); border:1px solid rgba(200,170,255,0.35); border-radius:24px; padding:22px 20px; text-align:center; z-index:5003; box-shadow:0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(124,140,255,0.15); top:50%; margin-top:-150px; transition:top 0.5s cubic-bezier(0.34,1.2,0.64,1), margin-top 0.5s; }
     .greet-box.bottom { top:auto; bottom:28px; margin-top:0; }
     .greet-box.top { top:96px; margin-top:0; bottom:auto; }
-    .greet-orb { width:56px; height:56px; margin:0 auto 12px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #E0CCFF, #C8AAFF 45%, #7C8CFF 75%, #4a5ad8); box-shadow:0 0 30px rgba(124,140,255,0.7), inset 0 -4px 12px rgba(74,90,216,0.5); animation:orbFloat 3s ease-in-out infinite; position:relative; }
-    .greet-orb::after { content:''; position:absolute; inset:-6px; border-radius:50%; border:1.5px solid rgba(200,170,255,0.3); animation:orbRing 3s ease-in-out infinite; }
+    .greet-orb { width:72px; height:72px; margin:0 auto 10px; display:block; }
     @keyframes orbFloat { 0%,100%{ transform:translateY(0) scale(1);} 50%{ transform:translateY(-4px) scale(1.05);} }
     @keyframes orbRing { 0%,100%{ transform:scale(1); opacity:0.5;} 50%{ transform:scale(1.15); opacity:0.1;} }
     .greet-name { font-size:22px; font-weight:800; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:12px; }
@@ -2008,16 +2066,38 @@
             if (gUser.birthDate && window.FocusAstro) {
                 var z = FocusAstro.getZodiac(gUser.birthDate);
                 var lp = FocusAstro.getLifePathNumber(gUser.birthDate);
-                if (lp && z) astroLine = 'Знаю, у тебя число судьбы ' + lp + '. Это сильное число, тем более учитывая твой знак — ' + z.sign + '. У тебя большой потенциал.';
+                if (lp && z) {
+                    // варьируем формулировку астро-строки
+                    var astroVariants = [
+                        'Знаю, у тебя число судьбы ' + lp + '. Это сильное число, тем более учитывая твой знак — ' + z.sign + '. У тебя большой потенциал.',
+                        'Вижу, ты ' + z.sign + ' с числом судьбы ' + lp + '. Мощное сочетание — в тебе заложен серьёзный потенциал.',
+                        'Твоё число судьбы ' + lp + ', а знак — ' + z.sign + '. Это говорит о многом: у тебя есть внутренняя сила, которую стоит раскрыть.',
+                        'Ты ' + z.sign + ', число судьбы ' + lp + '. Такое сочетание встречается у людей с большим потенциалом — и ты один из них.'
+                    ];
+                    astroLine = astroVariants[Math.floor(Math.random() * astroVariants.length)];
+                }
             }
+            // варьируем вступление и концовку — каждый юзер видит свой вариант
+            var introVariants = [
+                'Попав сюда, ты на верном пути. Давай покажу тебе Фокус за 30 секунд.',
+                'Ты не случайно оказался здесь — это шаг к лучшей версии себя. Давай я всё покажу.',
+                'Рад что ты с нами. Сейчас за минуту покажу, как всё устроено.'
+            ];
+            var outroVariants = [
+                'Вместе мы сможем многое! Подробности — на канале создателя приложения, там много полезных фич и скрытых знаний. Я всегда на связи — пиши, если что. Удачи!',
+                'У нас всё получится. Загляни на канал создателя — там куча полезного и скрытых фишек. Я рядом, если что — пиши. Вперёд!',
+                'Верю в тебя. На канале создателя найдёшь много интересного и скрытых возможностей. Я всегда на связи. В путь!'
+            ];
+            var introText = introVariants[Math.floor(Math.random() * introVariants.length)];
+            var outroText = outroVariants[Math.floor(Math.random() * outroVariants.length)];
 
             // === ШАГИ ТУРА (голос + подсветка + подсказка) ===
             var steps = [
                 {
                     target: null,
                     title: aName,
-                    text: 'Привет, ' + uName + '! Я ' + aName + ', твой Фокус-ассистент.' + (astroLine ? ('<br><br>' + astroLine) : '') + '<br><br>Попав сюда, ты на верном пути. Давай покажу тебе Фокус за 30 секунд.',
-                    voice: 'Привет, ' + uName + '! Я твой Фокус-ассистент, меня зовут ' + aName + '. ' + astroLine + ' Попав сюда, ты оказался на верном пути. Давай я быстро покажу тебе Фокус.'
+                    text: 'Привет, ' + uName + '! Я ' + aName + ', твой Фокус-ассистент.' + (astroLine ? ('<br><br>' + astroLine) : '') + '<br><br>' + introText,
+                    voice: ''
                 },
                 {
                     target: '#oracleTrigger',
@@ -2041,8 +2121,8 @@
                 {
                     target: null,
                     title: '🚀 В путь!',
-                    text: 'Вместе мы сможем многое! Подробности — на канале создателя приложения, там много полезных фич и скрытых знаний. Я всегда на связи — пиши, если что. Удачи!',
-                    voice: 'Вместе мы сможем многое! Подробности смотри на канале создателя приложения — у нас много полезных фич и скрытых знаний. Я всегда на связи, пиши если что. Удачи!'
+                    text: outroText,
+                    voice: ''
                 }
             ];
 
@@ -2050,7 +2130,7 @@
             ov.id = 'greetOverlay';
             ov.innerHTML = '<div class="greet-spotlight" id="greetSpot"></div>' +
                 '<div class="greet-box" id="greetBox">' +
-                    '<div class="greet-orb"></div>' +
+                    '<canvas class="focus-orb-canvas greet-orb" width="72" height="72"></canvas>' +
                     '<div class="greet-name" id="greetTitle"></div>' +
                     '<div class="greet-text" id="greetTextEl"></div>' +
                     '<div class="greet-progress" id="greetProgress"></div>' +
@@ -2060,6 +2140,7 @@
                     '</div>' +
                 '</div>';
             document.body.appendChild(ov);
+            if (window.FocusOrb) window.FocusOrb.autoMount();
             requestAnimationFrame(function(){ ov.classList.add('show'); });
 
             var idx = 0;
@@ -2081,6 +2162,20 @@
                 els = els.filter(Boolean);
                 if (!els.length) { spot.style.display = 'none'; ov.classList.remove('has-spot'); return; }
                 els.forEach(function(el){ el.classList.add('tour-glow'); });
+
+                // для нескольких элементов (сферы) — рамку рисуют сами элементы (tour-glow), общий spotlight прячем чтобы не было каши
+                if (step.targetAll) {
+                    spot.style.display = 'none';
+                    spot.classList.remove('pulsing');
+                    ov.classList.add('has-spot');
+                    var r0 = els[0].getBoundingClientRect();
+                    var minY0 = r0.top;
+                    els.forEach(function(el){ var r = el.getBoundingClientRect(); minY0 = Math.min(minY0, r.top); });
+                    var vh0 = window.innerHeight;
+                    if (minY0 < vh0/2) { box.classList.add('bottom'); box.classList.remove('top'); }
+                    else { box.classList.add('top'); box.classList.remove('bottom'); }
+                    return;
+                }
 
                 var r1 = els[0].getBoundingClientRect();
                 var minX = r1.left, minY = r1.top, maxX = r1.right, maxY = r1.bottom;
@@ -2146,12 +2241,8 @@
             function update(){
                 var now = new Date();
                 var msLeft = target - now;
-                var totalMs = target - birth;
-                var elapsed = now - birth;
                 if (msLeft <= 0) {
-                    document.getElementById('ltMain').innerText = 'Каждый день — подарок';
-                    document.getElementById('ltSub').innerText = 'Ты превзошёл свою цель. Живи полно!';
-                    document.getElementById('ltFill').style.width = '100%';
+                    document.getElementById('ltMain').innerText = 'Каждый день — подарок ✨';
                     return;
                 }
                 var secLeft = Math.floor(msLeft / 1000);
@@ -2162,11 +2253,8 @@
                 var hours = Math.floor(afterD / 3600);
                 var mins = Math.floor((afterD % 3600) / 60);
                 var secs = Math.floor(afterD % 60);
-                document.getElementById('ltMain').innerText = years + ' лет  ' + days + ' дн  ' + String(hours).padStart(2,'0') + ':' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
-                var daysLeft = Math.floor(msLeft / (24*3600*1000));
-                var pct = Math.min(100, Math.max(0, (elapsed / totalMs) * 100));
-                document.getElementById('ltSub').innerText = 'это примерно ' + daysLeft.toLocaleString('ru-RU') + ' дней. Цени каждый.';
-                document.getElementById('ltFill').style.width = pct.toFixed(2) + '%';
+                document.getElementById('ltMain').innerText =
+                    years + ' лет, ' + days + ' дней ' + String(hours).padStart(2,'0') + ':' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
             }
             update();
             setInterval(update, 1000);

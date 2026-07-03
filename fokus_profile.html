@@ -42,6 +42,18 @@
         --accent-light: #7FFF9E; --accent-dark: #008F25;
         --bg-1: #050505; --bg-2: #000000; --text-strong: #FFFFFF;
     }
+    [data-theme="cyberpunk"] {
+        --accent: #3DD6FF; --accent-rgb: 61,214,255;
+        --accent-2: #FF3DE0; --accent-2-rgb: 255,61,224;
+        --accent-light: #8CE8FF; --accent-dark: #0088B8;
+        --bg-1: #061838; --bg-2: #040818; --text-strong: #FFFFFF;
+    }
+    [data-theme="whitematrix"] {
+        --accent: #C99A2E; --accent-rgb: 201,154,46;
+        --accent-2: #E6BE5A; --accent-2-rgb: 230,190,90;
+        --accent-light: #F0D488; --accent-dark: #96721C;
+        --bg-1: #fafaf7; --bg-2: #f0f0ea; --text-strong: #2a2419;
+    }
     .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
     @keyframes mkShake { 0%,100%{transform:translate(0,0);} 15%{transform:translate(-4px,2px) rotate(-0.4deg);} 30%{transform:translate(4px,-2px) rotate(0.4deg);} 45%{transform:translate(-3px,1px);} 60%{transform:translate(3px,-1px);} 75%{transform:translate(-2px,0);} }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -62,7 +74,7 @@
         background: linear-gradient(165deg, var(--bg-1) 0%, var(--bg-2) 100%);
         border-radius: 52px;
         box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--accent-rgb),0.06), 0 0 0 8px #1c1c24, 0 0 0 9px rgba(var(--accent-rgb),0.08), 0 0 60px rgba(var(--accent-rgb),0.04);
-        overflow: hidden; display: flex; flex-direction: column; position: relative;
+        overflow: hidden; display: flex; flex-direction: column; position: relative; z-index:1;
     }
     .phone::before { content:''; position:absolute; inset:0; z-index:0; opacity:0.1; pointer-events:none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
     .phone::after { content:''; position:absolute; top:0; left:6%; right:6%; height:1px; background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.3), transparent); z-index:0; }
@@ -242,9 +254,9 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16 3 5l5.5 4L12 4l3.5 5L21 5l-2 11H5Z"/></svg>
                     <span id="profileLevel">Новичок</span>
                 </div>
-                <div class="astro-badges" id="astroBadges" style="display:none; gap:8px; justify-content:center; margin-top:12px;">
-                    <div class="astro-badge" id="zodiacBadge" onclick="location.href='fokus_astro.html'" style="display:flex; align-items:center; gap:6px; padding:7px 13px; background:rgba(200,170,255,0.1); border:1px solid rgba(200,170,255,0.25); border-radius:20px; font-size:13px; color:#C8AAFF; cursor:pointer;"></div>
-                    <div class="astro-badge" id="lifePathBadge" onclick="location.href='fokus_numerology.html'" style="display:flex; align-items:center; gap:6px; padding:7px 13px; background:rgba(255,217,102,0.1); border:1px solid rgba(255,217,102,0.25); border-radius:20px; font-size:13px; color:#FFD966; cursor:pointer;"></div>
+                <div class="astro-badges" id="astroBadges" style="display:none; flex-direction:column; gap:5px; margin-top:9px; width:100%;">
+                    <div id="zodiacBadge" onclick="location.href='fokus_astro.html'" style="display:flex; align-items:center; justify-content:center; gap:5px; padding:5px 8px; background:rgba(var(--accent-rgb),0.12); border:0.5px solid rgba(var(--accent-rgb),0.25); border-radius:9px; font-size:11px; font-weight:600; color:var(--accent); cursor:pointer;"></div>
+                    <div id="lifePathBadge" onclick="location.href='fokus_numerology.html'" style="display:flex; align-items:center; justify-content:center; gap:5px; padding:5px 8px; background:rgba(var(--accent-2-rgb),0.12); border:0.5px solid rgba(var(--accent-2-rgb),0.25); border-radius:9px; font-size:11px; font-weight:600; color:var(--accent-2); cursor:pointer;"></div>
                 </div>
             </div>
             <div class="stats-card">
@@ -363,6 +375,7 @@
 <script src="focus-storage.js"></script>
 <script type="module" src="firebase-auth-helper.js"></script>
 <script src="focus-core.js"></script>
+<script src="focus-bg.js"></script>
 <script>
     if (typeof FocusStorage === 'undefined') {
         window.FocusStorage = {
@@ -568,7 +581,7 @@ initAtmosphere(canvasId) {
         const badges = document.getElementById('astroBadges');
         if (z && badges) {
             document.getElementById('zodiacBadge').innerHTML = z.emoji + ' ' + z.sign;
-            document.getElementById('lifePathBadge').innerHTML = '🔢 Число судьбы: ' + lp;
+            document.getElementById('lifePathBadge').innerHTML = '🔢 Судьба: ' + lp;
             badges.style.display = 'flex';
         }
     }
@@ -673,7 +686,9 @@ initAtmosphere(canvasId) {
         { id:'tron', name:'Tron', swatch:'conic-gradient(#FF3B2E,#00E5FF,#FF3B2E)' },
         { id:'predator', name:'Predator', swatch:'conic-gradient(#FF7A1A,#39FF6A,#FF7A1A)' },
         { id:'mk', name:'Mortal', swatch:'conic-gradient(#FF1A2E,#FFD700,#FF1A2E)' },
-        { id:'matrix', name:'Matrix', swatch:'conic-gradient(#00FF41,#39FF6A,#00FF41)' }
+        { id:'matrix', name:'Matrix', swatch:'conic-gradient(#00FF41,#39FF6A,#00FF41)' },
+        { id:'cyberpunk', name:'Cyberpunk', swatch:'conic-gradient(#3DD6FF,#FF3DE0,#3DD6FF)' },
+        { id:'whitematrix', name:'White', swatch:'conic-gradient(#C99A2E,#ffffff,#E6BE5A)' }
     ];
     const grid = document.getElementById('themesGrid');
     const currentTheme = FocusStorage.getTheme();

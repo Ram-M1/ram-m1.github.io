@@ -18,21 +18,21 @@
     .back svg { width:17px; height:17px; color:var(--accent); }
     .top h1 { font-size:19px; font-weight:700; color:#fff; letter-spacing:0.2px; }
 
-    .sign-card { background:linear-gradient(135deg, rgba(200,170,255,0.1), rgba(124,140,255,0.04)); border:0.5px solid rgba(200,170,255,0.22); border-radius:18px; padding:22px 18px; text-align:center; margin-bottom:14px; position:relative; overflow:hidden; }
-    .sign-card::before { content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:radial-gradient(circle, rgba(200,170,255,0.08), transparent 55%); }
+    .sign-card { background:linear-gradient(135deg, rgba(var(--accent-rgb),0.1), rgba(var(--accent-2-rgb),0.04)); border:0.5px solid rgba(var(--accent-rgb),0.22); border-radius:18px; padding:22px 18px; text-align:center; margin-bottom:14px; position:relative; overflow:hidden; }
+    .sign-card::before { content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:radial-gradient(circle, rgba(var(--accent-rgb),0.08), transparent 55%); }
     .sign-emoji { font-size:40px; margin-bottom:6px; position:relative; }
     .sign-name { font-size:22px; font-weight:700; color:#fff; margin-bottom:3px; position:relative; }
-    .sign-element { font-size:11px; color:#C8AAFF; letter-spacing:0.3px; margin-bottom:10px; position:relative; }
+    .sign-element { font-size:11px; color:var(--accent); letter-spacing:0.3px; margin-bottom:10px; position:relative; }
     .sign-trait { font-size:12.5px; color:#c8c8d0; line-height:1.5; position:relative; }
 
-    .section-title { font-size:12px; font-weight:600; color:#C8AAFF; margin:16px 0 8px; letter-spacing:0.3px; display:flex; align-items:center; gap:6px; }
-    .gen-btn { width:100%; padding:13px; border:none; border-radius:13px; background:linear-gradient(135deg,#C8AAFF,#FFD966); color:#0a0a0f; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; letter-spacing:0.2px; }
+    .section-title { font-size:12px; font-weight:600; color:var(--accent); margin:16px 0 8px; letter-spacing:0.3px; display:flex; align-items:center; gap:6px; }
+    .gen-btn { width:100%; padding:13px; border:none; border-radius:13px; background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#0a0a0f; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; letter-spacing:0.2px; }
     .gen-btn:active { transform:scale(0.98); }
     .forecast-card { background:linear-gradient(135deg, rgba(35,35,46,0.42), rgba(22,22,30,0.42)); border:0.5px solid rgba(var(--accent-rgb),0.12); border-radius:14px; padding:15px; font-size:13px; line-height:1.6; color:#e0e0e8; white-space:pre-wrap; }
 
     .no-data { text-align:center; color:#9a9aab; font-size:13px; padding:40px 20px; line-height:1.6; }
-    .no-data a { color:#C8AAFF; text-decoration:none; }
-    .loading { text-align:center; color:#C8AAFF; padding:16px; font-size:13px; }
+    .no-data a { color:var(--accent); text-decoration:none; }
+    .loading { text-align:center; color:var(--accent); padding:16px; font-size:13px; }
 </style>
 </head>
 <body>

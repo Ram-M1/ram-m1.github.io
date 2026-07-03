@@ -141,14 +141,30 @@ const FocusStorage = {
         return merged;
     },
 
-    /** Отложенная синхронизация всего профиля в Firestore (дебаунс) */
+    /** Собрать ВСЕ пользовательские данные из localStorage (все ключи focus_*, кроме служебных). */
+    _collectAllUserData() {
+        var extra = {};
+        var SKIP = ['focus_user_password']; // не синкаем пароль в открытом виде
+        try {
+            for (var i = 0; i < localStorage.length; i++) {
+                var k = localStorage.key(i);
+                if (!k || k.indexOf('focus_') !== 0) continue;
+                if (k === FOCUS_STORAGE_KEY) continue;      // основной профиль шлём отдельно
+                if (SKIP.indexOf(k) !== -1) continue;
+                try { var v = localStorage.getItem(k); if (v !== null) extra[k] = v; } catch(e){}
+            }
+        } catch(e){}
+        return extra;
+    },
+
+    /** Отложенная синхронизация всего профиля + всех данных в Firestore (дебаунс). */
     _cloudSync(data) {
         if (typeof window === 'undefined') return;
         if (!window.fbSaveUserData || !window.fbCurrentUser || !window.fbCurrentUser()) return;
         clearTimeout(this._syncTimer);
+        var self = this;
         this._syncTimer = setTimeout(() => {
             try {
-                // шлём только сериализуемые данные профиля
                 window.fbSaveUserData({
                     name: data.name || '',
                     age: data.age || '',
@@ -163,10 +179,26 @@ const FocusStorage = {
                     weekStats: data.weekStats || {},
                     referral: data.referral || {},
                     flags: data.flags || {},
+                    extraData: self._collectAllUserData(),
                     updatedAt: new Date().toISOString()
                 }).catch(() => {});
             } catch(e) {}
         }, 2000);
+    },
+
+    /** Восстановить пользовательские данные из облака в localStorage (вызывать после входа). */
+    applyCloudData(data) {
+        if (!data) return;
+        try {
+            // профиль слиянием
+            this.saveUser(data);
+            // все пользовательские ключи (тренировки, программы, дневники и т.п.) — пишем обратно
+            if (data.extraData && typeof data.extraData === 'object') {
+                Object.keys(data.extraData).forEach(function(k){
+                    try { if (data.extraData[k] != null) localStorage.setItem(k, data.extraData[k]); } catch(e){}
+                });
+            }
+        } catch(e) {}
     },
 
     // ========== ЭКОНОМИКА ==========
