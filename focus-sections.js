@@ -73,21 +73,14 @@
       name: 'Лекарства', group: 'body', reward: 'medications',
       aliases: ['лекарств', 'таблетк', 'принял препарат', 'выпил лекарств'],
       screen: 'fokus_medications.html',
-      fill(data) {
-        const d = today();
-        try { localStorage.setItem('focus_med_taken_' + d, '1'); } catch (e) {}
-        return 'Отметил приём лекарств' + (data ? ': ' + data : '');
-      }
+      // отметка привязана к id лекарства из списка юзера — наобум не ставим
+      fill(data) { return null; }
     },
     supplements: {
       name: 'БАДы и спортпит', group: 'body', reward: 'supplements',
       aliases: ['бад', 'витамин', 'протеин', 'креатин', 'добавк', 'спортпит'],
       screen: 'fokus_supplements.html',
-      fill(data) {
-        const d = today();
-        try { localStorage.setItem('focus_supp_taken_' + d, '1'); } catch (e) {}
-        return 'Отметил приём БАДов' + (data ? ': ' + data : '');
-      }
+      fill(data) { return null; }
     },
 
     // ============ ЭНЕРГИЯ ============
@@ -110,8 +103,10 @@
       aliases: ['дыхани', 'дыхательн', 'подышал'],
       screen: 'fokus_breathing.html',
       fill(data) {
+        // формат раздела: { id, tech, min, cycles, date }
+        const d = today();
         const log = readJSON('focus_breathing_log', []);
-        log.push({ date: today(), note: data || 'Дыхательная практика' });
+        log.push({ id: Date.now(), tech: data || 'Дыхательная практика', min: 5, cycles: 0, date: d });
         writeJSON('focus_breathing_log', log);
         markDone(this);
         return 'Отметил дыхательную практику';
@@ -119,13 +114,15 @@
     },
     rest: {
       name: 'Отдых и детокс', group: 'energy', reward: 'detox',
-      aliases: ['отдых', 'детокс', 'релакс', 'медитац'],
+      aliases: ['отдых', 'детокс', 'релакс'],
       screen: 'fokus_rest.html',
       fill(data) {
+        // формат раздела: { id, date, minutes }
         const log = readJSON('focus_detox_log', []);
-        log.push({ date: today(), note: data || 'Отдых' });
+        const mins = parseInt(String(data || '').match(/\d+/)) || 30;
+        log.push({ id: Date.now(), date: today(), minutes: mins });
         writeJSON('focus_detox_log', log);
-        return 'Отметил отдых' + (data ? ': ' + data : '');
+        return 'Отметил отдых: ' + mins + ' мин';
       }
     },
 
@@ -135,10 +132,14 @@
       aliases: ['разгрузк', 'мысл', 'висяк', 'выгруз', 'braindump', 'дела из головы'],
       screen: 'fokus_braindump.html',
       fill(data) {
-        const list = readJSON('focus_braindump', []);
-        list.push({ id: Date.now(), text: data || 'Задача', done: false, date: today() });
-        writeJSON('focus_braindump', list);
-        return 'Записал в разгрузку мозга: ' + data;
+        // формат раздела: { inbox:[], now:[], plan:[], drop:[] }, элемент {id, text}
+        let bd = readJSON('focus_braindump', null);
+        if (!bd || typeof bd !== 'object') bd = { inbox: [], now: [], plan: [], drop: [] };
+        bd.inbox = bd.inbox || [];
+        const items = String(data || 'Задача').split(/\s*\|\s*|\n|(?:^|\s)\d+[.)]\s*/).map(s => s.trim()).filter(Boolean);
+        items.forEach(txt => bd.inbox.push({ id: Date.now() + Math.random(), text: txt }));
+        writeJSON('focus_braindump', bd);
+        return 'Добавил в разгрузку мозга: ' + items.join(', ');
       }
     },
     mood: {
@@ -146,10 +147,11 @@
       aliases: ['настроени', 'чувству', 'эмоци', 'самочувстви'],
       screen: 'fokus_mood.html',
       fill(data) {
+        // формат раздела: { id, date, t, mood, note, tags:[], chat:[] }
         const entries = readJSON('focus_mood_entries', []);
-        entries.push({ date: today(), mood: data || 'нейтральное', note: '' });
+        entries.push({ id: Date.now(), date: today(), t: Date.now(), mood: data || 'нормальное', note: '', tags: [], chat: [] });
         writeJSON('focus_mood_entries', entries);
-        return 'Записал настроение: ' + data;
+        return 'Записал настроение: ' + (data || 'отмечено');
       }
     },
 
@@ -169,23 +171,33 @@
       aliases: ['благодар', 'спасибо за', 'признател'],
       screen: 'fokus_gratitude.html',
       fill(data) {
+        const d = today();
         const grats = readJSON('faith_gratitudes', []);
-        grats.push({ date: today(), text: data || 'День прожит с благодарностью' });
+        // данные могут быть несколькими пунктами через | или перенос строки или "1... 2... 3..."
+        let items = String(data || 'За день')
+          .split(/\s*\|\s*|\n|(?:^|\s)\d+[.)]\s*/)
+          .map(s => s.trim())
+          .filter(Boolean);
+        if (!items.length) items = ['За день'];
+        // сегодняшняя запись — дополняем, иначе новая
+        let todayEntry = grats.find(e => e.date === d);
+        if (todayEntry) {
+          todayEntry.items = (todayEntry.items || []).concat(items);
+        } else {
+          grats.push({ id: Date.now(), date: d, dateLabel: new Date().toLocaleDateString('ru-RU'), items: items });
+        }
         writeJSON('faith_gratitudes', grats);
         markDone(this);
-        return 'Записал благодарность: ' + (data || 'за день');
+        return 'Записал благодарност' + (items.length > 1 ? 'и (' + items.length + '): ' : 'ь: ') + items.join(', ');
       }
     },
     faith_habits: {
       name: 'Духовные привычки', group: 'faith', reward: 'habit',
       aliases: ['привычк', 'молитв', 'храм', 'ритуал', 'практик духовн'],
       screen: 'fokus_faith_habits.html',
+      // сложная модель трекинга привычек — не заполняем наобум, а ведём в раздел
       fill(data) {
-        const habits = readJSON('faith_habits', []);
-        habits.push({ id: Date.now(), name: data || 'Духовная практика', done: true, date: today() });
-        writeJSON('faith_habits', habits);
-        markDone(this);
-        return 'Отметил духовную практику: ' + (data || 'выполнена');
+        return null; // ИИ вместо заполнения предложит напоминание или откроет раздел
       }
     },
     wishmap: {

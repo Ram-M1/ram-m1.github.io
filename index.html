@@ -258,6 +258,9 @@
     .ai-mic-btn svg { width:15px; height:15px; }
     .ai-mic-btn:active { transform:scale(0.92); }
     .ai-mic-btn.recording { background:rgba(255,90,90,0.2); border-color:rgba(255,90,90,0.5); color:#ff6b6b; animation:micRec 1s ease-in-out infinite; }
+    .ai-mic-btn.wake-active { background:rgba(var(--accent-rgb),0.22); border-color:var(--accent); color:var(--accent); box-shadow:0 0 10px rgba(var(--accent-rgb),0.35); animation:wakePulse 2s ease-in-out infinite; }
+    .ai-mic-btn.wake-heard { background:rgba(80,220,120,0.25); border-color:#4ade80; color:#4ade80; transform:scale(1.15); }
+    @keyframes wakePulse { 0%,100%{box-shadow:0 0 8px rgba(var(--accent-rgb),0.3);} 50%{box-shadow:0 0 16px rgba(var(--accent-rgb),0.6);} }
     @keyframes micRec { 0%,100% { box-shadow:0 0 0 0 rgba(255,90,90,0.4); } 50% { box-shadow:0 0 0 5px rgba(255,90,90,0); } }
     .ai-input-row { display:flex; gap:6px; align-items:center; }
     .ai-input { flex:1; min-width:0; background:rgba(0,0,0,0.28); border:1px solid rgba(var(--accent-rgb),0.14); border-radius:10px; padding:10px 12px; color:#fff; font-size:12.5px; font-family:inherit; outline:none; }
@@ -861,6 +864,7 @@
 <script src="focus-astro.js"></script>
 <script src="focus-sections.js"></script>
 <script src="focus-reminders.js"></script>
+<script src="focus-voice.js"></script>
 <script src="focus-ai.js"></script>
 <script type="module" src="firebase-auth-helper.js"></script>
 <script>
@@ -1659,6 +1663,13 @@
         sendBtn.addEventListener('click', process);
         input.addEventListener('keydown', (e) => { if (e.key === 'Enter') process(); });
 
+        // экспорт для голосового вызова: подставить команду и выполнить
+        window._focusProcessVoiceCommand = function(command){
+            if (!command) { input.focus(); return; }
+            input.value = command;
+            process();
+        };
+
         // ===== РАЗВЁРНУТЫЙ ЧАТ С ИИ (диалог + заполнение разделов) =====
         (function initAiChat(){
             const overlay = document.getElementById('aiChatOverlay');
@@ -1749,6 +1760,8 @@
                     if (window.FocusSections) {
                         const msg = FocusSections.fill(type, data);
                         if (msg) { addFilled(msg); return; }
+                        const sec = FocusSections.SECTIONS[type];
+                        if (sec) { addFilled('Раздел «' + sec.name + '» лучше заполнить внутри — открой его. Могу поставить напоминание.'); return; }
                     }
                     addFilled('Не знаю такой раздел: ' + type);
                 } catch(e){ addFilled('Не удалось записать: ' + e.message); }
@@ -1872,6 +1885,64 @@
                 window._aiTimer = setTimeout(() => { result.className = 'ai-result'; }, 4000);
             });
         }
+    })();
+
+    // ===== ГОЛОСОВОЙ ВЫЗОВ ПО ИМЕНИ АССИСТЕНТА (wake word) =====
+    // Долгое нажатие на микрофон → режим «всегда слушаю имя».
+    // Сказал имя ассистента → открывается ассистент и слушает команду.
+    (function(){
+        const micBtn = document.getElementById('aiMicBtn');
+        if (!micBtn || !window.FocusVoice || !FocusVoice.supported) return;
+        const asstName = (FocusStorage.getUser().assistantName || 'ассистент');
+        FocusVoice.setName(asstName);
+
+        let holdTimer = null, wakeOn = false;
+
+        function toast(msg){ try { if (window.focusToast) window.focusToast(msg); } catch(e){} }
+
+        function enableWake(){
+            FocusVoice.start(function(command){
+                // услышали имя ассистента
+                micBtn.classList.add('wake-heard');
+                setTimeout(()=>micBtn.classList.remove('wake-heard'), 1200);
+                if (command && command.length > 1) {
+                    // сразу выполняем команду через ассистента
+                    if (window._focusProcessVoiceCommand) window._focusProcessVoiceCommand(command);
+                } else {
+                    // просто позвали по имени — отзовёмся
+                    toast(asstName + ' слушает...');
+                    const input = document.getElementById('aiInput');
+                    if (input) input.focus();
+                }
+            }).then(function(ok){
+                if (ok) { wakeOn = true; micBtn.classList.add('wake-active'); toast('Голос включён — зови «' + asstName + '»'); }
+                else toast('Не удалось включить микрофон');
+            });
+            FocusVoice._onError = function(){ wakeOn = false; micBtn.classList.remove('wake-active'); toast('Микрофон недоступен'); };
+        }
+        function disableWake(){
+            FocusVoice.stop(); wakeOn = false; micBtn.classList.remove('wake-active');
+            toast('Голосовой вызов выключен');
+        }
+
+        // долгое нажатие (600мс) — переключить wake-режим
+        function startHold(e){
+            holdTimer = setTimeout(function(){
+                holdTimer = null;
+                if (wakeOn) disableWake(); else enableWake();
+            }, 600);
+        }
+        function cancelHold(){ if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } }
+        micBtn.addEventListener('touchstart', startHold, {passive:true});
+        micBtn.addEventListener('mousedown', startHold);
+        micBtn.addEventListener('touchend', cancelHold);
+        micBtn.addEventListener('mouseup', cancelHold);
+        micBtn.addEventListener('mouseleave', cancelHold);
+        // пауза прослушивания когда вкладка скрыта (экономия батареи)
+        document.addEventListener('visibilitychange', function(){
+            if (document.hidden && wakeOn) FocusVoice.stop();
+            else if (!document.hidden && wakeOn) enableWake();
+        });
     })();
 
     // ===== Геопозиция ребёнка (если привязан к родителю) =====

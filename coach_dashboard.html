@@ -825,9 +825,10 @@ initAtmosphere(canvasId) {
     }
 
     const clientModal = document.getElementById('clientModal');
-    document.getElementById('addClientBtn').addEventListener('click', () => {
+    document.getElementById('addClientBtn').addEventListener('click', async () => {
         document.getElementById('clientName').value = '';
-        document.getElementById('clientCode').innerText = genCode();
+        const codeEl = document.getElementById('clientCode');
+        codeEl.innerText = '· · · ·';
         // предупреждение о доплате если свыше лимита
         const willBe = clients.length + 1;
         const overInfo = document.getElementById('clientOverInfo');
@@ -838,6 +839,15 @@ initAtmosphere(canvasId) {
             overInfo.style.display = 'none';
         }
         clientModal.classList.add('show');
+        // реальный код связи через Firebase
+        try {
+            if (window.fbCreatePairCode) {
+                const r = await window.fbCreatePairCode();
+                codeEl.innerText = (r && r.ok) ? r.code : genCode();
+            } else {
+                codeEl.innerText = genCode();
+            }
+        } catch(e) { codeEl.innerText = genCode(); }
     });
     document.getElementById('cancelClient').addEventListener('click', ()=>clientModal.classList.remove('show'));
     clientModal.addEventListener('click', (e)=>{ if(e.target.id==='clientModal') clientModal.classList.remove('show'); });

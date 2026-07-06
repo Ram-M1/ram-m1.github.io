@@ -145,10 +145,14 @@ const FocusStorage = {
     _collectAllUserData() {
         var extra = {};
         var SKIP = ['focus_user_password']; // не синкаем пароль в открытом виде
+        // префиксы всех пользовательских данных (focus_ + faith_ и др. без focus_)
+        var PREFIXES = ['focus_', 'faith_'];
         try {
             for (var i = 0; i < localStorage.length; i++) {
                 var k = localStorage.key(i);
-                if (!k || k.indexOf('focus_') !== 0) continue;
+                if (!k) continue;
+                var match = PREFIXES.some(function(p){ return k.indexOf(p) === 0; });
+                if (!match) continue;
                 if (k === FOCUS_STORAGE_KEY) continue;      // основной профиль шлём отдельно
                 if (SKIP.indexOf(k) !== -1) continue;
                 try { var v = localStorage.getItem(k); if (v !== null) extra[k] = v; } catch(e){}
