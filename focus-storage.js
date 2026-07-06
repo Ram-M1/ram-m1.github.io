@@ -311,10 +311,12 @@ const FocusStorage = {
 
     /** Текущая тема (для applyStoredTheme и переключателя) */
     getTheme() {
-        return this.getUser().theme || 'original';
+        // единый источник: сначала focus_theme (быстрый ключ), потом из юзера
+        return localStorage.getItem('focus_theme') || this.getUser().theme || 'original';
     },
-    /** Сохранить выбранную тему */
+    /** Сохранить выбранную тему — В ОБА места, чтоб все экраны видели одинаково */
     setTheme(themeId) {
+        try { localStorage.setItem('focus_theme', themeId); } catch(e){}
         this.saveUser({ theme: themeId });
     },
 

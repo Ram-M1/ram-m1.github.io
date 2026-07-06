@@ -532,6 +532,27 @@
                     const colors = [rs.getPropertyValue('--accent').trim(), rs.getPropertyValue('--accent-light').trim(), '#FFFFFF', rs.getPropertyValue('--accent-dark').trim()];
                     particles.push({ x: cx, y: cy, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 1, size: 1+Math.random()*2.5, color: colors[Math.floor(Math.random()*colors.length)] });
                 }
+                
+                function drawCyberpunk(){
+                    if(!window._cbN){ window._cbN=[]; for(let i=0;i<8;i++)window._cbN.push({i:1+Math.floor(Math.random()*12),j:1+Math.floor(Math.random()*7),h:Math.random(),ph:Math.random()*6.28}); window._cbF=[]; for(let i=0;i<10;i++)window._cbF.push({j:Math.floor(Math.random()*10),p:Math.random(),sp:0.004+Math.random()*0.008,h:Math.random()}); window._cbB=[]; for(let i=0;i<16;i++)window._cbB.push({x:Math.random()*ac.width,y:Math.random()*ac.height*0.55,r:10+Math.random()*30,h:Math.random(),tw:Math.random()*6.28}); }
+                    const tt=washT*6, CC=14, RR=10;
+                    const cc=(h,a)=>h<0.35?'rgba(0,220,255,'+a+')':(h<0.62?'rgba(60,255,180,'+a+')':(h<0.82?'rgba(255,61,224,'+a+')':'rgba(150,120,255,'+a+')'));
+                    const pt=(i,j)=>{const gx=(i/(CC-1))-0.5,gz=j/(RR-1),ps=0.35+gz*0.65,wv=Math.sin(gx*6+tt*1.2)*0.06+Math.sin(gz*5-tt*1.5)*0.05;return{x:ac.width/2+gx*ac.width*1.15*ps,y:ac.height*0.92-gz*ac.height*0.6-wv*ac.height*ps,d:1-gz};};
+                    for(const b of window._cbB){b.tw+=0.02;const a=(0.12+0.14*Math.sin(b.tw))*0.4;const g=actx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);g.addColorStop(0,cc(b.h,a));g.addColorStop(1,cc(b.h,0));actx.fillStyle=g;actx.beginPath();actx.arc(b.x,b.y,b.r,0,6.28);actx.fill();}
+                    const P=[];for(let j=0;j<RR;j++){P[j]=[];for(let i=0;i<CC;i++)P[j][i]=pt(i,j);}
+                    actx.lineWidth=1;
+                    for(let j=0;j<RR;j++)for(let i=0;i<CC;i++){const p=P[j][i];if(i<CC-1){const q=P[j][i+1];actx.strokeStyle='rgba(0,200,255,'+(0.07+0.26*p.d)+')';actx.beginPath();actx.moveTo(p.x,p.y);actx.lineTo(q.x,q.y);actx.stroke();}if(j<RR-1){const q=P[j+1][i];actx.strokeStyle='rgba(0,180,255,'+(0.05+0.2*p.d)+')';actx.beginPath();actx.moveTo(p.x,p.y);actx.lineTo(q.x,q.y);actx.stroke();}}
+                    for(const fl of window._cbF){fl.p+=fl.sp;if(fl.p>1)fl.p-=1;const ii=fl.p*(CC-1),i0=Math.floor(ii),i1=Math.min(CC-1,i0+1),ff=ii-i0,pa=P[fl.j][i0],pb=P[fl.j][i1],fx=pa.x+(pb.x-pa.x)*ff,fy=pa.y+(pb.y-pa.y)*ff,dp=pa.d;const g=actx.createRadialGradient(fx,fy,0,fx,fy,7*(0.5+dp));g.addColorStop(0,cc(fl.h,0.9*dp));g.addColorStop(1,cc(fl.h,0));actx.fillStyle=g;actx.beginPath();actx.arc(fx,fy,7*(0.5+dp),0,6.28);actx.fill();}
+                    for(let j=0;j<RR;j++)for(let i=0;i<CC;i++){const p=P[j][i];actx.fillStyle='rgba(120,240,255,'+(0.18+0.45*p.d)+')';actx.beginPath();actx.arc(p.x,p.y,0.8+1.8*p.d,0,6.28);actx.fill();}
+                    for(const hb of window._cbN){const p=P[hb.j][hb.i],dp=p.d,pu=0.6+0.4*Math.sin(tt+hb.ph),rr=(5+8*dp)*(0.85+0.2*Math.sin(tt*1.5+hb.ph));const g=actx.createRadialGradient(p.x,p.y,0,p.x,p.y,rr*2.5);g.addColorStop(0,cc(hb.h,0.7*pu*dp));g.addColorStop(1,cc(hb.h,0));actx.fillStyle=g;actx.beginPath();actx.arc(p.x,p.y,rr*2.5,0,6.28);actx.fill();actx.strokeStyle=cc(hb.h,0.6*dp);actx.lineWidth=1.2;actx.beginPath();for(let s=0;s<6;s++){const an=tt*0.5+s*Math.PI/3,hx=p.x+Math.cos(an)*rr,hy=p.y+Math.sin(an)*rr;if(s===0)actx.moveTo(hx,hy);else actx.lineTo(hx,hy);}actx.closePath();actx.stroke();actx.fillStyle='rgba(255,255,255,'+(pu*dp)+')';actx.beginPath();actx.arc(p.x,p.y,2*dp+1,0,6.28);actx.fill();}
+                }
+                function drawWhiteMatrix(){
+                    if(!window._gD){window._gD=[];for(let i=0;i<50;i++)window._gD.push({x:Math.random()*ac.width,y:Math.random()*ac.height,vx:(Math.random()-0.5)*0.3,vy:-0.2-Math.random()*0.5,r:1+Math.random()*2.4,tw:Math.random()*6.28});window._gN=[];for(let i=0;i<16;i++)window._gN.push({x:Math.random()*ac.width,y:Math.random()*ac.height,vx:(Math.random()-0.5)*0.3,vy:(Math.random()-0.5)*0.3});}
+                    for(let i=0;i<window._gN.length;i++){const n=window._gN[i];n.x+=n.vx;n.y+=n.vy;if(n.x<0||n.x>ac.width)n.vx*=-1;if(n.y<0||n.y>ac.height)n.vy*=-1;for(let j=i+1;j<window._gN.length;j++){const m=window._gN[j],dx=n.x-m.x,dy=n.y-m.y,d=Math.sqrt(dx*dx+dy*dy);if(d<130){actx.strokeStyle='rgba(201,154,46,'+((1-d/130)*0.3)+')';actx.lineWidth=0.7;actx.beginPath();actx.moveTo(n.x,n.y);actx.lineTo(m.x,m.y);actx.stroke();}}}
+                    for(const n of window._gN){actx.fillStyle='rgba(201,154,46,0.65)';actx.beginPath();actx.arc(n.x,n.y,2,0,6.28);actx.fill();}
+                    for(const d of window._gD){d.x+=d.vx;d.y+=d.vy;d.tw+=0.05;if(d.y<-5){d.y=ac.height+5;d.x=Math.random()*ac.width;}const a=(0.4+0.4*Math.sin(d.tw))*0.75;const g=actx.createRadialGradient(d.x,d.y,0,d.x,d.y,d.r*2.5);g.addColorStop(0,'rgba(230,190,90,'+a+')');g.addColorStop(1,'rgba(201,154,46,0)');actx.fillStyle=g;actx.beginPath();actx.arc(d.x,d.y,d.r*2.5,0,6.28);actx.fill();}
+                }
+
                 function loop() {
                     ctx.clearRect(0, 0, cosmicCanvas.width, cosmicCanvas.height);
                     let anySpawning = false;
@@ -557,168 +578,9 @@
                 });
             },
             initAtmosphere(canvasId) {
-                const ac = document.getElementById(canvasId || 'atmosCanvas');
-                if (!ac) return;
-                const actx = ac.getContext('2d');
-                ac.width = 375; ac.height = 700;
-                let tronPulses=[], mkEmbers=[], mkDrips=[], mkFlash=0, mkBolt=null, matrixDrops=null, matrixColumns=0;
-                let predatorRadarAngle=0, predatorScanY=0, predatorT=0, predatorBlips=[{a:1.2,r:0.7},{a:3.8,r:0.5}], predatorReticle=null;
-                const matrixChars = 'アイウエオカキクケコサシスセソ0123456789ABCDEF'.split('');
-                let lastTheme=null, lastTrigger=0, washT=0;
-                function currentTheme() { const r = document.getElementById('htmlRoot') || document.documentElement; return r.getAttribute('data-theme') || 'original'; }
-                function cssColor(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
-                function cssColorRgb(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
-                function drawFullScreenWash() {
-                    washT += 0.008;
-                    const accRgb = cssColorRgb('--accent-rgb'), acc2Rgb = cssColorRgb('--accent-2-rgb');
-                    const x = ac.width*(0.5+Math.sin(washT)*0.5), y = ac.height*(0.5+Math.cos(washT*0.7)*0.5);
-                    const grad = actx.createRadialGradient(x,y,0,ac.width/2,ac.height/2,Math.max(ac.width,ac.height)*0.9);
-                    grad.addColorStop(0,'rgba('+accRgb+',0.05)'); grad.addColorStop(0.5,'rgba('+acc2Rgb+',0.035)'); grad.addColorStop(1,'rgba(0,0,0,0)');
-                    actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
-                }
-                function drawTron() {
-                    if (Math.random() > 0.93) {
-                        const vertical = Math.random() > 0.5;
-                        tronPulses.push({ vertical, pos: Math.floor(Math.random()*(vertical?ac.width:ac.height)), t:-40, speed:3+Math.random()*2, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2'), len:60 });
-                    }
-                    tronPulses.forEach(p => {
-                        p.t += p.speed;
-                        const grad = p.vertical ? actx.createLinearGradient(p.pos,p.t-p.len,p.pos,p.t) : actx.createLinearGradient(p.t-p.len,p.pos,p.t,p.pos);
-                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,p.color);
-                        actx.strokeStyle = grad; actx.lineWidth=2; actx.shadowBlur=8; actx.shadowColor=p.color;
-                        actx.beginPath();
-                        if (p.vertical) { actx.moveTo(p.pos,p.t-p.len); actx.lineTo(p.pos,p.t); } else { actx.moveTo(p.t-p.len,p.pos); actx.lineTo(p.t,p.pos); }
-                        actx.stroke();
-                    });
-                    actx.shadowBlur=0;
-                    tronPulses = tronPulses.filter(p => p.t < Math.max(ac.width,ac.height)+40);
-                }
-                function drawPredator() {
-                    predatorT += 0.01;
-                    for (let i=0;i<5;i++) {
-                        const x = ac.width/2+Math.sin(predatorT+i*2)*ac.width*0.35, y = ac.height/2+Math.cos(predatorT*0.7+i*1.7)*ac.height*0.4;
-                        const r = 60+Math.sin(predatorT*2+i)*20;
-                        const grad = actx.createRadialGradient(x,y,0,x,y,r);
-                        grad.addColorStop(0,'rgba('+cssColorRgb('--accent-rgb')+',0.05)'); grad.addColorStop(1,'rgba('+cssColorRgb('--accent-rgb')+',0)');
-                        actx.fillStyle = grad; actx.fillRect(0,0,ac.width,ac.height);
-                    }
-                    predatorScanY += 1.8; if (predatorScanY > ac.height+20) predatorScanY=-20;
-                    const acc2 = cssColorRgb('--accent-2-rgb');
-                    const lineGrad = actx.createLinearGradient(0,predatorScanY-15,0,predatorScanY+15);
-                    lineGrad.addColorStop(0,'rgba('+acc2+',0)'); lineGrad.addColorStop(0.5,'rgba('+acc2+',0.35)'); lineGrad.addColorStop(1,'rgba('+acc2+',0)');
-                    actx.fillStyle = lineGrad; actx.fillRect(0,predatorScanY-15,ac.width,30);
-                    actx.strokeStyle='rgba('+acc2+',0.5)'; actx.lineWidth=1;
-                    actx.beginPath(); actx.moveTo(0,predatorScanY); actx.lineTo(ac.width,predatorScanY); actx.stroke();
-                    const rcx=ac.width-46, rcy=64, rr=34;
-                    actx.save();
-                    actx.strokeStyle='rgba('+acc2+',0.4)'; actx.lineWidth=1;
-                    actx.beginPath(); actx.arc(rcx,rcy,rr,0,Math.PI*2); actx.stroke();
-                    actx.beginPath(); actx.arc(rcx,rcy,rr*0.6,0,Math.PI*2); actx.stroke();
-                    actx.beginPath(); actx.moveTo(rcx-rr,rcy); actx.lineTo(rcx+rr,rcy); actx.stroke();
-                    actx.beginPath(); actx.moveTo(rcx,rcy-rr); actx.lineTo(rcx,rcy+rr); actx.stroke();
-                    predatorRadarAngle += 0.05;
-                    const sweepGrad = actx.createLinearGradient(rcx,rcy,rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr);
-                    sweepGrad.addColorStop(0,'rgba('+acc2+',0.6)'); sweepGrad.addColorStop(1,'rgba('+acc2+',0)');
-                    actx.strokeStyle = sweepGrad; actx.lineWidth=2;
-                    actx.beginPath(); actx.moveTo(rcx,rcy); actx.lineTo(rcx+Math.cos(predatorRadarAngle)*rr,rcy+Math.sin(predatorRadarAngle)*rr); actx.stroke();
-                    predatorBlips.forEach(b => {
-                        const bx=rcx+Math.cos(b.a)*rr*b.r, by=rcy+Math.sin(b.a)*rr*b.r;
-                        const diff = Math.abs(((predatorRadarAngle%(Math.PI*2))-b.a+Math.PI*3)%(Math.PI*2)-Math.PI);
-                        const blipAlpha = diff<0.5 ? 1-diff/0.5 : 0;
-                        if (blipAlpha>0) { actx.fillStyle='rgba('+acc2+','+blipAlpha+')'; actx.beginPath(); actx.arc(bx,by,2,0,Math.PI*2); actx.fill(); }
-                    });
-                    actx.restore();
-                    if (Math.random()>0.992 && !predatorReticle) predatorReticle = { x:40+Math.random()*(ac.width-80), y:90+Math.random()*(ac.height-220), life:1 };
-                    if (predatorReticle) {
-                        predatorReticle.life -= 0.012;
-                        if (predatorReticle.life<=0) predatorReticle=null;
-                        else {
-                            const a = Math.min(predatorReticle.life>0.85?(1-predatorReticle.life)/0.15:1,1) * Math.min(predatorReticle.life/0.15,1);
-                            const size = 22+(1-Math.min(predatorReticle.life,1))*6;
-                            actx.save(); actx.globalAlpha=a; actx.strokeStyle=cssColor('--accent'); actx.lineWidth=1.3;
-                            actx.beginPath(); actx.arc(predatorReticle.x,predatorReticle.y,size,0,Math.PI*2); actx.stroke();
-                            actx.beginPath(); actx.moveTo(predatorReticle.x-size-6,predatorReticle.y); actx.lineTo(predatorReticle.x-size+4,predatorReticle.y); actx.stroke();
-                            actx.beginPath(); actx.moveTo(predatorReticle.x+size-4,predatorReticle.y); actx.lineTo(predatorReticle.x+size+6,predatorReticle.y); actx.stroke();
-                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y-size-6); actx.lineTo(predatorReticle.x,predatorReticle.y-size+4); actx.stroke();
-                            actx.beginPath(); actx.moveTo(predatorReticle.x,predatorReticle.y+size-4); actx.lineTo(predatorReticle.x,predatorReticle.y+size+6); actx.stroke();
-                            actx.font='8px monospace'; actx.fillStyle=cssColor('--accent'); actx.fillText('LOCKED', predatorReticle.x-16, predatorReticle.y+size+14);
-                            actx.restore();
-                        }
-                    }
-                }
-                function drawMK() {
-                    const phoneEl = document.querySelector('.phone');
-                    if (Math.random()>0.4) mkEmbers.push({ x:Math.random()*ac.width, y:ac.height+10, vx:(Math.random()-0.5)*0.6, vy:-0.6-Math.random()*1.2, size:1+Math.random()*2, life:1, decay:0.004+Math.random()*0.006, color: Math.random()>0.5?cssColor('--accent'):cssColor('--accent-2') });
-                    mkEmbers.forEach(e => {
-                        e.x+=e.vx; e.y+=e.vy; e.life-=e.decay;
-                        const fade=Math.max(e.life,0); actx.globalAlpha=fade; actx.fillStyle=e.color; actx.shadowBlur=6; actx.shadowColor=e.color;
-                        actx.beginPath(); actx.arc(e.x,e.y,e.size,0,Math.PI*2); actx.fill();
-                    });
-                    actx.globalAlpha=1; actx.shadowBlur=0;
-                    mkEmbers = mkEmbers.filter(e=>e.life>0 && e.y>-10);
-                    if (Math.random()>0.96) mkDrips.push({ x:20+Math.random()*(ac.width-40), y:-10, len:8+Math.random()*10, speed:1.2+Math.random()*1.5, life:1 });
-                    mkDrips.forEach(d => {
-                        d.y+=d.speed; d.life-=0.004;
-                        const fade=Math.max(d.life,0); actx.globalAlpha=fade;
-                        const grad = actx.createLinearGradient(d.x,d.y-d.len,d.x,d.y);
-                        grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,cssColor('--accent'));
-                        actx.strokeStyle=grad; actx.lineWidth=2;
-                        actx.beginPath(); actx.moveTo(d.x,d.y-d.len); actx.lineTo(d.x,d.y); actx.stroke();
-                        actx.fillStyle=cssColor('--accent'); actx.beginPath(); actx.arc(d.x,d.y,1.4,0,Math.PI*2); actx.fill();
-                    });
-                    actx.globalAlpha=1;
-                    mkDrips = mkDrips.filter(d=>d.life>0 && d.y<ac.height+10);
-                    if (Date.now()-lastTrigger>6000 && Math.random()>0.5) {
-                        lastTrigger = Date.now(); mkFlash=1;
-                        const startX = 30+Math.random()*(ac.width-60);
-                        const points=[{x:startX,y:-5}]; let x=startX;
-                        for (let i=1;i<=9;i++) { const y=(ac.height/9)*i; x+=(Math.random()-0.5)*50; x=Math.max(10,Math.min(ac.width-10,x)); points.push({x,y}); }
-                        mkBolt = { points, life:1 };
-                        if (phoneEl) { phoneEl.classList.add('mk-shake'); setTimeout(()=>phoneEl.classList.remove('mk-shake'),280); }
-                    }
-                    if (mkBolt) {
-                        mkBolt.life -= 0.05;
-                        if (mkBolt.life<=0) mkBolt=null;
-                        else {
-                            actx.save(); actx.globalAlpha=Math.min(mkBolt.life*2,1);
-                            actx.strokeStyle='#7CD9FF'; actx.shadowBlur=14; actx.shadowColor='#3AB8FF'; actx.lineWidth=2;
-                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
-                            actx.strokeStyle='#FFFFFF'; actx.lineWidth=0.8; actx.shadowBlur=4;
-                            actx.beginPath(); mkBolt.points.forEach((p,i)=>{i===0?actx.moveTo(p.x,p.y):actx.lineTo(p.x,p.y);}); actx.stroke();
-                            actx.restore();
-                        }
-                    }
-                    if (mkFlash>0) { actx.fillStyle='rgba(124,217,255,'+(mkFlash*0.16)+')'; actx.fillRect(0,0,ac.width,ac.height); mkFlash -= 0.08; }
-                }
-                function drawMatrix() {
-                    if (!matrixDrops) { matrixColumns = Math.floor(ac.width/13); matrixDrops = Array(matrixColumns).fill(0).map(()=>Math.random()*-30); }
-                    actx.fillStyle='rgba(0,0,0,0.08)'; actx.fillRect(0,0,ac.width,ac.height); actx.font='13px monospace';
-                    for (let i=0;i<matrixColumns;i++) {
-                        const text = matrixChars[Math.floor(Math.random()*matrixChars.length)];
-                        const y = matrixDrops[i]*13;
-                        const isHead = Math.random()>0.92;
-                        actx.fillStyle = isHead ? '#cfffd9' : 'rgba('+cssColorRgb('--accent-rgb')+',0.55)';
-                        actx.fillText(text, i*13, y);
-                        if (y>ac.height && Math.random()>0.975) matrixDrops[i]=0;
-                        matrixDrops[i]++;
-                    }
-                }
-                function loop() {
-                    const theme = currentTheme();
-                    if (theme !== lastTheme) {
-                        actx.clearRect(0,0,ac.width,ac.height);
-                        tronPulses=[]; mkEmbers=[]; mkDrips=[]; mkBolt=null; matrixDrops=null; predatorReticle=null;
-                        lastTheme = theme;
-                    }
-                    if (theme !== 'matrix') actx.clearRect(0,0,ac.width,ac.height);
-                    drawFullScreenWash();
-                    if (theme==='tron') drawTron();
-                    else if (theme==='predator') drawPredator();
-                    else if (theme==='mk') drawMK();
-                    else if (theme==='matrix') drawMatrix();
-                    requestAnimationFrame(loop);
-                }
-                loop();
+                // Движок фона централизован в focus-core.js. Заглушка-фолбэк.
+                var ac = document.getElementById(canvasId || 'atmosCanvas');
+                if (ac && ac.getContext) { ac.width = 375; ac.height = 700; }
             }
         };
     }

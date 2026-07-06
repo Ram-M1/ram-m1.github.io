@@ -859,6 +859,8 @@
 <script src="focus-storage.js"></script>
 <script src="focus-rewards.js"></script>
 <script src="focus-astro.js"></script>
+<script src="focus-sections.js"></script>
+<script src="focus-reminders.js"></script>
 <script src="focus-ai.js"></script>
 <script type="module" src="firebase-auth-helper.js"></script>
 <script>
@@ -1624,7 +1626,13 @@
                         let full = res.reply.trim();
                         window._focusChatHistory.push({ role:'assistant', content: full });
                         let reply = full;
-                        const fillMatch = reply.match(/\[FILL:([a-z]+)\|([^\]]+)\]/i);
+                        // напоминание [REMIND:текст|когда]
+                        const remindMatch = reply.match(/\[REMIND:([^|\]]+)\|([^\]]+)\]/i);
+                        if (remindMatch && window.FocusReminders) {
+                            reply = reply.replace(/\[REMIND:[^\]]+\]/gi, '').trim();
+                            FocusReminders.schedule(remindMatch[1].trim(), remindMatch[2].trim());
+                        }
+                        const fillMatch = reply.match(/\[FILL:([a-z_]+)\|([^\]]+)\]/i);
                         if (fillMatch && window._focusApplyFill) {
                             reply = reply.replace(/\[FILL:[^\]]+\]/gi, '').trim();
                             window._focusApplyFill(fillMatch[1].toLowerCase(), fillMatch[2].trim());
@@ -1695,7 +1703,7 @@
                 } else {
                     history.forEach(function(m){
                         if (m.role === 'user') addMsg('user', m.content);
-                        else if (m.role === 'assistant') addMsg('bot', m.content.replace(/\[FILL:[^\]]+\]/gi,'').trim());
+                        else if (m.role === 'assistant') addMsg('bot', m.content.replace(/\[FILL:[^\]]+\]/gi,'').replace(/\[REMIND:[^\]]+\]/gi,'').trim());
                     });
                 }
                 setTimeout(()=> chatInput.focus(), 300);
@@ -1710,86 +1718,45 @@
             function systemPrompt(){
                 let astroCtx = '';
                 try { if (meUser.birthDate && window.FocusAstro) astroCtx = FocusAstro.contextForAI(meUser); } catch(e){}
+                let sectionsList = '';
+                let userCtx = '';
+                try {
+                    if (window.FocusSections) {
+                        sectionsList = FocusSections.listForPrompt();
+                        userCtx = FocusSections.userContext();
+                    }
+                } catch(e){}
                 return 'Тебя зовут ' + asstName + '. Ты — умный персональный ассистент в приложении FOCUS (саморазвитие). ' +
-                    'Помогаешь с привычками, здоровьем, мышлением, мотивацией, и МОЖЕШЬ ЗАПОЛНЯТЬ РАЗДЕЛЫ за пользователя.\n\n' +
-                    'РАЗДЕЛЫ: зарядка (workout), питание (nutrition), сон (sleep), благодарность (gratitude).\n\n' +
-                    'ГЛАВНОЕ ПРАВИЛО: НЕ задавай лишних вопросов. Если команда понятна — заполняй СРАЗУ, без уточнений.\n' +
-                    '- «заполни/отметь зарядку», «сделал зарядку» → сразу заполни стандартной зарядкой, НЕ спрашивай какие упражнения. [FILL:workout|Стандартная зарядка выполнена]\n' +
-                    '- «отметь сон», «я выспался» без часов → ставь 8 часов по умолчанию. [FILL:sleep|8]\n' +
-                    '- «запиши благодарность» без текста → [FILL:gratitude|День прожит с благодарностью]\n' +
-                    'Уточняй ТОЛЬКО если детали реально меняют суть И пользователь сам начал их называть. Например «запиши что я поел» — тут спроси ЧТО (без этого нечего записывать). Но «я поел овсянку» → сразу [FILL:nutrition|Овсянка].\n' +
-                    '«я спал 7 часов» → сразу [FILL:sleep|7]. «отжимания 3х15» → сразу [FILL:workout|Отжимания 3х15].\n\n' +
-                    'ФОРМАТ: когда заполняешь — в КОНЦЕ ответа добавь служебную строку [FILL:тип|данные] (тип = workout/nutrition/sleep/gratitude). Пользователь её не видит. Примеры:\n' +
-                    '[FILL:sleep|7.5]  [FILL:nutrition|Овсянка с бананом]  [FILL:workout|Зарядка выполнена]  [FILL:gratitude|Благодарен за семью]\n' +
-                    'Один короткий тёплый ответ + [FILL] если заполняешь. Если просто советуешь — без [FILL]. Пиши живым русским, коротко.' +
+                    'Помогаешь с привычками, здоровьем, мышлением, мотивацией, ЗАПОЛНЯЕШЬ ЛЮБЫЕ РАЗДЕЛЫ за пользователя и СТАВИШЬ НАПОМИНАНИЯ.\n\n' +
+                    'ВСЕ РАЗДЕЛЫ (используй эти id в [FILL]): ' + (sectionsList || 'workout, nutrition, sleep, gratitude') + '.\n' +
+                    (userCtx ? ('ЧТО СОЗДАЛ ЮЗЕР: ' + userCtx + '.\n') : '') +
+                    '\nГЛАВНОЕ ПРАВИЛО: НЕ задавай лишних вопросов. Если команда понятна — делай СРАЗУ.\n' +
+                    'Максимум что можно — уточнить ОДНУ деталь, без которой нельзя корректно заполнить (например «запиши что поел» → спроси что именно). Во всех остальных случаях действуй сразу.\n\n' +
+                    'ЗАПОЛНЕНИЕ РАЗДЕЛА: в конце ответа добавь служебную строку [FILL:id|данные], где id — из списка разделов выше.\n' +
+                    'Примеры: [FILL:workout|Зарядка выполнена]  [FILL:sleep|7]  [FILL:nutrition|Овсянка]  [FILL:training|Тренировка ног по плану]  [FILL:gratitude|Благодарен за день]  [FILL:braindump|Позвонить маме]  [FILL:faith_habits|Утренняя молитва]\n' +
+                    '«заполни тренировку по плану» → иди в training, отметь по программе юзера, заверши: [FILL:training|По программе завершена].\n\n' +
+                    'НАПОМИНАНИЯ: если просят напомнить о чём-либо — добавь строку [REMIND:текст напоминания|когда].\n' +
+                    'Примеры: [REMIND:Тренировка|в 18:00]  [REMIND:Прочитать молитву|вечером]  [REMIND:Сходить в храм|завтра в 9:00]  [REMIND:Обед|через 2 часа]\n' +
+                    'Можно ставить напоминание на ЛЮБУЮ задачу из любого раздела и плана.\n\n' +
+                    'ФОРМАТ ОТВЕТА: один короткий тёплый ответ + [FILL:...] и/или [REMIND:...] если нужно. Служебные строки пользователь не видит. Пиши живым русским, коротко.' +
                     (astroCtx ? ('\nТип личности: ' + astroCtx + '. Учитывай, но не упоминай астрологию без нужды.') : '');
             }
             window._focusChatSystemPrompt = systemPrompt;
 
-            // применяем заполнение раздела
+            // применяем заполнение раздела — через центральный реестр (любой раздел)
             function applyFill(type, data){
-                const today = new Date().toISOString().slice(0,10);
                 try {
-                    if (type === 'sleep') {
-                        const hours = parseFloat((data||'').replace(',','.')) || 8;
-                        let entries = JSON.parse(localStorage.getItem('focus_sleep_entries') || '[]');
-                        entries = entries.filter(e => e.date !== today);
-                        entries.push({ date: today, hours: hours, quality: 3, note: 'Записал ассистент' });
-                        localStorage.setItem('focus_sleep_entries', JSON.stringify(entries));
-                        addFilled('Записал сон: ' + hours + ' ч → раздел «Энергия»');
-                    } else if (type === 'nutrition') {
-                        let nt = {}; try { nt = JSON.parse(localStorage.getItem('focus_nutrition_today')) || {}; } catch(e){}
-                        if (nt.date !== today) nt = { date: today, meals: { breakfast:[], lunch:[], dinner:[], snack:[] } };
-                        if (!nt.meals) nt.meals = { breakfast:[], lunch:[], dinner:[], snack:[] };
-                        nt.meals.snack.push({ name: data, cal: 0, prot: 0, fat: 0, carb: 0, id: Date.now() });
-                        localStorage.setItem('focus_nutrition_today', JSON.stringify(nt));
-                        try { let d = JSON.parse(localStorage.getItem('focus_nutrition_finished')||'[]'); if(!d.includes(today)){d.push(today);localStorage.setItem('focus_nutrition_finished',JSON.stringify(d));} } catch(e){}
-                        addFilled('Записал в питание: ' + data);
-                    } else if (type === 'workout') {
-                        markSectionDone('workout');
-                        try { localStorage.setItem('focus_workout_note_' + today, data); } catch(e){}
-                        if (window.FocusRewards) FocusRewards.mark('body', 'workout');
-                        addFilled('Отметил зарядку: ' + data);
-                    } else if (type === 'gratitude') {
-                        let grats = []; try { grats = JSON.parse(localStorage.getItem('faith_gratitudes')||'[]'); } catch(e){}
-                        grats.push({ date: today, text: data });
-                        localStorage.setItem('faith_gratitudes', JSON.stringify(grats));
-                        markSectionDone('gratitude');
-                        if (window.FocusRewards) FocusRewards.mark('faith', 'gratitude');
-                        addFilled('Записал благодарность: ' + data);
+                    if (window.FocusSections) {
+                        const msg = FocusSections.fill(type, data);
+                        if (msg) { addFilled(msg); return; }
                     }
+                    addFilled('Не знаю такой раздел: ' + type);
                 } catch(e){ addFilled('Не удалось записать: ' + e.message); }
             }
 
             // версия для компактного ассистента (без вывода в чат — только запись данных)
             window._focusApplyFill = function(type, data){
-                const today = new Date().toISOString().slice(0,10);
-                try {
-                    if (type === 'sleep') {
-                        const hours = parseFloat((data||'').replace(',','.')) || 8;
-                        let entries = JSON.parse(localStorage.getItem('focus_sleep_entries') || '[]');
-                        entries = entries.filter(e => e.date !== today);
-                        entries.push({ date: today, hours: hours, quality: 3, note: 'Записал ассистент' });
-                        localStorage.setItem('focus_sleep_entries', JSON.stringify(entries));
-                    } else if (type === 'nutrition') {
-                        let nt = {}; try { nt = JSON.parse(localStorage.getItem('focus_nutrition_today')) || {}; } catch(e){}
-                        if (nt.date !== today) nt = { date: today, meals: { breakfast:[], lunch:[], dinner:[], snack:[] } };
-                        if (!nt.meals) nt.meals = { breakfast:[], lunch:[], dinner:[], snack:[] };
-                        nt.meals.snack.push({ name: data, cal: 0, prot: 0, fat: 0, carb: 0, id: Date.now() });
-                        localStorage.setItem('focus_nutrition_today', JSON.stringify(nt));
-                        try { let d = JSON.parse(localStorage.getItem('focus_nutrition_finished')||'[]'); if(!d.includes(today)){d.push(today);localStorage.setItem('focus_nutrition_finished',JSON.stringify(d));} } catch(e){}
-                    } else if (type === 'workout') {
-                        markSectionDone('workout');
-                        try { localStorage.setItem('focus_workout_note_' + today, data); } catch(e){}
-                        if (window.FocusRewards) FocusRewards.mark('body', 'workout');
-                    } else if (type === 'gratitude') {
-                        let grats = []; try { grats = JSON.parse(localStorage.getItem('faith_gratitudes')||'[]'); } catch(e){}
-                        grats.push({ date: today, text: data });
-                        localStorage.setItem('faith_gratitudes', JSON.stringify(grats));
-                        markSectionDone('gratitude');
-                        if (window.FocusRewards) FocusRewards.mark('faith', 'gratitude');
-                    }
-                } catch(e){}
+                try { if (window.FocusSections) FocusSections.fill(type, data); } catch(e){}
             };
 
             async function sendChat(){
@@ -1812,13 +1779,21 @@
 
                 if (res.ok && res.reply && res.reply.trim()) {
                     let reply = res.reply.trim();
+                    // напоминание [REMIND:текст|когда]
+                    const remindMatch = reply.match(/\[REMIND:([^|\]]+)\|([^\]]+)\]/i);
+                    if (remindMatch && window.FocusReminders) {
+                        reply = reply.replace(/\[REMIND:[^\]]+\]/gi, '').trim();
+                        FocusReminders.schedule(remindMatch[1].trim(), remindMatch[2].trim()).then(function(r){
+                            if (r && r.ok) addMsg('bot', '⏰ Напомню: ' + r.text + ' — ' + r.when);
+                        });
+                    }
                     // ищем команду заполнения [FILL:тип|данные]
-                    const fillMatch = reply.match(/\[FILL:([a-z]+)\|([^\]]+)\]/i);
+                    const fillMatch = reply.match(/\[FILL:([a-z_]+)\|([^\]]+)\]/i);
                     if (fillMatch) {
                         reply = reply.replace(/\[FILL:[^\]]+\]/gi, '').trim();
                         if (reply) addMsg('bot', reply);
                         applyFill(fillMatch[1].toLowerCase(), fillMatch[2].trim());
-                    } else {
+                    } else if (reply) {
                         addMsg('bot', reply);
                     }
                     history.push({ role:'assistant', content: res.reply.trim() });
