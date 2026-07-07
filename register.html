@@ -140,6 +140,7 @@
     .match-hint.ok { color: #7CFFA0; display: flex; }
     .match-hint.bad { color: #ff6b6b; display: flex; }
 
+    @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
     .btn-primary {
         background: linear-gradient(135deg, var(--accent), var(--accent-2));
         border: none;
@@ -316,6 +317,11 @@
             <div class="match-hint" id="matchHint"></div>
         </div>
 
+        <label id="consentRow" style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;cursor:pointer;padding:0 2px;">
+            <input type="checkbox" id="consentCheck" style="width:18px;height:18px;margin-top:1px;accent-color:var(--accent,#FFD966);flex-shrink:0;cursor:pointer;">
+            <span style="font-size:11.5px;line-height:1.5;color:#9a9aab;">Я принимаю <a href="privacy.html" target="_blank" style="color:var(--accent,#FFD966);text-decoration:underline;">Политику конфиденциальности</a> и даю согласие на обработку персональных данных</span>
+        </label>
+
         <button class="btn-primary" id="registerBtn">Зарегистрироваться</button>
 
         <div class="footer-login">
@@ -416,6 +422,17 @@
         document.getElementById('password').classList.remove('error');
         document.getElementById('confirmPassword').classList.remove('error');
 
+        // проверка согласия на обработку данных (152-ФЗ)
+        if (!document.getElementById('consentCheck').checked) {
+            const row = document.getElementById('consentRow');
+            row.style.animation = 'shake 0.4s';
+            setTimeout(function(){ row.style.animation = ''; }, 400);
+            const hint = document.getElementById('emailError');
+            hint.innerText = 'Нужно принять Политику конфиденциальности';
+            hint.style.display = 'block';
+            return;
+        }
+
         let hasError = false;
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
@@ -460,6 +477,8 @@
 
             // реальная регистрация через Firebase
             if (window.fbRegister) {
+                // фиксируем согласие на обработку ПД (для 152-ФЗ)
+                try { FocusStorage.saveUser({ consentPD: true, consentDate: new Date().toISOString() }); } catch(e){}
                 window.fbRegister(email, password).then(function(res) {
                     if (res.ok && res.needVerify) {
                         // сохраняем email локально, показываем экран подтверждения
@@ -467,7 +486,7 @@
                         showVerifyScreen(email);
                     } else if (res.ok) {
                         FocusStorage.saveUser({ email });
-                        if (window.fbSaveUserData) window.fbSaveUserData({ email: email, createdAt: Date.now() });
+                        if (window.fbSaveUserData) window.fbSaveUserData({ email: email, createdAt: Date.now(), consentPD: true, consentDate: new Date().toISOString() });
                         window.location.href = 'profile-form.html';
                     } else {
                         btn.disabled = false;

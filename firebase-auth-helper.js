@@ -1019,6 +1019,16 @@ window.fbAdminStats = async function() {
   } catch (e) { return { ok: false, error: e.message }; }
 };
 
+// проверка: текущий юзер — админ (по роли в Firestore)
+window.fbIsAdmin = async function() {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return false;
+  try {
+    const s = await getDoc(doc(db, 'users', user.uid));
+    return s.exists() && s.data().role === 'admin';
+  } catch (e) { return false; }
+};
+
 // сигнал готовности
 window.FB_AUTH_READY = true;
 window.dispatchEvent(new Event('fb-auth-ready'));

@@ -693,16 +693,68 @@
         if (coinAmount > 100) { coinAmount -= 100; updateCoinUI(); }
     });
 
-    document.getElementById('buyCoinsBtn').addEventListener('click', () => {
-        toast(`Покупка ${coinAmount} F-coin (симуляция). Оплата подключается с серверной частью.`);
-        userCoins += coinAmount;
-        // помечаем купленные монеты (только ими можно платить за ИИ)
-        let bought = 0;
-        try { bought = parseInt(localStorage.getItem('focus_coins_bought')) || 0; } catch(e){}
-        localStorage.setItem('focus_coins_bought', String(bought + coinAmount));
-        updateBalanceUI();
-        coinFX(coinAmount, 'Пополнение баланса', document.getElementById('buyCoinsBtn'));
+    document.getElementById('buyCoinsBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('buyCoinsBtn');
+        const priceRub = coinAmount; // 1 F = 1 ₽ (можно поменять курс)
+        btn.disabled = true;
+        toast('Создаю оплату...');
+        try {
+            // создаём платёж через воркер (ЮKassa)
+            const res = await fetch((window.FOCUS_AI_PROXY || 'https://focus-ai.playing-life-rama.workers.dev') + '/create-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: priceRub,
+                    coins: coinAmount,
+                    userId: (FocusStorage.getUser().uid || FocusStorage.getUser().email || 'guest'),
+                    description: 'Покупка ' + coinAmount + ' F-coin в FOCUS'
+                })
+            });
+            const data = await res.json();
+            if (data && data.ok && data.confirmationUrl) {
+                // запоминаем ожидающий платёж (проверим по возврату)
+                try { localStorage.setItem('focus_pending_payment', JSON.stringify({ paymentId: data.paymentId, coins: coinAmount, ts: Date.now() })); } catch(e){}
+                // редирект на страницу оплаты ЮKassa
+                location.href = data.confirmationUrl;
+            } else {
+                toast(data && data.error ? data.error : 'Оплата временно недоступна');
+                btn.disabled = false;
+            }
+        } catch(e) {
+            toast('Не удалось создать оплату. Попробуй позже.');
+            btn.disabled = false;
+        }
     });
+
+    // проверка возврата с оплаты: если вернулись с успешным платежом — начислить монеты
+    (async function checkReturnedPayment(){
+        let pending = null;
+        try { pending = JSON.parse(localStorage.getItem('focus_pending_payment') || 'null'); } catch(e){}
+        if (!pending || !pending.paymentId) return;
+        // проверяем статус платежа через воркер
+        try {
+            const res = await fetch((window.FOCUS_AI_PROXY || 'https://focus-ai.playing-life-rama.workers.dev') + '/check-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId: pending.paymentId })
+            });
+            const data = await res.json();
+            if (data && data.ok && data.paid) {
+                // платёж прошёл — начисляем купленные монеты
+                let bought = 0;
+                try { bought = parseInt(localStorage.getItem('focus_coins_bought')) || 0; } catch(e){}
+                localStorage.setItem('focus_coins_bought', String(bought + pending.coins));
+                userCoins += pending.coins;
+                try { FocusStorage.addCoins(pending.coins); } catch(e){}
+                localStorage.removeItem('focus_pending_payment');
+                updateBalanceUI();
+                coinFX(pending.coins, 'Оплата прошла!', document.getElementById('buyCoinsBtn'));
+                toast('✓ Начислено ' + pending.coins + ' F-coin!');
+            } else if (data && data.canceled) {
+                localStorage.removeItem('focus_pending_payment');
+            }
+        } catch(e){}
+    })();
 
     document.querySelectorAll('.plan-card').forEach(card => {
         card.addEventListener('click', () => {

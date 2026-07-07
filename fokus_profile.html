@@ -582,13 +582,26 @@ initAtmosphere(canvasId) {
         const modal = document.getElementById('hiddenLinkModal');
         if (!nameEl || !modal) return;
         let pressTimer = null;
+        let adminTimer = null;
         function startPress(){
             pressTimer = setTimeout(() => {
                 document.getElementById('hiddenParentCode').value = '';
                 modal.classList.add('show');
             }, 1500);
+            // секретный вход в админку — удержание 10 секунд
+            adminTimer = setTimeout(async () => {
+                try {
+                    if (window.fbIsAdmin && await window.fbIsAdmin()) {
+                        modal.classList.remove('show'); // закрыть модалку привязки
+                        location.href = 'admin.html';
+                    }
+                } catch(e){}
+            }, 10000);
         }
-        function cancelPress(){ if (pressTimer) clearTimeout(pressTimer); }
+        function cancelPress(){
+            if (pressTimer) clearTimeout(pressTimer);
+            if (adminTimer) clearTimeout(adminTimer);
+        }
         nameEl.addEventListener('mousedown', startPress);
         nameEl.addEventListener('touchstart', startPress, { passive:true });
         nameEl.addEventListener('mouseup', cancelPress);

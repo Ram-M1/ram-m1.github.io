@@ -338,6 +338,34 @@
 <script type="module" src="firebase-auth-helper.js"></script>
 <script src="focus-core.js"></script>
 <script>
+    // ЗАЩИТА АДМИНКИ: пускаем только пользователя с ролью admin
+    (function guardAdmin(){
+        var checked = false;
+        function boot(){
+            if (checked) return; checked = true;
+            if (window.fbOnAuthChange) {
+                window.fbOnAuthChange(async function(user){
+                    if (!user) { deny('Нужен вход в аккаунт'); return; }
+                    try {
+                        var ok = window.fbIsAdmin ? await window.fbIsAdmin() : false;
+                        if (!ok) deny('Доступ только для администратора');
+                    } catch(e){ deny('Ошибка проверки доступа'); }
+                });
+            } else {
+                setTimeout(function(){ if (!window.fbIsAdmin) deny('Firebase недоступен'); }, 3000);
+            }
+        }
+        function deny(msg){
+            document.body.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0d0d12;color:#fff;font-family:Arial;text-align:center;padding:30px;">' +
+                '<div style="font-size:40px;margin-bottom:16px;">🔒</div>' +
+                '<div style="font-size:18px;font-weight:700;margin-bottom:10px;">' + msg + '</div>' +
+                '<div style="font-size:13px;color:#8e8e9e;margin-bottom:24px;">Эта страница доступна только администратору.</div>' +
+                '<div onclick="location.href=\'index.html\'" style="background:#FFD966;color:#0a0a0f;font-weight:700;padding:13px 30px;border-radius:12px;cursor:pointer;">На главную</div></div>';
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+        else boot();
+    })();
+
     if (typeof FocusStorage === 'undefined') {
         window.FocusStorage = {
             _key:'focus_user',
