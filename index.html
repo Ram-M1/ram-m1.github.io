@@ -2359,27 +2359,18 @@
                     spot.classList.remove('pulsing');
                     ov.classList.remove('has-spot');
                     box.classList.remove('bottom','top');
+                    // вернуть окно в центр (сбросить inline-позицию от шагов с целью)
+                    box.style.top = '50%';
+                    box.style.bottom = 'auto';
+                    box.style.marginTop = '-150px';
                     return;
                 }
                 var els = step.targetAll ? Array.from(document.querySelectorAll(step.target)) : [document.querySelector(step.target)];
                 els = els.filter(Boolean);
                 if (!els.length) { spot.style.display = 'none'; ov.classList.remove('has-spot'); return; }
-                els.forEach(function(el){ el.classList.add('tour-glow'); });
 
-                // для нескольких элементов (сферы) — рамку рисуют сами элементы (tour-glow), общий spotlight прячем чтобы не было каши
-                if (step.targetAll) {
-                    spot.style.display = 'none';
-                    spot.classList.remove('pulsing');
-                    ov.classList.add('has-spot');
-                    var r0 = els[0].getBoundingClientRect();
-                    var minY0 = r0.top;
-                    els.forEach(function(el){ var r = el.getBoundingClientRect(); minY0 = Math.min(minY0, r.top); });
-                    var vh0 = window.innerHeight;
-                    if (minY0 < vh0/2) { box.classList.add('bottom'); box.classList.remove('top'); }
-                    else { box.classList.add('top'); box.classList.remove('bottom'); }
-                    return;
-                }
-
+                // ЕДИНАЯ логика для всех шагов (в т.ч. сферы): спотлайт-вырез вокруг
+                // цели затемняет всё вокруг и подсвечивает — точь-в-точь как на кристалле/логотипе.
                 var r1 = els[0].getBoundingClientRect();
                 var minX = r1.left, minY = r1.top, maxX = r1.right, maxY = r1.bottom;
                 els.forEach(function(el){ var r = el.getBoundingClientRect(); minX=Math.min(minX,r.left); minY=Math.min(minY,r.top); maxX=Math.max(maxX,r.right); maxY=Math.max(maxY,r.bottom); });
@@ -2392,9 +2383,30 @@
                 spot.style.width = (maxX - minX + pad*2) + 'px';
                 spot.style.height = (maxY - minY + pad*2) + 'px';
 
-                var vh = window.innerHeight;
-                if (minY < vh/2) { box.classList.add('bottom'); box.classList.remove('top'); }
-                else { box.classList.add('top'); box.classList.remove('bottom'); }
+                // Позиционируем окно относительно РАМКИ ТЕЛЕФОНА (а не окна браузера) —
+                // иначе на десктопе окно уезжает мимо. Ставим в свободную зону над/под подсветкой,
+                // чтобы оно никогда не накрывало цель.
+                box.classList.remove('top','bottom');
+                var phoneEl = document.querySelector('.phone');
+                var pr = phoneEl ? phoneEl.getBoundingClientRect() : { top:0, bottom:window.innerHeight };
+                var margin = 16;
+                var boxH = box.offsetHeight || 240;
+                var gapTop = minY - pr.top;
+                var gapBottom = pr.bottom - maxY;
+                var topPx;
+                if (gapTop >= boxH + margin * 2) {
+                    // места сверху достаточно — окно над подсветкой
+                    topPx = (minY - boxH - margin);
+                } else if (gapBottom >= boxH + margin * 2) {
+                    // иначе — под подсветкой
+                    topPx = (maxY + margin);
+                } else {
+                    // впритык — прижимаем к верху рамки (там всё затемнено)
+                    topPx = (pr.top + margin);
+                }
+                box.style.top = topPx + 'px';
+                box.style.bottom = 'auto';
+                box.style.marginTop = '0';
             }
 
             function renderStep(){

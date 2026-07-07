@@ -726,7 +726,7 @@ function _collectLocalData(){
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (!k || !k.startsWith('focus_')) continue;
+      if (!k || (!k.startsWith('focus_') && !k.startsWith('faith_'))) continue;
       if (_SYNC_SKIP.includes(k)) continue;
       if (_SYNC_SKIP_PREFIX.some(p => k.startsWith(p))) continue;
       out[k] = localStorage.getItem(k);
@@ -789,11 +789,26 @@ window.fbRestoreAllData = async function(){
       }
     } catch(e){}
   }, 30000);
-  // бэкап при уходе со страницы (закрытие/переход) — чтобы точно не потерять
-  window.addEventListener('pagehide', () => {
-    const user = _currentUser || auth.currentUser;
-    if (user && window.fbBackupAllData) window.fbBackupAllData();
+  // МГНОВЕННЫЙ сброс в облако — БЕЗ задержки (в отличие от fbBackupAllData c debounce).
+  // Нужен на сворачивание/закрытие: там таймеры не успевают выполниться.
+  window.fbFlushNow = function(){
+    try {
+      const user = _currentUser || auth.currentUser;
+      if (!user) return;
+      const data = _collectLocalData();
+      if (Object.keys(data).length === 0) return; // нечего сохранять
+      // setDoc сразу, без setTimeout — успеет уйти до выгрузки страницы
+      setDoc(doc(db, 'users', user.uid, 'backup', 'sections'), {
+        data: data, updatedAt: new Date().toISOString()
+      }).catch(() => {});
+    } catch(e){}
+  };
+  // Сворачивание приложения (главный сигнал на мобилке) — сбрасываем немедленно
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') window.fbFlushNow();
   });
+  // бэкап при уходе со страницы (закрытие/переход) — мгновенно, чтобы точно не потерять
+  window.addEventListener('pagehide', () => { window.fbFlushNow(); });
 })();
 
 // ========== ГРУППЫ (чаты на несколько человек, всё в облаке) ==========

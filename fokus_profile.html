@@ -583,24 +583,37 @@ initAtmosphere(canvasId) {
         if (!nameEl || !modal) return;
         let pressTimer = null;
         let adminTimer = null;
+        let holdProgress = null;
         function startPress(){
-            pressTimer = setTimeout(() => {
-                document.getElementById('hiddenParentCode').value = '';
-                modal.classList.add('show');
-            }, 1500);
-            // секретный вход в админку — удержание 10 секунд
-            adminTimer = setTimeout(async () => {
-                try {
-                    if (window.fbIsAdmin && await window.fbIsAdmin()) {
-                        modal.classList.remove('show'); // закрыть модалку привязки
-                        location.href = 'admin.html';
+            // сначала проверяем: если это админ — весь жест только под админку (без родит.контроля)
+            if (window.fbIsAdmin) {
+                window.fbIsAdmin().then(function(isAdmin){
+                    if (isAdmin) {
+                        // показываем прогресс удержания (визуальный намёк)
+                        nameEl.style.transition = 'opacity 10s linear';
+                        nameEl.style.opacity = '0.4';
+                        adminTimer = setTimeout(function(){
+                            location.href = 'admin.html';
+                        }, 10000);
+                    } else {
+                        // обычный юзер — родительский контроль на 1.5 сек
+                        pressTimer = setTimeout(() => {
+                            document.getElementById('hiddenParentCode').value = '';
+                            modal.classList.add('show');
+                        }, 1500);
                     }
-                } catch(e){}
-            }, 10000);
+                }).catch(function(){
+                    pressTimer = setTimeout(() => { document.getElementById('hiddenParentCode').value = ''; modal.classList.add('show'); }, 1500);
+                });
+            } else {
+                pressTimer = setTimeout(() => { document.getElementById('hiddenParentCode').value = ''; modal.classList.add('show'); }, 1500);
+            }
         }
         function cancelPress(){
             if (pressTimer) clearTimeout(pressTimer);
             if (adminTimer) clearTimeout(adminTimer);
+            nameEl.style.transition = 'opacity 0.2s';
+            nameEl.style.opacity = '1';
         }
         nameEl.addEventListener('mousedown', startPress);
         nameEl.addEventListener('touchstart', startPress, { passive:true });
