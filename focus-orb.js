@@ -77,9 +77,10 @@
     var parts=[]; for(var k=0;k<partCount;k++) parts.push(newPart(true));
     var bolts=[];
 
-    function proj(lat,lon,rot){
+    function proj(lat,lon,rot,rr){
+      var _r = rr || R;
       var x=Math.cos(lat)*Math.cos(lon+rot), y=Math.sin(lat), z=Math.cos(lat)*Math.sin(lon+rot);
-      return {x:CX+x*R, y:CY+y*R*0.98, z:z};
+      return {x:CX+x*_r, y:CY+y*_r*0.98, z:z};
     }
 
     var t=0, raf=null, minR=R*0.1;
@@ -87,16 +88,19 @@
       t+=0.016;
       ctx.clearRect(0,0,W,H);
       var rot=t*0.22;
+      // ДЫХАНИЕ: сфера плавно расширяется и сужается (~4 сек цикл)
+      var breathe = 1 + Math.sin(t*0.7)*0.06;
+      var Rb = R * breathe;
 
       // фоновое свечение
-      var g=ctx.createRadialGradient(CX,CY,0,CX,CY,R+R*0.16);
+      var g=ctx.createRadialGradient(CX,CY,0,CX,CY,Rb+Rb*0.16);
       g.addColorStop(0,'rgba('+coreRGB[0]+','+coreRGB[1]+','+coreRGB[2]+',0.28)');
       g.addColorStop(0.4,'rgba('+gridRGB[0]+','+gridRGB[1]+','+gridRGB[2]+',0.12)');
       g.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.fillStyle=g;ctx.beginPath();ctx.arc(CX,CY,R+R*0.16,0,6.29);ctx.fill();
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(CX,CY,Rb+Rb*0.16,0,6.29);ctx.fill();
 
-      // проекция узлов
-      var pc=[]; for(var i=0;i<nodes.length;i++) pc[i]=proj(nodes[i].lat,nodes[i].lon,rot);
+      // проекция узлов (с дыханием)
+      var pc=[]; for(var i=0;i<nodes.length;i++) pc[i]=proj(nodes[i].lat,nodes[i].lon,rot,Rb);
 
       // сетка
       ctx.lineWidth=1;

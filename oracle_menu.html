@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
+<script>try{var _t=localStorage.getItem('focus_theme')||'original';document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
 <meta charset="UTF-8">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a0a0f">
@@ -22,7 +23,7 @@
     .phone.mk-shake { animation: mkShake 0.28s ease-in-out; }
     @keyframes mkShake { 0%,100%{transform:translate(0,0);} 15%{transform:translate(-4px,2px) rotate(-0.4deg);} 30%{transform:translate(4px,-2px) rotate(0.4deg);} 45%{transform:translate(-3px,1px);} 60%{transform:translate(3px,-1px);} 75%{transform:translate(-2px,0);} }
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif; background:#060608; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:12px; position:relative; overflow:hidden; }
+    body { font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif; background:var(--bg-2,#0d0d12); display:flex; justify-content:center; align-items:center; min-height:100vh; padding:12px; position:relative; overflow:hidden; }
     body::before { content:''; position:fixed; width:600px; height:600px; background:radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%); top:10%; left:50%; transform:translateX(-50%); pointer-events:none; animation:ambientDrift 12s ease-in-out infinite; }
     @keyframes ambientDrift { 0%,100%{opacity:.6;transform:translateX(-50%) scale(1);} 50%{opacity:1;transform:translateX(-50%) scale(1.15);} }
     .phone { width:375px; height:700px; background:linear-gradient(165deg, var(--bg-1) 0%, var(--bg-2) 100%); border-radius:52px; box-shadow:0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--accent-rgb),0.06), 0 0 0 8px #1c1c24, 0 0 0 9px rgba(var(--accent-rgb),0.08), 0 0 60px rgba(var(--accent-rgb),0.04); overflow:hidden; display:flex; flex-direction:column; position:relative; }
@@ -280,7 +281,7 @@
                 <button class="modal-btn cancel" id="cancelOrder">Отмена</button>
                 <button class="modal-btn confirm" id="confirmOrder">Заказать</button>
             </div>
-            <div class="modal-note">Реальная связь со специалистом и оплата подключаются с серверной частью. Сейчас — демонстрация механики заказа.</div>
+            <div class="modal-note">Оплата монетами FOCUS. После заказа откроется чат со специалистом.</div>
         </div>
     </div>
 
@@ -341,14 +342,34 @@ initAtmosphere(canvasId) {
         { id: 'lead_pour',   label: 'Отлив воском' }
     ];
 
-    const psychics = [
-        { name:'Мария Таролог',     rating:4.9, categories:['tarot','astrology'],   description:'Расклады Таро, астрология, отношения и судьба.', price_from:200, orders_today:12, status:'online' },
-        { name:'Анна Астролог',     rating:4.7, categories:['astrology','numerology'], description:'Натальные карты, прогнозы, совместимость партнёров.', price_from:300, orders_today:8, status:'online' },
-        { name:'Виктория Нумеролог',rating:4.5, categories:['numerology'],          description:'Числа судьбы, жизненная миссия, скрытые таланты.', price_from:150, orders_today:5, status:'offline' },
-        { name:'Сергей Рунолог',    rating:4.8, categories:['runes','shaman'],      description:'Руны, шаманские практики, энергетическая защита.', price_from:250, orders_today:9, status:'online' },
-        { name:'Елена Ясновидящая', rating:5.0, categories:['clairvoyant','tarot'], description:'Ясновидение, поиск ответов, работа с прошлым.', price_from:400, orders_today:15, status:'online' },
-        { name:'Дарья Хиромант',    rating:4.6, categories:['palmistry'],           description:'Чтение по руке: линии судьбы, любви, жизни.', price_from:180, orders_today:4, status:'offline' }
+    // Каталог специалистов. Реальные одобренные грузятся из Firebase (см loadSpecialists).
+    // Демо-записи показываются только пока нет реальных (чтобы каталог не был пустым на старте).
+    let psychics = [
+        { name:'Мария Таролог',     rating:4.9, categories:['tarot','astrology'],   description:'Расклады Таро, астрология, отношения и судьба.', price_from:200, orders_today:12, status:'online', _demo:true },
+        { name:'Анна Астролог',     rating:4.7, categories:['astrology','numerology'], description:'Натальные карты, прогнозы, совместимость партнёров.', price_from:300, orders_today:8, status:'online', _demo:true },
+        { name:'Виктория Нумеролог',rating:4.5, categories:['numerology'],          description:'Числа судьбы, жизненная миссия, скрытые таланты.', price_from:150, orders_today:5, status:'offline', _demo:true },
+        { name:'Сергей Рунолог',    rating:4.8, categories:['runes','shaman'],      description:'Руны, шаманские практики, энергетическая защита.', price_from:250, orders_today:9, status:'online', _demo:true },
+        { name:'Елена Ясновидящая', rating:5.0, categories:['clairvoyant','tarot'], description:'Ясновидение, поиск ответов, работа с прошлым.', price_from:400, orders_today:15, status:'online', _demo:true },
+        { name:'Дарья Хиромант',    rating:4.6, categories:['palmistry'],           description:'Чтение по руке: линии судьбы, любви, жизни.', price_from:180, orders_today:4, status:'offline', _demo:true }
     ];
+
+    // загрузка реальных одобренных специалистов из Firebase
+    async function loadSpecialists(){
+        if (!window.fbGetSpecialists) return;
+        try {
+            const real = await window.fbGetSpecialists();
+            if (real && real.length) {
+                // реальные заменяют демо
+                psychics = real.map(s => ({
+                    uid: s.uid, name: s.name, rating: s.rating || 5.0,
+                    categories: s.categories || [], description: s.description || '',
+                    price_from: s.price_from || 100, orders_today: s.orders_total || 0,
+                    status: 'online', _demo: false
+                }));
+                renderPsychics();
+            }
+        } catch(e){}
+    }
 
     // форматы консультации (множители от базовой цены)
     const formats = [
@@ -457,7 +478,7 @@ initAtmosphere(canvasId) {
     document.getElementById('cancelOrder').addEventListener('click', () => orderModal.classList.remove('show'));
     orderModal.addEventListener('click', (e) => { if (e.target.id === 'orderModal') orderModal.classList.remove('show'); });
 
-    document.getElementById('confirmOrder').addEventListener('click', () => {
+    document.getElementById('confirmOrder').addEventListener('click', async () => {
         const price = currentPsychic.price_from * selectedFormat.mult;
         const balance = FocusStorage.getUser().coins || 0;
         if (balance < price) {
@@ -465,33 +486,33 @@ initAtmosphere(canvasId) {
             setTimeout(() => { location.href = 'shop.html'; }, 1200);
             return;
         }
+        // РЕАЛЬНЫЙ специалист (есть uid) → заказ через Firebase: чат + перевод монет
+        if (currentPsychic.uid && !currentPsychic._demo && window.fbOrderConsultation) {
+            toast('Оформляю заказ...');
+            try {
+                const res = await window.fbOrderConsultation(currentPsychic.uid, currentPsychic.name, price);
+                if (res && res.ok) {
+                    FocusStorage.saveUser({ coins: balance - price });
+                    updateBalance();
+                    const orders = getMyOrders();
+                    orders.push({ id: Date.now(), psychicName: currentPsychic.name, formatName: selectedFormat.name, price, status: 'active', chatId: res.chatId, createdAt: new Date().toISOString() });
+                    saveMyOrders(orders);
+                    orderModal.classList.remove('show');
+                    toast('✓ Заказ оформлен! Открываю чат со специалистом...');
+                    if (res.chatId) setTimeout(()=>{ location.href = 'fokus_chat.html?chat=' + res.chatId; }, 1200);
+                    return;
+                } else {
+                    toast(res && res.error ? res.error : 'Не удалось оформить');
+                    return;
+                }
+            } catch(e){ toast('Ошибка связи'); return; }
+        }
+        // ДЕМО-специалист (пока каталог не наполнен реальными) → локально
         FocusStorage.spendCoins(price);
         updateBalance();
-        // сохраняем заказ в архив клиента
         const orders = getMyOrders();
-        orders.push({
-            id: Date.now(),
-            psychicName: currentPsychic.name,
-            formatName: selectedFormat.name,
-            price: price,
-            status: 'pending',
-            createdAt: new Date().toISOString()
-        });
+        orders.push({ id: Date.now(), psychicName: currentPsychic.name, formatName: selectedFormat.name, price, status: 'pending', createdAt: new Date().toISOString() });
         saveMyOrders(orders);
-        // отправляем заявку оракулу (в общий пул заявок)
-        try {
-            const reqs = JSON.parse(localStorage.getItem('focus_oracle_requests') || '[]');
-            reqs.push({
-                id: Date.now(),
-                psychicName: currentPsychic.name,
-                clientName: (FocusStorage.getUser().name || 'Клиент'),
-                format: selectedFormat.name,
-                price: price,
-                status: 'pending',
-                createdAt: new Date().toISOString()
-            });
-            localStorage.setItem('focus_oracle_requests', JSON.stringify(reqs));
-        } catch(e){}
         orderModal.classList.remove('show');
         toast('✓ Заявка оформлена! Специалист скоро свяжется');
     });
@@ -551,6 +572,8 @@ initAtmosphere(canvasId) {
 
     renderFilters();
     renderPsychics();
+    // подгружаем реальных одобренных специалистов (заменят демо когда появятся)
+    setTimeout(loadSpecialists, 800);
 
 </script>
 <script>

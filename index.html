@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
+<script>try{var _t=localStorage.getItem('focus_theme')||'original';document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
 <meta charset="UTF-8">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a0a0f">
@@ -62,7 +63,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
         font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif;
-        background: #060608;
+        background: var(--bg-2,#0d0d12);
         display: flex;
         justify-content: center;
         align-items: center;
@@ -237,7 +238,7 @@
         0%, 100% { box-shadow: 0 0 6px rgba(var(--accent-rgb),0.15); }
         50% { box-shadow: 0 0 18px rgba(var(--accent-rgb),0.4); }
     }
-    .ai-focus-card { background:linear-gradient(135deg, rgba(var(--accent-2-rgb),0.1), rgba(var(--accent-rgb),0.04)); border:1px solid rgba(var(--accent-2-rgb),0.25); border-radius:13px; padding:9px 11px; margin-bottom:8px; position:relative; }
+    .ai-focus-card { background:linear-gradient(135deg, rgba(var(--accent-2-rgb),0.1), rgba(var(--accent-rgb),0.04)); border:1px solid rgba(var(--accent-2-rgb),0.25); border-radius:12px; padding:7px 10px; margin-bottom:6px; position:relative; }
     .ai-card-head { display:flex; align-items:center; gap:6px; margin-bottom:2px; }
     .ai-card-title { font-size:12px; font-weight:700; color:var(--accent-2); }
     .ai-card-hint { font-size:10px; color:#9a9aab; margin-bottom:7px; line-height:1.25; }
@@ -298,7 +299,7 @@
         letter-spacing: 0.1px;
     }
     .quote-author { font-size: 9px; color: var(--accent-2); letter-spacing: 0.6px; text-transform: uppercase; font-weight: 600; }
-    .life-timer { background:linear-gradient(135deg, rgba(255,120,80,0.08), rgba(var(--accent-rgb),0.03)); border:0.5px solid rgba(255,140,90,0.2); border-radius:12px; padding:9px 12px; margin-bottom:8px; text-align:center; }
+    .life-timer { background:linear-gradient(135deg, rgba(255,120,80,0.08), rgba(var(--accent-rgb),0.03)); border:0.5px solid rgba(255,140,90,0.2); border-radius:12px; padding:7px 13px; margin-bottom:6px; text-align:center; }
     .lt-row { display:flex; align-items:center; justify-content:center; gap:7px; }
     .lt-hourglass { width:15px; height:19px; flex-shrink:0; }
     .lt-word { font-size:11px; color:#FF9C64; font-weight:600; }
@@ -309,7 +310,7 @@
     .focus-grid {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 6px;
         flex: 1;
         overflow-y: auto;
         scrollbar-width: none;
@@ -318,13 +319,13 @@
     .focus-grid::-webkit-scrollbar { display: none; }
     .focus-tile {
         background: linear-gradient(135deg, rgba(35,35,46,0.42), rgba(22,22,30,0.42));
-        border-radius: 18px;
-        padding: 17px 15px;
+        border-radius: 14px;
+        padding: 11px 14px;
         border: 0.5px solid rgba(var(--accent-rgb),0.12);
         cursor: pointer;
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 12px;
         transition: 0.35s cubic-bezier(.2,.8,.2,1);
         opacity: 0;
         transform: translateY(10px);
@@ -851,6 +852,10 @@
                 Кабинет коуча
                 <span class="badge">B2B</span>
             </div>
+            <div class="modal-btn" id="joinCoachBtn">
+                Подключиться к коучу
+                <span class="badge">Клиент</span>
+            </div>
             <div class="modal-btn" id="vpnBtn">
                 Focus VPN
                 <span class="badge">Скоро</span>
@@ -1220,6 +1225,55 @@
         document.getElementById('settingsModal').classList.remove('show');
         window.location.href = 'coach_dashboard.html';
     });
+    document.getElementById('joinCoachBtn').addEventListener('click', function() {
+        document.getElementById('settingsModal').classList.remove('show');
+        openJoinCoachModal();
+    });
+
+    // Окно «Подключиться к коучу» — ввод кода + реальная привязка через Firebase
+    function openJoinCoachModal(){
+        let m = document.getElementById('joinCoachModal');
+        if (!m) {
+            m = document.createElement('div');
+            m.id = 'joinCoachModal';
+            m.className = 'oracle-modal';
+            m.innerHTML =
+                '<div class="oracle-modal-box" style="max-width:300px;">' +
+                '<div style="text-align:center;margin-bottom:8px;"><div style="display:inline-flex;width:52px;height:52px;border-radius:14px;background:radial-gradient(circle at 35% 30%,rgba(120,220,150,0.28),rgba(60,150,90,0.06));border:0.5px solid rgba(120,220,150,0.35);align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#78DC96" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div></div>' +
+                '<div class="oracle-modal-title" style="font-size:17px;">Подключиться к коучу</div>' +
+                '<div class="oracle-modal-sub">Введи код который дал твой тренер</div>' +
+                '<input id="coachCodeInput" style="width:100%;box-sizing:border-box;background:rgba(30,30,42,0.6);border:1px solid rgba(120,220,150,0.3);border-radius:12px;padding:14px;color:#fff;font-size:20px;text-align:center;letter-spacing:4px;font-weight:700;text-transform:uppercase;font-family:inherit;" placeholder="F····" maxlength="6">' +
+                '<div id="joinCoachErr" style="font-size:11px;color:#ff6b6b;text-align:center;min-height:14px;margin-top:6px;"></div>' +
+                '<div class="oracle-opt" id="joinCoachGo" style="justify-content:center;background:rgba(120,220,150,0.14);border-color:rgba(120,220,150,0.4);margin-top:4px;"><b style="color:#78DC96;">Подключиться</b></div>' +
+                '<div class="oracle-modal-close" id="joinCoachClose">Отмена</div>' +
+                '</div>';
+            document.body.appendChild(m);
+            m.addEventListener('click', (ev)=>{ if (ev.target.id==='joinCoachModal' || ev.target.id==='joinCoachClose') m.classList.remove('show'); });
+            document.getElementById('joinCoachGo').addEventListener('click', doJoinCoach);
+        }
+        document.getElementById('coachCodeInput').value = '';
+        document.getElementById('joinCoachErr').innerText = '';
+        m.classList.add('show');
+        setTimeout(()=>{ try{ document.getElementById('coachCodeInput').focus(); }catch(e){} }, 100);
+    }
+
+    async function doJoinCoach(){
+        const err = document.getElementById('joinCoachErr');
+        const code = (document.getElementById('coachCodeInput').value || '').trim().toUpperCase();
+        if (!code) { err.innerText = 'Введи код'; return; }
+        if (!window.fbLinkByCode) { err.innerText = 'Нужен вход в аккаунт'; return; }
+        err.style.color = '#8e8e9e'; err.innerText = 'Подключаю...';
+        try {
+            const res = await window.fbLinkByCode(code);
+            if (res && res.ok) {
+                err.style.color = '#78DC96'; err.innerText = '✓ Подключено к коучу!';
+                try { FocusStorage.saveUser({ coachUid: res.parentUid }); } catch(e){}
+                setTimeout(()=>{ document.getElementById('joinCoachModal').classList.remove('show'); showToast('Ты подключён к коучу — его программы появятся в приложении'); }, 1200);
+            } else {
+                err.style.color = '#ff6b6b'; err.innerText = (res && res.error) || 'Код не найден';
+            }
+        } catch(e) { err.style.color = '#ff6b6b'; err.innerText = 'Ошибка связи'; }
+    }
     document.getElementById('vpnBtn').addEventListener('click', function() {
         showToast('Focus VPN — отдельное направление, появится позже. Приложение работает с VPN и без него.');
     });
@@ -1981,7 +2035,7 @@
         async function loadParentTasks(){
             if (!window.fbGetChildTasks) return;
             const u = FocusStorage.getUser();
-            if (!u || !u.parentUid) return; // только если привязан к родителю
+            if (!u || (!u.parentUid && !u.coachUid)) return; // привязан к родителю ИЛИ коучу
             const tasks = await window.fbGetChildTasks();
             const active = tasks.filter(t => t.status === 'active' || t.status === 'pending');
             const wrap = document.getElementById('parentTasks');

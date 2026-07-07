@@ -898,6 +898,99 @@ window.fbLeaveGroup = async function(groupId, uid) {
   } catch (e) { return { ok: false, error: e.message }; }
 };
 
+// ============ ОРАКУЛ: СПЕЦИАЛИСТЫ ============
+// Специалист подаёт заявку (статус pending → админ модерирует)
+window.fbRegisterSpecialist = async function(profile) {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return { ok: false, error: 'Нужен вход в аккаунт' };
+  try {
+    await setDoc(doc(db, 'specialists', user.uid), {
+      uid: user.uid,
+      name: profile.name || '',
+      categories: profile.categories || [],
+      description: profile.description || '',
+      price_from: profile.price_from || 100,
+      contact: profile.contact || '',
+      rating: 0,
+      orders_total: 0,
+      status: 'pending',            // pending | approved | rejected
+      createdAt: new Date().toISOString()
+    }, { merge: true });
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+};
+
+// Каталог: только одобренные специалисты (для юзеров)
+window.fbGetSpecialists = async function() {
+  try {
+    const snap = await getDocs(query(collection(db, 'specialists'), where('status', '==', 'approved')));
+    const list = [];
+    snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+    return list;
+  } catch (e) { return []; }
+};
+
+// Админ: все заявки на модерацию (pending)
+window.fbGetPendingSpecialists = async function() {
+  try {
+    const snap = await getDocs(query(collection(db, 'specialists'), where('status', '==', 'pending')));
+    const list = [];
+    snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+    return list;
+  } catch (e) { return []; }
+};
+
+// Админ: одобрить/отклонить специалиста
+window.fbModerateSpecialist = async function(specUid, approve) {
+  try {
+    await setDoc(doc(db, 'specialists', specUid), {
+      status: approve ? 'approved' : 'rejected',
+      moderatedAt: new Date().toISOString()
+    }, { merge: true });
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+};
+
+// Мой статус специалиста (для экрана «стать специалистом»)
+window.fbMySpecialistStatus = async function() {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return null;
+  try {
+    const s = await getDoc(doc(db, 'specialists', user.uid));
+    return s.exists() ? s.data() : null;
+  } catch (e) { return null; }
+};
+
+// Заказать консультацию: открыть чат со специалистом + перевести монеты
+window.fbOrderConsultation = async function(specUid, specName, price) {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return { ok: false, error: 'Нужен вход' };
+  try {
+    // проверка баланса (монеты хранятся в профиле)
+    const meSnap = await getDoc(doc(db, 'users', user.uid));
+    const coins = (meSnap.exists() && meSnap.data().coins) || 0;
+    if (coins < price) return { ok: false, error: 'Недостаточно монет (нужно ' + price + ' F)' };
+    // открываем чат
+    let chatId = null;
+    if (window.fbOpenChat) {
+      const chat = await window.fbOpenChat(specUid);
+      if (chat && chat.ok) chatId = chat.chatId;
+    }
+    // списываем монеты у юзера, начисляем специалисту
+    await setDoc(doc(db, 'users', user.uid), { coins: coins - price }, { merge: true });
+    const specUserSnap = await getDoc(doc(db, 'users', specUid));
+    const specCoins = (specUserSnap.exists() && specUserSnap.data().coins) || 0;
+    await setDoc(doc(db, 'users', specUid), { coins: specCoins + price }, { merge: true });
+    // фиксируем заказ
+    const orderId = 'ord_' + Date.now();
+    await setDoc(doc(db, 'specialists', specUid, 'orders', orderId), {
+      clientUid: user.uid, price: price, chatId: chatId,
+      status: 'active', createdAt: new Date().toISOString()
+    });
+    return { ok: true, chatId, orderId };
+  } catch (e) { return { ok: false, error: e.message }; }
+};
+
 // сигнал готовности
 window.FB_AUTH_READY = true;
 window.dispatchEvent(new Event('fb-auth-ready'));

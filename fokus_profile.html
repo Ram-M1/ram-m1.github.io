@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
+<script>try{var _t=localStorage.getItem('focus_theme')||'original';document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
 <meta charset="UTF-8">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a0a0f">
@@ -59,7 +60,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
         font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif;
-        background: #060608; display: flex; justify-content: center; align-items: center;
+        background: var(--bg-2,#0d0d12); display: flex; justify-content: center; align-items: center;
         min-height: 100vh; padding: 12px; position: relative; overflow: hidden;
     }
     body::before {
