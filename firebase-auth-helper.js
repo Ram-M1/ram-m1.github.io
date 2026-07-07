@@ -991,6 +991,34 @@ window.fbOrderConsultation = async function(specUid, specName, price) {
   } catch (e) { return { ok: false, error: e.message }; }
 };
 
+// ============ АДМИН: РЕАЛЬНАЯ СТАТИСТИКА ============
+window.fbAdminStats = async function() {
+  try {
+    const usersSnap = await getDocs(collection(db, 'users'));
+    let total = 0, activeToday = 0, subscribers = 0, revenue = 0, boughtCoinsTotal = 0;
+    const today = new Date().toISOString().slice(0, 10);
+    usersSnap.forEach(d => {
+      const u = d.data();
+      total++;
+      // активен сегодня (по последней активности)
+      if (u.lastActive && String(u.lastActive).slice(0, 10) === today) activeToday++;
+      // подписчики
+      if (u.subscription && u.subscription.active) subscribers++;
+      // выручка: сумма купленных монет (1 F ≈ 1 ₽ при покупке)
+      const bought = u.coins_bought || u.boughtCoins || 0;
+      boughtCoinsTotal += bought;
+    });
+    revenue = boughtCoinsTotal; // купленные монеты = выручка в рублях
+    // специалисты
+    let specialists = 0, pendingSpecs = 0;
+    try {
+      const specSnap = await getDocs(collection(db, 'specialists'));
+      specSnap.forEach(d => { const s = d.data(); if (s.status === 'approved') specialists++; else if (s.status === 'pending') pendingSpecs++; });
+    } catch (e) {}
+    return { ok: true, total, activeToday, subscribers, revenue, specialists, pendingSpecs };
+  } catch (e) { return { ok: false, error: e.message }; }
+};
+
 // сигнал готовности
 window.FB_AUTH_READY = true;
 window.dispatchEvent(new Event('fb-auth-ready'));

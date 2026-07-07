@@ -868,6 +868,7 @@
 <script src="focus-rewards.js"></script>
 <script src="focus-astro.js"></script>
 <script src="focus-sections.js"></script>
+<script src="focus-chat-memory.js"></script>
 <script src="focus-reminders.js"></script>
 <script src="focus-voice.js"></script>
 <script src="focus-ai.js"></script>
@@ -994,6 +995,11 @@
                         <div class="oracle-opt-emoji"><svg viewBox="0 0 24 24" fill="none" stroke="#7C8CFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/></svg></div>
                         <div class="oracle-opt-txt"><b>Нумерология</b><span>Число судьбы и его тайна</span></div>
                     </div>
+                    <div class="oracle-opt oracle-opt-premium" id="oracleFullBtn" style="background:linear-gradient(135deg,rgba(255,217,102,0.14),rgba(200,170,255,0.08));border:1.5px solid rgba(255,217,102,0.4);box-shadow:0 0 16px rgba(255,217,102,0.12);">
+                        <div class="oracle-opt-emoji" style="background:radial-gradient(circle at 35% 30%,rgba(255,217,102,0.35),transparent);border-color:rgba(255,217,102,0.4);"><svg viewBox="0 0 24 24" fill="none" stroke="#FFD966" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8-4.9-3.6-4.9 3.6 1.9-5.8L4 8.8h6.1z"/></svg></div>
+                        <div class="oracle-opt-txt" style="flex:1;"><b style="color:#FFD966;">Полный разбор · Фокус Оракул</b><span>Судьба, сильные стороны, где успех</span></div>
+                        <div style="background:rgba(255,217,102,0.2);color:#FFD966;font-size:11px;font-weight:700;padding:4px 9px;border-radius:20px;white-space:nowrap;">300 F</div>
+                    </div>
                     <div class="oracle-opt" data-go="oracle_menu.html">
                         <div class="oracle-opt-emoji"><svg viewBox="0 0 24 24" fill="none" stroke="#FFD966" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 5.5L21 9l-4.5 4 1.2 6.5L12 16.5 6.3 19.5 7.5 13 3 9l6-1.5z"/></svg></div>
                         <div class="oracle-opt-txt"><b>Оракул</b><span>Консультации специалистов</span></div>
@@ -1003,11 +1009,100 @@
             document.body.appendChild(m);
             m.addEventListener('click', (ev) => {
                 if (ev.target.id === 'oracleModal' || ev.target.id === 'oracleModalClose') { m.classList.remove('show'); return; }
+                if (ev.target.closest('#oracleFullBtn')) { m.classList.remove('show'); openFullAnalysis(); return; }
                 const opt = ev.target.closest('.oracle-opt');
                 if (opt && opt.dataset.go) location.href = opt.dataset.go;
             });
         }
         m.classList.add('show');
+    }
+
+    // ===== ПЛАТНЫЙ ПОЛНЫЙ РАЗБОР ОТ ИИ (астрология + нумерология + анкета) =====
+    async function openFullAnalysis(){
+        const PRICE = 300;
+        const bought = FocusStorage.getBoughtCoins ? FocusStorage.getBoughtCoins() : 0;
+        // проверка: разбор только за КУПЛЕННЫЕ монеты
+        if (bought < PRICE) {
+            showFullAnalysisModal('need-coins', PRICE - bought);
+            return;
+        }
+        // подтверждение оплаты
+        showFullAnalysisModal('confirm', PRICE);
+    }
+
+    function showFullAnalysisModal(mode, arg){
+        let fm = document.getElementById('fullAnalysisModal');
+        if (!fm) {
+            fm = document.createElement('div');
+            fm.id = 'fullAnalysisModal';
+            fm.className = 'oracle-modal';
+            document.body.appendChild(fm);
+            fm.addEventListener('click', (ev)=>{ if (ev.target.id==='fullAnalysisModal' || ev.target.dataset.close) fm.classList.remove('show'); });
+        }
+        if (mode === 'need-coins') {
+            fm.innerHTML = '<div class="oracle-modal-box" style="max-width:300px;text-align:center;">' +
+                '<div class="oracle-modal-title" style="font-size:17px;">Полный разбор · Фокус Оракул</div>' +
+                '<div class="oracle-modal-sub" style="margin-bottom:14px;">Глубокий анализ судьбы, сильных сторон и областей успеха на основе твоей астрологии, нумерологии и профиля.</div>' +
+                '<div style="background:rgba(255,217,102,0.08);border:1px solid rgba(255,217,102,0.25);border-radius:12px;padding:14px;margin-bottom:14px;color:#FFD966;font-size:13px;">Нужно 300 F (купленных монет).<br>Не хватает ' + arg + ' F.</div>' +
+                '<div class="oracle-opt" style="justify-content:center;background:rgba(255,217,102,0.14);" onclick="location.href=\'shop.html\'"><b style="color:#FFD966;">Пополнить в магазине</b></div>' +
+                '<div class="oracle-modal-close" data-close="1">Закрыть</div></div>';
+        } else if (mode === 'confirm') {
+            fm.innerHTML = '<div class="oracle-modal-box" style="max-width:300px;text-align:center;">' +
+                '<div class="oracle-modal-title" style="font-size:17px;">✨ Полный разбор · Фокус Оракул</div>' +
+                '<div class="oracle-modal-sub" style="margin-bottom:14px;">Фокус Оракул проанализирует твою астрологию, число судьбы и профиль. Даст расклад: будущее, сильные и слабые стороны, где больше шансов на успех.</div>' +
+                '<div style="background:rgba(255,217,102,0.08);border:1px solid rgba(255,217,102,0.25);border-radius:12px;padding:12px;margin-bottom:14px;color:#FFD966;font-size:13px;">Стоимость: 300 F</div>' +
+                '<div class="oracle-opt" id="doFullAnalysis" style="justify-content:center;background:rgba(255,217,102,0.16);"><b style="color:#FFD966;">Получить разбор за 300 F</b></div>' +
+                '<div class="oracle-modal-close" data-close="1">Отмена</div></div>';
+            fm.querySelector('#doFullAnalysis').addEventListener('click', runFullAnalysis);
+        }
+        fm.classList.add('show');
+    }
+
+    async function runFullAnalysis(){
+        const PRICE = 300;
+        // списываем купленные монеты
+        if (!FocusStorage.spendBoughtCoins(PRICE)) { showToast('Не хватает купленных монет'); return; }
+        const fm = document.getElementById('fullAnalysisModal');
+        fm.innerHTML = '<div class="oracle-modal-box" style="max-width:310px;text-align:center;">' +
+            '<div class="oracle-modal-title" style="font-size:17px;">✨ Разбор готовится...</div>' +
+            '<div class="oracle-modal-sub" style="margin-bottom:14px;">Фокус Оракул анализирует твою судьбу. Это займёт несколько секунд.</div>' +
+            '<div style="width:44px;height:44px;margin:10px auto;border:3px solid rgba(255,217,102,0.2);border-top-color:#FFD966;border-radius:50%;animation:spin 0.8s linear infinite;"></div></div>';
+        if (!document.getElementById('spinKeyframe')) { const st=document.createElement('style'); st.id='spinKeyframe'; st.textContent='@keyframes spin{to{transform:rotate(360deg)}}'; document.head.appendChild(st); }
+
+        // собираем данные: астрология + нумерология + анкета
+        const u = FocusStorage.getUser();
+        let astroCtx = '';
+        try { if (window.FocusAstro) astroCtx = FocusAstro.contextForAI(u); } catch(e){}
+        const profile = [];
+        if (u.name) profile.push('Имя: ' + u.name);
+        if (u.birthDate) profile.push('Дата рождения: ' + u.birthDate);
+        if (u.gender) profile.push('Пол: ' + u.gender);
+        if (u.goal) profile.push('Цель: ' + u.goal);
+        if (u.about) profile.push('О себе: ' + u.about);
+
+        const prompt = [
+            { role: 'system', content: 'Ты — мудрый оракул-психолог приложения FOCUS. На основе астрологии, нумерологии и профиля человека дай глубокий персональный разбор личности. Пиши тепло, вдохновляюще, но честно и конкретно. Структура ответа: 1) Суть личности, 2) Сильные стороны, 3) Слабые стороны и зоны роста, 4) В каких областях больше шансов на успех, 5) Что ждёт в будущем и куда двигаться. Живой русский, без воды. 250-400 слов.' },
+            { role: 'user', content: 'Сделай мой полный разбор.\nАстрология и нумерология: ' + (astroCtx || 'нет данных') + '\nПрофиль: ' + (profile.join('; ') || 'минимум данных') }
+        ];
+
+        try {
+            const res = await window.fbAskAI(prompt, 1200);
+            if (res && res.ok && res.reply) {
+                // сохраняем разбор в архив юзера
+                try { const arch = JSON.parse(localStorage.getItem('focus_oracle_analyses')||'[]'); arch.push({ date: new Date().toISOString(), text: res.reply }); localStorage.setItem('focus_oracle_analyses', JSON.stringify(arch)); FocusStorage.saveUser({}); } catch(e){}
+                fm.innerHTML = '<div class="oracle-modal-box" style="max-width:330px;max-height:80vh;overflow-y:auto;">' +
+                    '<div class="oracle-modal-title" style="font-size:17px;text-align:center;">✦ Твой разбор ✦</div>' +
+                    '<div style="font-size:13px;line-height:1.6;color:#e0e0e8;white-space:pre-wrap;margin:12px 0;">' + res.reply.replace(/</g,'&lt;') + '</div>' +
+                    '<div class="oracle-modal-close" data-close="1">Закрыть</div></div>';
+            } else {
+                // вернуть монеты при ошибке
+                FocusStorage.setBoughtCoins(FocusStorage.getBoughtCoins() + PRICE);
+                fm.innerHTML = '<div class="oracle-modal-box" style="max-width:300px;text-align:center;"><div class="oracle-modal-sub">Не удалось получить разбор. Монеты возвращены. Попробуй позже.</div><div class="oracle-modal-close" data-close="1">Закрыть</div></div>';
+            }
+        } catch(e){
+            FocusStorage.setBoughtCoins(FocusStorage.getBoughtCoins() + PRICE);
+            fm.innerHTML = '<div class="oracle-modal-box" style="max-width:300px;text-align:center;"><div class="oracle-modal-sub">Ошибка связи. Монеты возвращены.</div><div class="oracle-modal-close" data-close="1">Закрыть</div></div>';
+        }
     }
     let holdTimer = null, holdTimerOracle = null;
     let isSpawningLogo = false, isSpawningOracle = false;
@@ -1671,18 +1766,19 @@
                     let astroCtx = '';
                     try { if (meUser.birthDate && window.FocusAstro) astroCtx = FocusAstro.contextForAI(meUser); } catch(e){}
 
-                    // единая история (та же что в раскрытом чате)
-                    if (!window._focusChatHistory) window._focusChatHistory = [];
-                    window._focusChatHistory.push({ role:'user', content: text });
+                    // единая история (та же что в раскрытом чате) — с памятью 7 дней + облако
+                    if (window.FocusChatMemory) FocusChatMemory.push({ role:'user', content: text });
+                    else { if (!window._focusChatHistory) window._focusChatHistory = []; window._focusChatHistory.push({ role:'user', content: text }); }
 
                     const sysPrompt = window._focusChatSystemPrompt ? window._focusChatSystemPrompt() :
                         ('Тебя зовут ' + asstName + '. Ты умный ассистент FOCUS. Отвечай коротко, по делу, живым русским.' + (astroCtx ? (' Тип личности: ' + astroCtx + '.') : ''));
-                    const prompt = [{ role: 'system', content: sysPrompt }, ...window._focusChatHistory.slice(-10)];
+                    const prompt = [{ role: 'system', content: sysPrompt }, ...(window.FocusChatMemory ? FocusChatMemory.recent(10) : window._focusChatHistory.slice(-10)).map(m=>({role:m.role,content:m.content}))];
 
                     let res = await window.fbAskAI(prompt, 500);
                     if (res.ok && res.reply && res.reply.trim()) {
                         let full = res.reply.trim();
-                        window._focusChatHistory.push({ role:'assistant', content: full });
+                        if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: full });
+                        else window._focusChatHistory.push({ role:'assistant', content: full });
                         let reply = full;
                         // напоминание [REMIND:текст|когда]
                         const remindMatch = reply.match(/\[REMIND:([^|\]]+)\|([^\]]+)\]/i);
@@ -1740,8 +1836,9 @@
             const asstName = meUser.assistantName || 'Ассистент';
             chatTitle.innerText = asstName;
 
-            // ЕДИНАЯ история для компактного и раскрытого вида (один ассистент)
-            if (!window._focusChatHistory) window._focusChatHistory = [];
+            // ЕДИНАЯ история для компактного и раскрытого вида (один ассистент) — из памяти 7 дней
+            if (window.FocusChatMemory) window._focusChatHistory = FocusChatMemory.load();
+            else if (!window._focusChatHistory) window._focusChatHistory = [];
             let history = window._focusChatHistory;
 
             function scrollDown(){ msgsBox.scrollTop = msgsBox.scrollHeight; }
@@ -1830,7 +1927,7 @@
                 const text = chatInput.value.trim();
                 if (!text) return;
                 addMsg('user', text);
-                history.push({ role:'user', content: text });
+                if (window.FocusChatMemory) FocusChatMemory.push({ role:'user', content: text }); else history.push({ role:'user', content: text });
                 chatInput.value = '';
 
                 const typing = document.createElement('div');
@@ -1863,7 +1960,7 @@
                     } else if (reply) {
                         addMsg('bot', reply);
                     }
-                    history.push({ role:'assistant', content: res.reply.trim() });
+                    if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: res.reply.trim() }); else history.push({ role:'assistant', content: res.reply.trim() });
                     try { if (FocusStorage.useAI) FocusStorage.useAI('mentor','text'); } catch(e){}
                 } else {
                     addMsg('bot', '⚠️ ' + (res.error || 'Не ответил, попробуй ещё раз'));

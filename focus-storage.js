@@ -255,6 +255,13 @@ const FocusStorage = {
     setBoughtCoins(n) {
         localStorage.setItem('focus_coins_bought', String(Math.max(0, n)));
     },
+    /** Списать купленные монеты (для платных фич типа разбора Оракула). true если хватило. */
+    spendBoughtCoins(amount) {
+        const cur = this.getBoughtCoins();
+        if (cur < amount) return false;
+        this.setBoughtCoins(cur - amount);
+        return true;
+    },
 
     /** Ключ месяца для сброса лимитов (YYYY-MM) */
     _aiMonthKey() { return new Date().toISOString().slice(0,7); },

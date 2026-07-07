@@ -325,6 +325,7 @@
     </div>
 </div>
 <script type="module" src="firebase-auth-helper.js"></script>
+<script src="focus-email-verify.js"></script>
 <script src="focus-storage.js"></script>
 <script src="focus-core.js"></script>
 <script>
@@ -488,17 +489,43 @@
         const card = document.querySelector('.screen') || document.body;
         card.innerHTML = `
             <div style="display:flex;flex-direction:column;justify-content:center;height:100%;text-align:center;padding:30px 26px;">
-                <div style="font-size:56px;margin-bottom:18px;">📬</div>
-                <div style="font-size:20px;font-weight:700;color:var(--accent);margin-bottom:14px;">Подтвердите почту</div>
-                <div style="font-size:13.5px;color:#c8c8d0;line-height:1.6;margin-bottom:10px;">
-                    Мы отправили письмо на<br><b style="color:#fff;">${email}</b>
+                <div style="width:64px;height:64px;margin:0 auto 18px;border-radius:18px;background:radial-gradient(circle at 35% 30%,rgba(255,217,102,0.3),rgba(124,140,255,0.08));border:1px solid rgba(255,217,102,0.3);display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--accent);">✦</div>
+                <div style="font-size:20px;font-weight:700;color:var(--accent);margin-bottom:14px;">Подтверди почту</div>
+                <div style="font-size:13.5px;color:#c8c8d0;line-height:1.6;margin-bottom:18px;">
+                    Отправили код на<br><b style="color:#fff;">${email}</b>
                 </div>
-                <div style="font-size:12px;color:#9a9aab;line-height:1.6;margin-bottom:26px;">
-                    Открой письмо и нажми ссылку подтверждения, потом войди.<br>
-                    <span style="color:#8e8e9e;">Не пришло? Проверь папку «Спам».</span>
-                </div>
-                <div onclick="location.href='login.html'" style="background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#0a0a0f;font-weight:700;padding:15px;border-radius:14px;cursor:pointer;font-size:15px;">Перейти ко входу</div>
+                <input type="text" id="codeInput" maxlength="6" placeholder="· · · · · ·" style="width:100%;box-sizing:border-box;background:rgba(30,30,42,0.6);border:1px solid rgba(255,217,102,0.3);border-radius:12px;padding:15px;color:#fff;font-size:26px;text-align:center;letter-spacing:8px;font-weight:700;font-family:inherit;margin-bottom:8px;">
+                <div id="codeError" style="font-size:12px;color:#ff6b6b;min-height:16px;margin-bottom:10px;"></div>
+                <div id="verifyGo" style="background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#0a0a0f;font-weight:700;padding:15px;border-radius:14px;cursor:pointer;font-size:15px;margin-bottom:12px;">Подтвердить</div>
+                <div id="resendCode" style="font-size:13px;color:#8e8e9e;cursor:pointer;">Не пришло? Отправить снова</div>
+                <div style="font-size:11px;color:#6e6e7e;margin-top:8px;">Проверь папку «Спам»</div>
             </div>`;
+
+        // отправляем код через Resend
+        async function sendCode(){
+            const err = document.getElementById('codeError');
+            err.style.color = '#8e8e9e'; err.innerText = 'Отправляем письмо...';
+            if (window.FocusEmailVerify) {
+                const r = await FocusEmailVerify.send(email);
+                err.innerText = r.ok ? '' : (r.error || 'Ошибка отправки');
+                err.style.color = '#ff6b6b';
+            }
+        }
+        sendCode();
+
+        document.getElementById('verifyGo').addEventListener('click', function(){
+            const code = document.getElementById('codeInput').value.trim();
+            const err = document.getElementById('codeError');
+            if (!code) { err.innerText = 'Введи код из письма'; return; }
+            if (window.FocusEmailVerify) {
+                const r = FocusEmailVerify.check(code);
+                if (r.ok) {
+                    try { FocusStorage.saveUser({ email, emailVerified: true }); if (window.fbSaveUserData) fbSaveUserData({ email, emailVerified: true, createdAt: Date.now() }); } catch(e){}
+                    location.href = 'profile-form.html';
+                } else { err.style.color = '#ff6b6b'; err.innerText = r.error; }
+            }
+        });
+        document.getElementById('resendCode').addEventListener('click', sendCode);
     }
 </script>
 <script>

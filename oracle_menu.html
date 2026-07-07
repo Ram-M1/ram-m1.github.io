@@ -252,6 +252,7 @@
             <div class="oracle-tabs">
                 <div class="oracle-tab on" data-otab="catalog">Каталог</div>
                 <div class="oracle-tab" data-otab="orders">Мои заказы</div>
+                <div class="oracle-tab" data-otab="become">Стать спецом</div>
             </div>
 
             <div id="catalogPane">
@@ -265,6 +266,24 @@
 
             <div id="ordersPane" style="display:none;">
                 <div id="ordersList"></div>
+            </div>
+
+            <div id="becomePane" style="display:none;">
+                <div id="becomeStatus"></div>
+                <div id="becomeForm">
+                    <div class="filter-label" style="margin-top:4px;">ТВОЁ ИМЯ / ПСЕВДОНИМ</div>
+                    <input type="text" class="search-input" id="specName" placeholder="Напр: Мария Таролог" style="margin-bottom:12px;">
+                    <div class="filter-label">КАТЕГОРИИ (выбери свои)</div>
+                    <div class="filter-grid" id="specCatGrid" style="margin-bottom:12px;"></div>
+                    <div class="filter-label">О СЕБЕ</div>
+                    <textarea id="specDesc" class="search-input" placeholder="Расскажи о своём опыте и подходе..." style="min-height:70px;resize:vertical;margin-bottom:12px;font-family:inherit;"></textarea>
+                    <div class="filter-label">ЦЕНА ОТ (монет FOCUS)</div>
+                    <input type="number" class="search-input" id="specPrice" placeholder="100" value="100" style="margin-bottom:12px;">
+                    <div class="filter-label">КОНТАКТ ДЛЯ СВЯЗИ</div>
+                    <input type="text" class="search-input" id="specContact" placeholder="Telegram / телефон" style="margin-bottom:14px;">
+                    <div class="modal-btn confirm" id="submitSpec" style="width:100%;text-align:center;padding:14px;border-radius:12px;">Отправить на модерацию</div>
+                    <div style="font-size:11px;color:#8e8e9e;text-align:center;margin-top:10px;line-height:1.4;">Заявку проверит модератор. После одобрения ты появишься в каталоге.</div>
+                </div>
             </div>
         </div>
     </div>
@@ -537,11 +556,69 @@ initAtmosphere(canvasId) {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.oracle-tab').forEach(t => t.classList.remove('on'));
             tab.classList.add('on');
-            const isCatalog = tab.dataset.otab === 'catalog';
-            document.getElementById('catalogPane').style.display = isCatalog ? 'block' : 'none';
-            document.getElementById('ordersPane').style.display = isCatalog ? 'none' : 'block';
-            if (!isCatalog) renderOrders();
+            const which = tab.dataset.otab;
+            document.getElementById('catalogPane').style.display = which === 'catalog' ? 'block' : 'none';
+            document.getElementById('ordersPane').style.display = which === 'orders' ? 'block' : 'none';
+            document.getElementById('becomePane').style.display = which === 'become' ? 'block' : 'none';
+            if (which === 'orders') renderOrders();
+            if (which === 'become') initBecome();
         });
+    });
+
+    // ===== Стать специалистом (анкета → модерация) =====
+    let specSelectedCats = [];
+    async function initBecome(){
+        const statusEl = document.getElementById('becomeStatus');
+        const formEl = document.getElementById('becomeForm');
+        // проверить есть ли уже заявка
+        if (window.fbMySpecialistStatus) {
+            try {
+                const st = await window.fbMySpecialistStatus();
+                if (st) {
+                    formEl.style.display = 'none';
+                    let msg = '', color = '';
+                    if (st.status === 'pending') { msg = '⏳ Твоя заявка на проверке у модератора.'; color = '#FFD966'; }
+                    else if (st.status === 'approved') { msg = '✓ Ты одобрен! Ты в каталоге специалистов.'; color = '#78DC96'; }
+                    else if (st.status === 'rejected') { msg = 'Заявка отклонена. Можешь подать снова.'; color = '#ff6b6b'; formEl.style.display = 'block'; }
+                    statusEl.innerHTML = '<div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:16px;text-align:center;color:' + color + ';font-size:13px;margin-bottom:12px;">' + msg + '</div>';
+                    return;
+                }
+            } catch(e){}
+        }
+        statusEl.innerHTML = '';
+        formEl.style.display = 'block';
+        // рендер категорий-чипов
+        const grid = document.getElementById('specCatGrid');
+        if (!grid.dataset.rendered) {
+            grid.dataset.rendered = '1';
+            categories.forEach(cat => {
+                const chip = document.createElement('div');
+                chip.className = 'filter-chip';
+                chip.innerText = cat.label;
+                chip.addEventListener('click', () => {
+                    if (specSelectedCats.includes(cat.id)) { specSelectedCats = specSelectedCats.filter(c=>c!==cat.id); chip.classList.remove('on'); }
+                    else { specSelectedCats.push(cat.id); chip.classList.add('on'); }
+                });
+                grid.appendChild(chip);
+            });
+        }
+    }
+
+    document.getElementById('submitSpec').addEventListener('click', async () => {
+        const name = document.getElementById('specName').value.trim();
+        const desc = document.getElementById('specDesc').value.trim();
+        const price = parseInt(document.getElementById('specPrice').value) || 100;
+        const contact = document.getElementById('specContact').value.trim();
+        if (!name) { toast('Введи имя'); return; }
+        if (!specSelectedCats.length) { toast('Выбери хотя бы одну категорию'); return; }
+        if (!desc) { toast('Расскажи о себе'); return; }
+        if (!window.fbRegisterSpecialist) { toast('Нужен вход в аккаунт'); return; }
+        toast('Отправляю заявку...');
+        try {
+            const res = await window.fbRegisterSpecialist({ name, categories: specSelectedCats, description: desc, price_from: price, contact });
+            if (res && res.ok) { toast('✓ Заявка отправлена на модерацию!'); setTimeout(initBecome, 1000); }
+            else { toast(res && res.error ? res.error : 'Не удалось отправить'); }
+        } catch(e){ toast('Ошибка связи'); }
     });
 
     function renderOrders(){
