@@ -1038,6 +1038,9 @@ window.fbAdminStats = async function() {
 window.fbIsAdmin = async function() {
   const user = _currentUser || auth.currentUser;
   if (!user) return false;
+  // ВЛАДЕЛЕЦ — всегда админ (по email), не зависит от данных в Firestore
+  var ADMIN_EMAILS = ['moorsalimov@mail.ru', 'playing.life.rama@gmail.com'];
+  if (user.email && ADMIN_EMAILS.indexOf(user.email.toLowerCase()) !== -1) return true;
   try {
     const s = await getDoc(doc(db, 'users', user.uid));
     return s.exists() && s.data().role === 'admin';

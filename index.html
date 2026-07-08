@@ -2356,14 +2356,14 @@
     @keyframes tourBreath { 0%,100%{ box-shadow:0 0 0 2px rgba(200,170,255,0.7), 0 0 14px 2px rgba(200,170,255,0.4); } 50%{ box-shadow:0 0 0 2px rgba(255,217,102,0.9), 0 0 22px 4px rgba(200,170,255,0.7); } }
     @keyframes spotScan { 0%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } 50%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(255,217,102,1), 0 0 32px 6px rgba(200,170,255,0.7), inset 0 0 25px rgba(200,170,255,0.2); } 100%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } }
     .greet-spotlight.pulsing { animation:spotScan 2.2s ease-in-out infinite; }
-    .greet-box { position:fixed; left:50%; transform:translateX(-50%); width:calc(100% - 40px); max-width:350px; background:linear-gradient(165deg, rgba(30,26,48,0.97), rgba(20,16,32,0.97)); backdrop-filter:blur(20px); border:1px solid rgba(200,170,255,0.35); border-radius:24px; padding:22px 20px; text-align:center; z-index:5003; box-shadow:0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(124,140,255,0.15); top:50%; margin-top:-150px; transition:top 0.5s cubic-bezier(0.34,1.2,0.64,1), margin-top 0.5s; }
+    .greet-box { position:fixed; left:50%; transform:translateX(-50%); width:calc(100% - 40px); max-width:350px; background:linear-gradient(165deg, rgba(30,26,48,0.97), rgba(20,16,32,0.97)); backdrop-filter:blur(20px); border:1px solid rgba(200,170,255,0.35); border-radius:22px; padding:16px 18px; text-align:center; z-index:5003; box-shadow:0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(124,140,255,0.15); top:50%; margin-top:-150px; transition:top 0.5s cubic-bezier(0.34,1.2,0.64,1), margin-top 0.5s; }
     .greet-box.bottom { top:auto; bottom:28px; margin-top:0; }
     .greet-box.top { top:96px; margin-top:0; bottom:auto; }
-    .greet-orb { width:72px; height:72px; margin:0 auto 10px; display:block; }
+    .greet-orb { width:58px; height:58px; margin:0 auto 8px; display:block; }
     @keyframes orbFloat { 0%,100%{ transform:translateY(0) scale(1);} 50%{ transform:translateY(-4px) scale(1.05);} }
     @keyframes orbRing { 0%,100%{ transform:scale(1); opacity:0.5;} 50%{ transform:scale(1.15); opacity:0.1;} }
-    .greet-name { font-size:22px; font-weight:800; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:12px; }
-    .greet-text { font-size:14px; line-height:1.65; color:#e8e8f0; margin-bottom:18px; }
+    .greet-name { font-size:18px; font-weight:800; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:8px; }
+    .greet-text { font-size:12.5px; line-height:1.5; color:#e8e8f0; margin-bottom:12px; max-height:44vh; overflow-y:auto; }
     .greet-progress { display:flex; gap:6px; justify-content:center; margin-bottom:16px; }
     .gp-dot { width:6px; height:6px; border-radius:50%; background:rgba(200,170,255,0.25); transition:all 0.4s; }
     .gp-dot.active { background:linear-gradient(90deg,#C8AAFF,#FFD966); width:22px; border-radius:4px; box-shadow:0 0 8px rgba(200,170,255,0.6); }
@@ -2380,33 +2380,89 @@
             if (localStorage.getItem('focus_greeted')) return;
             if (!gUser.name || !gUser.assistantName) return;
 
-            var aName = gUser.assistantName, uName = gUser.name, astroLine = '';
+            var aName = gUser.assistantName, uName = gUser.firstName || (gUser.name||'').trim().split(/\s+/)[0] || gUser.name;
+
+            // === СУТЬ ЗНАКА (12) ===
+            var ZODIAC_DESC = {
+                'Овен': 'ты идёшь первым и не ждёшь, пока разрешат',
+                'Телец': 'тебя трудно сбить с пути: если ты решил — доведёшь до конца',
+                'Близнецы': 'тебе быстро становится скучно, ты живёшь новым и движением',
+                'Рак': 'ты горой стоишь за своих и чувствуешь близких без слов',
+                'Лев': 'ты в своей тарелке, когда ты в центре, и людей к тебе тянет',
+                'Дева': 'ты замечаешь детали, которые другие пропускают',
+                'Весы': 'тебе важно, чтобы всё было по справедливости и в балансе',
+                'Скорпион': 'тебя не сломать, и ты видишь людей насквозь',
+                'Стрелец': 'тебе тесно на одном месте, тянет к свободе и новому',
+                'Козерог': 'ты строишь надолго и добиваешься своего терпением и безудержным напором',
+                'Водолей': 'ты мыслишь не как все и видишь на шаг вперёд',
+                'Рыбы': 'в тебе интуиция, которая редко подводит — ты чувствуешь то, что другие не замечают'
+            };
+            // === СУТЬ ЧИСЛА СУДЬБЫ (1-9 + мастер-числа 11/22/33) ===
+            var NUM_DESC = {
+                1: 'число 1 ведёт тебя первым: ты создан вести, а не идти следом',
+                2: 'число 2 даёт чутьё к людям и силу в союзе с другими',
+                3: 'число 3 — в тебе живёт творец, тебе дано зажигать других',
+                4: 'число 4 делает тебя опорой: на таких держится всё',
+                5: 'число 5 гонит тебя вперёд: тебе тесно в рамках, ты рождён искать',
+                6: 'число 6 — ты создаёшь тепло и держишь близких вместе',
+                7: 'число 7 открывает тебе скрытое: ты ищешь суть, а не поверхность',
+                8: 'число 8 даёт размах: ты можешь достигать по-крупному',
+                9: 'число 9 — в тебе мудрость не по годам, ты пришёл отдавать',
+                11: 'твоё число 11 — мастер-число, их носят единицы: в тебе интуиция на грани предвидения',
+                22: 'твоё число 22 — мастер-число строителя: ты можешь воплотить то, о чём другие лишь мечтают',
+                33: 'твоё число 33 — редчайшее мастер-число учителя: в тебе дар вести и поднимать людей'
+            };
+            function capFirst(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+            // персональный разбор под знак + число
+            var astroLine = '';
             if (gUser.birthDate && window.FocusAstro) {
                 var z = FocusAstro.getZodiac(gUser.birthDate);
                 var lp = FocusAstro.getLifePathNumber(gUser.birthDate);
-                if (lp && z) {
-                    // варьируем формулировку астро-строки
-                    var astroVariants = [
-                        'Знаю, у тебя число судьбы ' + lp + '. Это сильное число, тем более учитывая твой знак — ' + z.sign + '. У тебя большой потенциал.',
-                        'Вижу, ты ' + z.sign + ' с числом судьбы ' + lp + '. Мощное сочетание — в тебе заложен серьёзный потенциал.',
-                        'Твоё число судьбы ' + lp + ', а знак — ' + z.sign + '. Это говорит о многом: у тебя есть внутренняя сила, которую стоит раскрыть.',
-                        'Ты ' + z.sign + ', число судьбы ' + lp + '. Такое сочетание встречается у людей с большим потенциалом — и ты один из них.'
+                var zDesc = z ? ZODIAC_DESC[z.sign] : '';
+                var nDesc = lp ? NUM_DESC[lp] : '';
+                if (zDesc || nDesc) {
+                    var closers = [
+                        'Такое сочетание встречается редко — и это только начало.',
+                        'Мало кто носит в себе такое. Раскроем это вместе.',
+                        'Ты сильнее, чем привык думать — я помогу это увидеть.'
                     ];
-                    astroLine = astroVariants[Math.floor(Math.random() * astroVariants.length)];
+                    var parts = [];
+                    if (zDesc) parts.push(capFirst(zDesc));
+                    if (nDesc) parts.push(capFirst(nDesc));
+                    astroLine = parts.join('. ') + '. ' + closers[Math.floor(Math.random() * closers.length)];
                 }
             }
-            // варьируем вступление и концовку — каждый юзер видит свой вариант
-            var introVariants = [
-                'Попав сюда, ты на верном пути. Давай покажу тебе Фокус за 30 секунд.',
-                'Ты не случайно оказался здесь — это шаг к лучшей версии себя. Давай я всё покажу.',
-                'Рад что ты с нами. Сейчас за минуту покажу, как всё устроено.'
+            var openers = [
+                'А теперь дай-ка взгляну на тебя, ' + uName + '. ',
+                'А теперь о тебе, ' + uName + '. Дай почувствую… ',
+                'Дай мне мгновение, ' + uName + '… вот теперь вижу. '
             ];
+            var openerText = openers[Math.floor(Math.random() * openers.length)];
+
+            // === РЕАКЦИЯ АССИСТЕНТА НА СВОЁ ИМЯ (нормальное / треш / бессмысленное) ===
+            function nameReaction(name){
+                var n = (name || '').toLowerCase().trim();
+                var trash = ['хуй','хуё','хуе','пизд','ебан','еба','бля','сук','залуп','гандон','гондон','говн','дерьм','муда','муди','пидор','пидар','долбо','чмо','мраз','урод','анус','жоп','сперм','конч'];
+                var isTrash = trash.some(function(w){ return n.indexOf(w) !== -1; });
+                var isWeird = /^\d+$/.test(n) || /^(.)\1{2,}$/.test(n) || n.length < 2;
+                if (isTrash) return 'Привет, создатель. ' + name + ', значит? 😏 Ну ты и юморист. Ладно, буду ' + name + ' — сам так решил, сработаемся.';
+                if (isWeird) return 'Привет, создатель. ' + name + '? Необычно 🙂 Ну ладно, отзовусь и на это. Идём вместе — я рядом.';
+                return 'Привет, создатель. ' + name + ' — так ты меня назвал. Хорошее имя, принимаю его с благодарностью.<br><br>Теперь идём вместе — я рядом в любой момент, что бы ни случилось.';
+            }
+
+            // короткое вступление-переход к туру
+            var introVariants = [
+                'Давай быстро покажу тебе, как тут всё устроено. Вперёд!',
+                'Сейчас по-быстрому введу тебя в курс. Погнали!',
+                'Покажу главное за минуту. Вперёд!'
+            ];
+            var introText = introVariants[Math.floor(Math.random() * introVariants.length)];
             var outroVariants = [
                 'Вместе мы сможем многое! Подробности — на канале создателя приложения, там много полезных фич и скрытых знаний. Я всегда на связи — пиши, если что. Удачи!',
                 'У нас всё получится. Загляни на канал создателя — там куча полезного и скрытых фишек. Я рядом, если что — пиши. Вперёд!',
                 'Верю в тебя. На канале создателя найдёшь много интересного и скрытых возможностей. Я всегда на связи. В путь!'
             ];
-            var introText = introVariants[Math.floor(Math.random() * introVariants.length)];
             var outroText = outroVariants[Math.floor(Math.random() * outroVariants.length)];
 
             // === ШАГИ ТУРА (голос + подсветка + подсказка) ===
@@ -2414,27 +2470,27 @@
                 {
                     target: null,
                     title: aName,
-                    text: 'Привет, ' + uName + '! Я ' + aName + ', твой Фокус-ассистент.' + (astroLine ? ('<br><br>' + astroLine) : '') + '<br><br>' + introText,
+                    text: nameReaction(aName) + (astroLine ? ('<br><br>' + openerText + astroLine) : '') + '<br><br>' + introText,
                     voice: ''
                 },
                 {
                     target: '#oracleTrigger',
                     title: '🔮 Кристалл',
-                    text: 'Видишь кристалл в правом верхнем углу? Нажав на него, ты узнаешь много о себе — своём прошлом, настоящем и возможном будущем. Твой гороскоп и число судьбы.',
-                    voice: 'Видишь кристалл в правом верхнем углу? Нажав на него, ты узнаешь много о себе — своём прошлом, настоящем и возможном будущем.'
+                    text: 'Видишь кристалл вверху справа? Загляни в него — и я расскажу о тебе то, что скрыто: твоё прошлое, настоящее и возможное будущее. Гороскоп, число судьбы, глубокий разбор личности.',
+                    voice: 'Видишь кристалл вверху справа? Загляни в него — и я расскажу о тебе то, что скрыто.'
                 },
                 {
                     target: '#logoBadge',
                     title: '⚙️ Логотип',
-                    text: 'Логотип слева — здесь ты настроишь приложение под себя. А ещё можешь установить контроль над ребёнком или важным тебе человеком.',
-                    voice: 'Логотип слева — здесь ты настроишь приложение под себя. А ещё можешь установить контроль над ребёнком или важным тебе человеком.'
+                    text: 'Слева — логотип. Там ты настроишь всё под себя: темы, уведомления, а ещё сможешь взять под крыло ребёнка или близкого человека.',
+                    voice: 'Слева — логотип. Там ты настроишь всё под себя: темы, уведомления, а ещё сможешь взять под крыло ребёнка или близкого человека.'
                 },
                 {
                     target: '.focus-tile[data-sphere]',
                     targetAll: true,
                     title: '✦ Сферы твоей жизни',
-                    text: 'А вот эти разделы — сферы твоей жизни. Выбирай любой и начинай путь к своей лучшей реальности. Выполняй задания сам или просто попроси меня — я заполню за тебя.',
-                    voice: 'Видишь эти разделы? Это шесть сфер твоей жизни. Выбирай любой и начни путь к твоей лучшей реальности. Выполняй задания сам или попроси меня — я заполню за тебя.'
+                    text: 'А это — сферы твоей жизни: тело, энергия, мысли, отношения, вера. Выбирай любую и двигайся к лучшей версии себя. Делай сам или просто скажи мне — я всё запишу за тебя.',
+                    voice: 'Это сферы твоей жизни. Выбирай любую и двигайся к лучшей версии себя. Делай сам или просто скажи мне — я запишу за тебя.'
                 },
                 {
                     target: null,
@@ -2447,6 +2503,7 @@
             var ov = document.createElement('div');
             ov.id = 'greetOverlay';
             ov.innerHTML = '<div class="greet-spotlight" id="greetSpot"></div>' +
+                '<canvas id="greetFx" style="position:fixed;inset:0;z-index:5100;pointer-events:none;"></canvas>' +
                 '<div class="greet-box" id="greetBox">' +
                     '<canvas class="focus-orb-canvas greet-orb" width="72" height="72"></canvas>' +
                     '<div class="greet-name" id="greetTitle"></div>' +
@@ -2460,6 +2517,43 @@
             document.body.appendChild(ov);
             if (window.FocusOrb) window.FocusOrb.autoMount();
             requestAnimationFrame(function(){ ov.classList.add('show'); });
+
+            // ===== МОЛНИИ (выжигание текста + переходы) =====
+            var fxCv = document.getElementById('greetFx'), fxCtx = fxCv.getContext('2d');
+            function fxSize(){ fxCv.width = window.innerWidth*2; fxCv.height = window.innerHeight*2; fxCtx.setTransform(2,0,0,2,0,0); }
+            fxSize(); window.addEventListener('resize', fxSize);
+            var fxBolts = [];
+            function jag(x1,y1,x2,y2,amp,seg){ var p=[[x1,y1]]; for(var i=1;i<seg;i++){var t=i/seg; p.push([x1+(x2-x1)*t+(Math.random()-.5)*amp, y1+(y2-y1)*t+(Math.random()-.5)*amp]);} p.push([x2,y2]); return p; }
+            function fxBolt(x1,y1,x2,y2,fast){ fxBolts.push({x1:x1,y1:y1,x2:x2,y2:y2,fast:fast,life:1,pts:null,fr:0}); }
+            (function fxLoop(){ requestAnimationFrame(fxLoop); fxCtx.clearRect(0,0,window.innerWidth,window.innerHeight);
+                for(var i=fxBolts.length-1;i>=0;i--){ var b=fxBolts[i]; if(b.fr%2===0||!b.pts) b.pts=jag(b.x1,b.y1,b.x2,b.y2,b.fast?9:15,b.fast?5:8); b.fr++;
+                    var pts=b.pts, o=b.life, w=b.fast?1.3:2.2; fxCtx.lineCap='round'; fxCtx.globalCompositeOperation='lighter';
+                    var L=[[w*3,0.14],[w*1.7,0.4],[w,0.92]];
+                    for(var l=0;l<3;l++){ fxCtx.lineWidth=L[l][0]; fxCtx.beginPath(); fxCtx.moveTo(pts[0][0],pts[0][1]); for(var k=1;k<pts.length;k++) fxCtx.lineTo(pts[k][0],pts[k][1]);
+                        fxCtx.strokeStyle=l<2?'rgba(127,208,255,'+(L[l][1]*o)+')':'rgba(240,250,255,'+(L[l][1]*o)+')'; fxCtx.stroke(); }
+                    fxCtx.globalCompositeOperation='source-over'; b.life-=b.fast?0.4:0.24; if(b.life<=0) fxBolts.splice(i,1); }
+            })();
+            function orbCenter(){ var el=document.querySelector('.greet-orb'); if(!el) return {x:window.innerWidth/2,y:200}; var r=el.getBoundingClientRect(); return {x:r.left+r.width/2, y:r.top+r.height/2}; }
+            // выжигание текста молнией: буквы проявляются, из орба бьёт молния (5 слов медленно → разгон)
+            var writeTimer = null;
+            function burnText(el){
+                if(writeTimer){ clearTimeout(writeTimer); writeTimer=null; }
+                var full = el.getAttribute('data-full') || el.innerHTML; el.setAttribute('data-full', full);
+                var tmp = document.createElement('div'); tmp.innerHTML = full;
+                var chars = []; (function walk(node){ node.childNodes.forEach(function(n){
+                    if(n.nodeType===3){ for(var c of n.textContent){ chars.push(c); } }
+                    else if(n.nodeName==='BR'){ chars.push('<br>'); }
+                    else { chars.push('<hs>'); for(var c of (n.textContent||'')){ chars.push(c); } chars.push('</hs>'); }
+                }); })(tmp);
+                el.innerHTML=''; var shown=''; var i=0; var oc=orbCenter(); var SLOW=22;
+                (function tick(){
+                    if(i>=chars.length){ el.innerHTML=full; writeTimer=null; return; }
+                    var ch=chars[i]; shown += (ch==='<hs>'?'<span class="hl">':ch==='</hs>'?'</span>':ch); el.innerHTML=shown;
+                    var r=el.getBoundingClientRect();
+                    if(ch!=='<br>'&&ch!=='<hs>'&&ch!=='</hs>'){ var fast=i>=SLOW; if(Math.random()<(fast?0.5:1)) fxBolt(oc.x,oc.y, r.left+r.width*0.5+(Math.random()-.5)*50, r.top+r.height-6, fast); }
+                    i++; var d = i<SLOW?60:(i<SLOW+30?14:6); writeTimer=setTimeout(tick,d);
+                })();
+            }
 
             var idx = 0;
 
@@ -2497,6 +2591,8 @@
                 spot.style.top = (minY - pad) + 'px';
                 spot.style.width = (maxX - minX + pad*2) + 'px';
                 spot.style.height = (maxY - minY + pad*2) + 'px';
+                // МОЛНИЯ из орба в подсвечиваемую зону (переход)
+                try { var oc = orbCenter(); var tx=(minX+maxX)/2, ty=(minY+maxY)/2; for(var b=0;b<6;b++) setTimeout(function(){ fxBolt(oc.x,oc.y,tx,ty,false); }, b*60); } catch(e){}
 
                 // Позиционируем окно относительно РАМКИ ТЕЛЕФОНА (а не окна браузера) —
                 // иначе на десктопе окно уезжает мимо. Ставим в свободную зону над/под подсветкой,
@@ -2527,13 +2623,15 @@
             function renderStep(){
                 var step = steps[idx];
                 document.getElementById('greetTitle').innerHTML = step.title;
-                document.getElementById('greetTextEl').innerHTML = step.text;
+                var txtEl = document.getElementById('greetTextEl');
+                txtEl.removeAttribute('data-full'); txtEl.innerHTML = step.text;
                 document.getElementById('greetNext').innerText = (idx === steps.length - 1) ? 'Начать! 🚀' : 'Далее →';
-                // прогресс-точки
                 var prog = '';
                 for (var i = 0; i < steps.length; i++) prog += '<span class="gp-dot' + (i === idx ? ' active' : '') + '"></span>';
                 document.getElementById('greetProgress').innerHTML = prog;
                 highlight(step);
+                // выжигаем текст молнией
+                setTimeout(function(){ burnText(txtEl); }, 250);
                 speak(step.voice);
             }
 
@@ -2544,9 +2642,25 @@
             }
             function finish(){
                 try { window.speechSynthesis.cancel(); } catch(e){}
+                if(writeTimer){ clearTimeout(writeTimer); writeTimer=null; }
                 document.querySelectorAll('.tour-glow').forEach(function(el){ el.classList.remove('tour-glow'); });
-                ov.classList.remove('show');
-                setTimeout(function(){ ov.remove(); }, 300);
+                document.getElementById('greetSpot').style.display='none'; ov.classList.remove('has-spot');
+                // ОРБ ЛЕТИТ НА СВОЁ МЕСТО В ШАПКЕ (.ai-mini-orb) и остаётся там
+                var orbEl = document.querySelector('.greet-orb'), homeEl = document.querySelector('.ai-mini-orb');
+                var box = document.getElementById('greetBox'); if(box) box.style.transition='opacity .35s'; 
+                if(orbEl && homeEl){
+                    var from = orbEl.getBoundingClientRect(), to = homeEl.getBoundingClientRect();
+                    // клон орба летит к шапке
+                    var fly = orbEl.cloneNode(true); fly.className='focus-orb-canvas';
+                    fly.style.cssText='position:fixed;z-index:6000;left:'+from.left+'px;top:'+from.top+'px;width:'+from.width+'px;height:'+from.height+'px;transition:all .9s cubic-bezier(.4,0,.2,1);pointer-events:none;';
+                    document.body.appendChild(fly); if(window.FocusOrb) window.FocusOrb.autoMount();
+                    // прячем карточку, орб летит
+                    if(box){ box.style.opacity='0'; }
+                    requestAnimationFrame(function(){ fly.style.left=to.left+'px'; fly.style.top=to.top+'px'; fly.style.width=to.width+'px'; fly.style.height=to.height+'px'; });
+                    setTimeout(function(){ fly.remove(); ov.classList.remove('show'); setTimeout(function(){ ov.remove(); },300); }, 950);
+                } else {
+                    ov.classList.remove('show'); setTimeout(function(){ ov.remove(); }, 300);
+                }
                 localStorage.setItem('focus_greeted', '1');
             }
 

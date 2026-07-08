@@ -340,10 +340,23 @@
         <div class="form-group">
             <div class="label">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.6 3-6.5 7-6.5s7 2.9 7 6.5"/></svg>
-                Имя
+                Имя или ФИО
                 <span class="label-bonus">+5 монет</span>
             </div>
-            <input type="text" class="input" id="name" placeholder="Как вас зовут?">
+            <input type="text" class="input" id="name" placeholder="Имя или полностью ФИО">
+            <div style="font-size:11.5px;color:#8a8a96;margin-top:6px;">Можно только имя или полностью — ассистент будет обращаться к тебе по имени.</div>
+        </div>
+
+        <div class="form-group">
+            <div class="label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M12 12v9M9 18h6"/></svg>
+                Пол
+                <span class="label-bonus">+5 монет</span>
+            </div>
+            <div id="genderPick" style="display:flex; gap:8px;">
+                <button type="button" class="gender-opt" data-g="male" style="flex:1; padding:11px; border-radius:11px; border:1.5px solid rgba(255,255,255,0.12); background:rgba(35,35,46,0.5); color:#c8c8d2; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;">♂ Мужской</button>
+                <button type="button" class="gender-opt" data-g="female" style="flex:1; padding:11px; border-radius:11px; border:1.5px solid rgba(255,255,255,0.12); background:rgba(35,35,46,0.5); color:#c8c8d2; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;">♀ Женский</button>
+            </div>
         </div>
 
         <div class="form-group">
@@ -687,6 +700,21 @@
 
         function showToast(msg){ var t=document.getElementById('toast'); if(!t) return; t.innerText=msg; t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)'; clearTimeout(window._tt); window._tt=setTimeout(function(){ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(20px)'; }, 2800); }
 
+    // ВЫБОР ПОЛА
+    (function(){
+        window._selectedGender = savedUser.gender || '';
+        var opts = document.querySelectorAll('.gender-opt');
+        function paint(){ opts.forEach(function(o){ var on = o.dataset.g === window._selectedGender;
+            o.style.borderColor = on ? 'var(--accent)' : 'rgba(255,255,255,0.12)';
+            o.style.background = on ? 'linear-gradient(135deg, rgba(var(--accent-rgb),0.18), rgba(var(--accent-2-rgb),0.14))' : 'rgba(35,35,46,0.5)';
+            o.style.color = on ? '#fff' : '#c8c8d2'; }); }
+        opts.forEach(function(o){ o.addEventListener('click', function(){ window._selectedGender = o.dataset.g;
+            // пол задаёт голос ассистента по умолчанию
+            if (o.dataset.g === 'female') window.selectedVoice = 'female'; else window.selectedVoice = 'male';
+            paint(); }); });
+        paint();
+    })();
+
     document.getElementById('saveBtn').addEventListener('click', function() {
         const name = document.getElementById('name').value.trim();
         const birthDate = document.getElementById('birthDate').value;
@@ -697,6 +725,7 @@
         if (!birthDate) { showToast('Укажите дату рождения'); return; }
         if (!city) { showToast('Введите город'); return; }
         if (!phone) { showToast('Введите номер телефона'); return; }
+        if (!window._selectedGender && !savedUser.gender) { showToast('Укажите пол'); return; }
         const assistantName = document.getElementById('assistantName').value.trim();
         if (!assistantName) { showToast('Придумай имя своему ассистенту ✨'); return; }
 
@@ -713,6 +742,9 @@
         const updates = {};
         // ВСЕГДА сохраняем ключевые поля (для гарда), бонус — только первый раз
         updates.name = name;
+        updates.fullName = name;                    // полное ФИО (как ввёл)
+        updates.firstName = name.trim().split(/\s+/)[0];   // ИИ обращается только по имени
+        updates.gender = window._selectedGender || savedUser.gender || '';
         updates.birthDate = birthDate;
         updates.age = age;
         updates.city = city;
