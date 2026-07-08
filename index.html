@@ -634,6 +634,20 @@
 <script src="focus-analytics.js"></script>
 </head>
 <body>
+<div id="preGreetCover" style="position:fixed;inset:0;background:#000;z-index:4999;transition:opacity .4s;"></div>
+<script>
+  // мгновенно решаем: если это новый юзер (не приветствовали) — держим чёрный экран, чтобы главная не мелькнула до приветствия
+  (function(){ try {
+    var greeted = localStorage.getItem('focus_greeted');
+    var u = JSON.parse(localStorage.getItem('focus_user')||'{}');
+    var cover = document.getElementById('preGreetCover');
+    if (greeted || !u || !u.name || !u.assistantName) {
+      // приветствие не нужно — убираем заглушку сразу
+      if(cover){ cover.style.opacity='0'; setTimeout(function(){ cover && cover.remove(); }, 400); }
+    }
+    // иначе заглушка остаётся; initGreeting уберёт её когда оверлей появится
+  } catch(e){ var c=document.getElementById('preGreetCover'); if(c) c.remove(); } })();
+</script>
 <div class="phone">
     <canvas id="atmosCanvas" width="375" height="700" style="position:absolute;top:0;left:0;width:375px;height:700px;z-index:0;pointer-events:none;border-radius:52px;"></canvas>
     <canvas id="cosmicCanvas" width="375" height="700" style="width:375px;height:700px;"></canvas>
@@ -2336,7 +2350,7 @@
 </script>
     <script src="focus-chat-fab.js"></script>
     <style>
-    #greetOverlay { position:absolute; inset:0; border-radius:52px; overflow:hidden; z-index:5000; display:block; opacity:0; transition:opacity 0.4s; pointer-events:auto; }
+    #greetOverlay { position:absolute; inset:0; border-radius:52px; overflow:hidden; background:#000; z-index:5000; display:block; opacity:0; transition:opacity 0.4s; pointer-events:auto; }
     #greetOverlay.show { opacity:1; }
     /* лёгкое затемнение только через тень споллайта — сам оверлей прозрачный */
     #greetOverlay::before { content:''; position:absolute; inset:0; background:rgba(3,3,7,0.985); transition:opacity 0.5s; }
@@ -2356,7 +2370,7 @@
     @keyframes tourBreath { 0%,100%{ box-shadow:0 0 0 2px rgba(200,170,255,0.7), 0 0 14px 2px rgba(200,170,255,0.4); } 50%{ box-shadow:0 0 0 2px rgba(255,217,102,0.9), 0 0 22px 4px rgba(200,170,255,0.7); } }
     @keyframes spotScan { 0%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } 50%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(255,217,102,1), 0 0 32px 6px rgba(200,170,255,0.7), inset 0 0 25px rgba(200,170,255,0.2); } 100%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } }
     .greet-spotlight.pulsing { animation:spotScan 2.2s ease-in-out infinite; }
-    .greet-box { position:absolute; left:50%; transform:translateX(-50%); width:calc(100% - 44px); max-width:350px; background:transparent; border:none; border-radius:0; padding:8px; text-align:center; z-index:5003; box-shadow:none; top:50%; margin-top:-150px; max-height:60vh; overflow-y:auto; transition:top 1.0s cubic-bezier(0.34,1,0.64,1), margin-top 1.0s, left 1.0s, transform 1.0s, opacity 0.6s; }
+    .greet-box { position:absolute; left:50%; transform:translateX(-50%); width:calc(100% - 44px); max-width:350px; background:transparent; border:none; border-radius:0; padding:6px; text-align:center; z-index:5003; box-shadow:none; top:50%; margin-top:-140px; max-height:none; overflow:visible; transition:top 1.0s cubic-bezier(0.34,1,0.64,1), margin-top 1.0s, left 1.0s, transform 1.0s, opacity 0.6s; }
     #greetOrbFree { position:absolute; z-index:5102; width:72px; height:72px; left:50%; top:230px; transform:translate(-50%,-50%); transition:left 1.5s cubic-bezier(0.4,0,0.2,1), top 1.5s cubic-bezier(0.4,0,0.2,1), width 1.5s, height 1.5s, opacity 0.6s; pointer-events:none; }
     #greetOrbFree canvas { width:100%; height:100%; display:block; }
     #greetOverlay.finishing::before { opacity:0 !important; }
@@ -2366,8 +2380,8 @@
     .greet-orb { width:58px; height:58px; margin:0 auto 8px; display:block; }
     @keyframes orbFloat { 0%,100%{ transform:translateY(0) scale(1);} 50%{ transform:translateY(-4px) scale(1.05);} }
     @keyframes orbRing { 0%,100%{ transform:scale(1); opacity:0.5;} 50%{ transform:scale(1.15); opacity:0.1;} }
-    .greet-name { font-size:18px; font-weight:800; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:8px; }
-    .greet-text { font-size:12.5px; line-height:1.5; color:#e8e8f0; margin-bottom:12px; max-height:38vh; overflow-y:auto; }
+    .greet-name { font-size:17px; font-weight:800; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:8px; }
+    .greet-text { font-size:12px; line-height:1.45; color:#e8e8f0; margin-bottom:12px; max-height:38vh; overflow-y:auto; }
     .greet-progress { display:flex; gap:6px; justify-content:center; margin-bottom:16px; }
     .gp-dot { width:6px; height:6px; border-radius:50%; background:rgba(200,170,255,0.25); transition:all 0.4s; }
     .gp-dot.active { background:linear-gradient(90deg,#C8AAFF,#FFD966); width:22px; border-radius:4px; box-shadow:0 0 8px rgba(200,170,255,0.6); }
@@ -2508,6 +2522,7 @@
             ov.id = 'greetOverlay';
             ov.innerHTML = '<div class="greet-spotlight" id="greetSpot"></div>' +
                 '<canvas id="greetFx" style="position:absolute;inset:0;z-index:5100;pointer-events:none;"></canvas>' +
+                '<canvas id="greetBirth" style="position:absolute;inset:0;z-index:5101;pointer-events:none;"></canvas>' +
                 '<div id="greetOrbFree"><canvas class="focus-orb-canvas greet-orb" width="72" height="72"></canvas></div>' +
                 '<div class="greet-box" id="greetBox">' +
                     '<div class="greet-name" id="greetTitle"></div>' +
@@ -2520,7 +2535,7 @@
                 '</div>';
             (document.querySelector(".phone")||document.body).appendChild(ov);
             if (window.FocusOrb) window.FocusOrb.autoMount();
-            requestAnimationFrame(function(){ ov.classList.add('show'); });
+            requestAnimationFrame(function(){ ov.classList.add('show'); var pc=document.getElementById('preGreetCover'); if(pc){ pc.style.opacity='0'; setTimeout(function(){ pc.remove(); },400); } });
 
             // ===== МОЛНИИ (выжигание текста + переходы) =====
             var fxCv = document.getElementById('greetFx'), fxCtx = fxCv.getContext('2d');
@@ -2538,6 +2553,93 @@
                     fxCtx.globalCompositeOperation='source-over'; b.life-=b.fast?0.4:0.24; if(b.life<=0) fxBolts.splice(i,1); }
             })();
             function orbCenter(){ var el=document.querySelector('.greet-orb'); var cr=fxCv.getBoundingClientRect(); if(!el) return {x:cr.width/2,y:200}; var r=el.getBoundingClientRect(); return {x:r.left+r.width/2-cr.left, y:r.top+r.height/2-cr.top}; }
+
+            // ===== ПОЛНОЕ РОЖДЕНИЕ ОРБА (фазы: ядро → пыль с краёв → молнии пробивают → сетка ткётся молниями) =====
+            function runBirth(cx, cy, onDone){
+                var bcv = document.getElementById('greetBirth'); if(!bcv){ onDone&&onDone(); return; }
+                var bx = bcv.getContext('2d');
+                var ph = document.querySelector('.phone'); var PWc = ph?ph.clientWidth:375, PHc = ph?ph.clientHeight:700;
+                bcv.width = PWc*2; bcv.height = PHc*2; bx.setTransform(2,0,0,2,0,0);
+                var R = 70;                      // радиус крупной формы рождения
+                var P0=[93,224,255], P1=[200,170,255], P2=[255,107,213];
+                function pal(h,a){ var c0,c1,t; if(h<0.5){c0=P0;c1=P1;t=h/0.5;} else {c0=P1;c1=P2;t=(h-0.5)/0.5;}
+                    return 'rgba('+Math.round(c0[0]+(c1[0]-c0[0])*t)+','+Math.round(c0[1]+(c1[1]-c0[1])*t)+','+Math.round(c0[2]+(c1[2]-c0[2])*t)+','+a+')'; }
+                // узлы сетки
+                var rings=11, nodes=[];
+                for(var i=0;i<=rings;i++){ var lat=Math.PI*(i/rings)-Math.PI/2; var cnt=Math.max(1,Math.round(Math.cos(lat)*18));
+                    for(var j=0;j<cnt;j++) nodes.push({lat:lat,lon:2*Math.PI*(j/cnt),ph:Math.random()*6.28}); }
+                var revealOrder=nodes.map(function(n,idx){return idx;}).sort(function(a,b){return (nodes[a].lat-nodes[b].lat)||(nodes[a].lon-nodes[b].lon);});
+                var near=0.45;
+                function proj(lat,lon,rot){ var x=Math.cos(lat)*Math.cos(lon+rot), y=Math.sin(lat), z=Math.cos(lat)*Math.sin(lon+rot); return {x:cx+x*R, y:cy+y*R*0.98, z:z}; }
+                // пыль с краёв экрана
+                var dust=[]; for(var k=0;k<130;k++){ var edge=Math.floor(Math.random()*4), sx,sy;
+                    if(edge===0){sx=Math.random()*PWc;sy=-12;}else if(edge===1){sx=PWc+12;sy=Math.random()*PHc;}else if(edge===2){sx=Math.random()*PWc;sy=PHc+12;}else{sx=-12;sy=Math.random()*PHc;}
+                    var aa=Math.random()*6.28, rad=R*0.15+Math.random()*R*0.6;
+                    dust.push({sx:sx,sy:sy,px:sx,py:sy,a:aa,rad:rad,tx:cx+Math.cos(aa)*rad,ty:cy+Math.sin(aa)*rad*0.85,sp:0.006+Math.random()*0.02,sz:0.7+Math.random()*2.2,hue:Math.random(),pull:R*0.0012,ell:0.75+Math.random()*0.2,tw:Math.random()*6.28,star:Math.random()<0.14}); }
+                // молнии
+                var bolts=[]; function jag(x1,y1,x2,y2,amp,seg){ var p=[[x1,y1]]; for(var q=1;q<seg;q++){var tt=q/seg; p.push([x1+(x2-x1)*tt+(Math.random()-.5)*amp, y1+(y2-y1)*tt+(Math.random()-.5)*amp]);} p.push([x2,y2]); return p; }
+                function drawBolt(pts,w,al){ bx.globalCompositeOperation='lighter'; bx.lineCap='round'; var L=[[w*3,0.14],[w*1.7,0.4],[w,0.92]];
+                    for(var l=0;l<3;l++){ bx.lineWidth=L[l][0]; bx.beginPath(); bx.moveTo(pts[0][0],pts[0][1]); for(var m=1;m<pts.length;m++) bx.lineTo(pts[m][0],pts[m][1]); bx.strokeStyle=l<2?'rgba(127,208,255,'+(L[l][1]*al)+')':'rgba(240,250,255,'+(L[l][1]*al)+')'; bx.stroke(); } bx.globalCompositeOperation='source-over'; }
+                var woven=new Array(nodes.length*nodes.length).fill(0), arcs=[], seeded=false, frameN=0;
+                var clamp=function(v){return Math.max(0,Math.min(1,v));}, easeOut=function(t){return 1-Math.pow(1-t,3);}, easeIO=function(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;};
+                // тайминги (мс) — медленно, кинематографично
+                var T_core=1800, T_dustS=1400, T_dustE=3800, T_pierceS=3200, T_pierceE=4800, T_meshS=4000, T_meshE=7200, T_done=7600;
+                var T0=0, raf=null, now=0;
+                function frame(ts){ raf=requestAnimationFrame(frame); if(!T0)T0=ts; now=ts; frameN++; var e=ts-T0, t=e*0.001, rot=t*0.25;
+                    bx.clearRect(0,0,PWc,PHc);
+                    var coreI=easeOut(clamp(e/T_core));
+                    var dustT=clamp((e-T_dustS)/(T_dustE-T_dustS)), dustAlive=e>T_dustE;
+                    var meshP=clamp((e-T_meshS)/(T_meshE-T_meshS)), revealN=Math.floor(easeIO(meshP)*nodes.length);
+                    // ЯДРО (пульс + корона)
+                    if(coreI>0){ var pulse=R*0.19*coreI+Math.sin(t*3)*R*0.04*coreI;
+                        bx.globalCompositeOperation='lighter';
+                        var cor=bx.createRadialGradient(cx,cy,0,cx,cy,R*0.5*coreI); cor.addColorStop(0,pal(0.35,0.5*coreI)); cor.addColorStop(0.5,pal(0.5,0.18*coreI)); cor.addColorStop(1,pal(0.6,0));
+                        bx.fillStyle=cor; bx.beginPath(); bx.arc(cx,cy,R*0.5*coreI,0,6.29); bx.fill();
+                        var sun=bx.createRadialGradient(cx,cy,0,cx,cy,pulse+R*0.06); sun.addColorStop(0,'rgba(255,255,255,'+coreI+')'); sun.addColorStop(0.4,pal(0.4,0.7*coreI)); sun.addColorStop(1,pal(0.4,0));
+                        bx.fillStyle=sun; bx.beginPath(); bx.arc(cx,cy,pulse+R*0.06,0,6.29); bx.fill();
+                        bx.fillStyle='rgba(255,255,255,'+coreI+')'; bx.beginPath(); bx.arc(cx,cy,4+Math.sin(t*7)*1.6,0,6.29); bx.fill();
+                        bx.globalCompositeOperation='source-over';
+                    }
+                    // ПЫЛЬ с краёв → вихрь
+                    if(dustT>0){ bx.globalCompositeOperation='lighter';
+                        for(var d=0;d<dust.length;d++){ var pt=dust[d], px,py,la,vx=0,vy=0;
+                            if(!dustAlive){ var tt2=easeOut(clamp(dustT+(d%20)/60)); px=pt.sx+(pt.tx-pt.sx)*tt2; py=pt.sy+(pt.ty-pt.sy)*tt2; la=0.4+0.6*tt2; vx=px-pt.px; vy=py-pt.py; }
+                            else { pt.a+=pt.sp; pt.rad-=pt.pull; if(pt.rad<R*0.12) pt.rad=R*0.6+Math.random()*R*0.15; px=cx+Math.cos(pt.a)*pt.rad; py=cy+Math.sin(pt.a)*pt.rad*pt.ell; la=Math.min(1,(pt.rad-R*0.12)/(R*0.5)); }
+                            pt.px=px; pt.py=py; var fl=0.7+0.3*Math.sin(pt.tw+t*3), sz=pt.sz;
+                            if(!dustAlive){ var tl=Math.hypot(vx,vy); if(tl>0.6){ var tg=bx.createLinearGradient(px,py,px-vx*7,py-vy*7); tg.addColorStop(0,pal(pt.hue,0.5*la)); tg.addColorStop(1,pal(pt.hue,0)); bx.strokeStyle=tg; bx.lineWidth=sz*1.2; bx.beginPath(); bx.moveTo(px,py); bx.lineTo(px-vx*7,py-vy*7); bx.stroke(); } }
+                            var pg=bx.createRadialGradient(px,py,0,px,py,sz*3); pg.addColorStop(0,pal(pt.hue,0.8*la*fl)); pg.addColorStop(1,pal(pt.hue,0));
+                            bx.fillStyle=pg; bx.beginPath(); bx.arc(px,py,sz*3,0,6.29); bx.fill();
+                            bx.fillStyle=pal(pt.hue,la*fl); bx.beginPath(); bx.arc(px,py,sz,0,6.29); bx.fill();
+                        } bx.globalCompositeOperation='source-over';
+                    }
+                    // проекция узлов
+                    var pc=nodes.map(function(n){return proj(n.lat,n.lon,rot);});
+                    // МОЛНИИ ПРОБИВАЮТ ядро
+                    if(e>T_pierceS && e<T_pierceE && Math.random()<0.3){ var pa=Math.random()*6.28; bolts.push({pts:jag(cx+Math.cos(pa)*150,cy+Math.sin(pa)*150,cx,cy,20,6),w:2.2,life:1,max:1}); }
+                    // СЕТКА ТКЁТСЯ МОЛНИЯМИ (узлы раскрываются, дуги-молнии по рёбрам)
+                    if(revealN>0){
+                        var revealed=new Array(nodes.length).fill(false); for(var r=0;r<revealN;r++) revealed[revealOrder[r]]=true;
+                        // постоянные линии между раскрытыми
+                        bx.lineWidth=1;
+                        for(var a1=0;a1<nodes.length;a1++){ if(!revealed[a1])continue; var pp=pc[a1], dep=(pp.z+1)/2;
+                            for(var b1=a1+1;b1<nodes.length;b1++){ if(!revealed[b1])continue; var dl=Math.abs(nodes[a1].lat-nodes[b1].lat), dg=Math.abs(nodes[a1].lon-nodes[b1].lon);
+                                if(dl<near&&(dg<near+0.02||dg>6.28-near-0.02)){ var p2=pc[b1], d2=(p2.z+1)/2, al=(0.1+0.4*((dep+d2)/2)); bx.strokeStyle='rgba(150,180,255,'+al+')'; bx.beginPath(); bx.moveTo(pp.x,pp.y); bx.lineTo(p2.x,p2.y); bx.stroke(); } } }
+                        // узлы + импульс-молния к свежим
+                        bx.globalCompositeOperation='lighter';
+                        for(var r2=0;r2<revealN;r2++){ var ni=revealOrder[r2], p=pc[ni], depth=(p.z+1)/2, tw=0.6+0.4*Math.sin(t*3+nodes[ni].ph);
+                            var fresh=r2>revealN-5?(1-(revealN-r2)/5):0;
+                            bx.fillStyle='rgba(200,225,255,'+Math.min(1,(0.3+0.6*depth)*tw+fresh*0.8)+')'; bx.beginPath(); bx.arc(p.x,p.y,(1.2+2*depth)+fresh*2.5,0,6.29); bx.fill();
+                            if(fresh>0.55 && Math.random()<0.5) bolts.push({pts:jag(cx,cy,p.x,p.y,9,4),w:1.3,life:0.9,max:0.9});
+                        }
+                        bx.globalCompositeOperation='source-over';
+                    }
+                    // отрисовка молний
+                    for(var bi=bolts.length-1;bi>=0;bi--){ var bb=bolts[bi]; if(frameN%2===0) bb.pts=jag(bb.pts[0][0],bb.pts[0][1],bb.pts[bb.pts.length-1][0],bb.pts[bb.pts.length-1][1],10,bb.pts.length-1); drawBolt(bb.pts,bb.w,Math.min(1,bb.life/bb.max*1.4)); bb.life-=0.13; if(bb.life<=0) bolts.splice(bi,1); }
+                    // ЗАВЕРШЕНИЕ — передаём эстафету рабочему орбу
+                    if(e>=T_done){ cancelAnimationFrame(raf); bx.clearRect(0,0,PWc,PHc); onDone&&onDone(); }
+                }
+                raf=requestAnimationFrame(frame);
+            }
             // выжигание текста молнией: буквы проявляются, из орба бьёт молния (5 слов медленно → разгон)
             var writeTimer = null;
             function burnText(el){
@@ -2645,10 +2747,19 @@
                 document.getElementById('greetProgress').innerHTML = prog;
                 highlight(step);
                 positionForStep(idx);
-                // ШАГ 1: молнии пробивают орб пока он рождается (2.8с), потом текст
-                if(idx===0){ try{ var oc0=orbCenter(); var pk=0; var pierce=setInterval(function(){ pk++; var a=Math.random()*6.28; fxBolt(oc0.x+Math.cos(a)*140, oc0.y+Math.sin(a)*140, oc0.x, oc0.y, false); if(pk>10) clearInterval(pierce); }, 260); }catch(e){} }
-                // выжигаем текст молнией (орб уже переехал — молнии полетят из нового места)
-                setTimeout(function(){ burnText(txtEl); }, idx===0 ? 3200 : 1600);
+                if(idx===0){
+                    // ПОЛНОЕ РОЖДЕНИЕ: прячем рабочий орб и текст, запускаем фазовую сборку
+                    var of0=document.getElementById('greetOrbFree'); if(of0) of0.style.opacity='0';
+                    var gb0=document.getElementById('greetBox'); if(gb0){ gb0.style.transition='opacity .5s'; gb0.style.opacity='0'; }
+                    var oc0=orbCenter();
+                    runBirth(oc0.x, oc0.y, function(){
+                        if(of0) of0.style.opacity='1';    // рабочий орб проявляется на месте рождения
+                        if(gb0) gb0.style.opacity='1';
+                        burnText(txtEl);                  // текст выжигается
+                    });
+                } else {
+                    setTimeout(function(){ burnText(txtEl); }, 1600);
+                }
                 speak(step.voice);
             }
 
