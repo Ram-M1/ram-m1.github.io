@@ -502,6 +502,7 @@ initAtmosphere(canvasId) {
         const typing = addMsg('typing', 'ИИ-психолог печатает...');
 
         if (window.fbAskAI) {
+            try { if (window.FocusStorage && FocusStorage.canUseAI && !FocusStorage.canUseAI('mood','text').ok) { typing.remove(); addMsg('ai', '🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку в магазине.'); return; } } catch(e){}
             // строим историю для ИИ: только реальные реплики, и ОБЯЗАТЕЛЬНО начиная с user
             // (DeepSeek требует чтобы после system первым шло сообщение пользователя)
             let hist = chatLog
@@ -544,6 +545,7 @@ initAtmosphere(canvasId) {
 
             typing.remove();
             if (res.ok && res.reply && res.reply.trim()) {
+                try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('mood','text'); } catch(e){}
                 addMsg('ai', res.reply.trim());
                 chatLog.push({ role:'ai', text: res.reply.trim() });
             } else {

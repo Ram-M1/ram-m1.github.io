@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<title>Реквизиты и оферта — FOCUS</title>
+<style>
+    :root {
+        --accent: #FFD966; --accent-rgb: 255,217,102;
+        --accent-2: #7C8CFF; --accent-2-rgb: 124,140,255;
+        --accent-light: #FFE9A8; --accent-dark: #C9952E;
+        --bg-1: #131319; --bg-2: #0d0d12; --text-strong: #FFFFFF;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    body {
+        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+        background:
+            radial-gradient(1200px 500px at 50% -10%, rgba(var(--accent-rgb),0.06), transparent 60%),
+            radial-gradient(900px 500px at 100% 100%, rgba(var(--accent-2-rgb),0.05), transparent 55%),
+            var(--bg-2);
+        color:#e8e8ee; line-height:1.65; padding:26px 18px 70px; min-height:100vh;
+    }
+    .wrap { max-width:640px; margin:0 auto; }
+
+    /* Шапка с настоящим логотипом */
+    .head { display:flex; flex-direction:column; align-items:center; text-align:center; margin-bottom:26px; }
+    .logo-badge { position:relative; margin-bottom:10px; }
+    .logo-svg { width:64px; height:64px; display:block; filter:drop-shadow(0 4px 18px rgba(var(--accent-rgb),0.28)); }
+    .app-name { font-size:26px; font-weight:800; letter-spacing:1px;
+        background:linear-gradient(135deg, var(--accent-light), var(--accent) 55%, var(--accent-dark));
+        -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-top:8px; }
+    .doc-title { font-size:13px; color:#9a9aab; margin-top:6px; }
+    .updated { font-size:11.5px; color:#6f6f7d; margin-top:3px; }
+
+    .card {
+        background:linear-gradient(135deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015));
+        border:1px solid rgba(var(--accent-rgb),0.13);
+        border-radius:16px; padding:16px 18px; margin-bottom:14px;
+        box-shadow:0 2px 20px rgba(0,0,0,0.25);
+    }
+    h2 { font-size:14px; color:var(--text-strong); margin-bottom:11px; display:flex; align-items:center; gap:8px; }
+    h2 .num { width:22px; height:22px; border-radius:7px; flex-shrink:0;
+        background:linear-gradient(135deg, var(--accent), var(--accent-2));
+        color:#0a0a0f; font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+    p, li { font-size:13px; color:#c0c0cc; margin-bottom:7px; }
+    b { color:#e8e8ee; }
+    ul { padding-left:18px; margin-top:4px; }
+
+    .req-row { display:flex; gap:12px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.055); font-size:13px; align-items:baseline; }
+    .req-row:last-child { border-bottom:none; padding-bottom:0; }
+    .req-row .k { color:#8a8a96; min-width:140px; flex-shrink:0; }
+    .req-row .v { color:var(--text-strong); font-weight:600; }
+
+    .price { display:flex; justify-content:space-between; align-items:center; gap:12px;
+        background:linear-gradient(135deg, rgba(var(--accent-2-rgb),0.07), rgba(var(--accent-rgb),0.03));
+        border:1px solid rgba(var(--accent-2-rgb),0.18); border-radius:12px; padding:12px 14px; margin-bottom:8px; }
+    .price:last-child { margin-bottom:0; }
+    .price .n { font-weight:700; color:#fff; font-size:13.5px; }
+    .price .d { font-size:11.5px; color:#9a9aab; margin-top:2px; line-height:1.4; }
+    .price .p { color:var(--accent); font-weight:800; font-size:14px; white-space:nowrap; }
+    .note { font-size:12px; color:#8a8a96; font-style:italic; margin-top:8px; }
+    .foot { text-align:center; font-size:11.5px; color:#5f5f6b; margin-top:24px; line-height:1.7; }
+    .foot .brand-sm { color:var(--accent); font-weight:700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+    <div class="head">
+        <div class="logo-badge">
+            <div class="logo-svg">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="logoGrad" x1="0" y1="0" x2="100" y2="100">
+                            <stop offset="0%" style="stop-color:var(--accent-light)"/>
+                            <stop offset="55%" style="stop-color:var(--accent)"/>
+                            <stop offset="100%" stop-color="#B8862A"/>
+                        </linearGradient>
+                        <linearGradient id="logoRing" x1="0" y1="0" x2="100" y2="100">
+                            <stop offset="0%" style="stop-color:var(--accent)"/>
+                            <stop offset="100%" style="stop-color:var(--accent-2)"/>
+                        </linearGradient>
+                    </defs>
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent-2)" stroke-width="1.5" opacity="0.4"/>
+                    <circle cx="50" cy="50" r="32" fill="none" stroke="url(#logoRing)" stroke-width="5"/>
+                    <g fill="url(#logoGrad)">
+                        <rect x="38" y="34" width="26" height="9" rx="4.5"/>
+                        <rect x="38" y="34" width="9" height="33" rx="4.5"/>
+                        <rect x="38" y="47" width="19" height="8" rx="4"/>
+                    </g>
+                </svg>
+            </div>
+        </div>
+        <div class="app-name">FOCUS</div>
+        <div class="doc-title">Публичная оферта и реквизиты продавца</div>
+        <div class="updated">Обновлено 08.07.2026</div>
+    </div>
+
+    <div class="card">
+        <h2><span class="num">1</span> Продавец</h2>
+        <div class="req-row"><span class="k">Продавец</span><span class="v">Мурсалимов Рамиль Маратович</span></div>
+        <div class="req-row"><span class="k">Статус</span><span class="v">Самозанятый (плательщик НПД)</span></div>
+        <div class="req-row"><span class="k">ИНН</span><span class="v">638204536826</span></div>
+        <div class="req-row"><span class="k">Email</span><span class="v">moorsalimov@mail.ru</span></div>
+        <div class="req-row"><span class="k">Сайт</span><span class="v">focus-one.ru</span></div>
+        <p class="note">Продавец применяет специальный налоговый режим «Налог на профессиональный доход». Чек формируется автоматически и направляется покупателю.</p>
+    </div>
+
+    <div class="card">
+        <h2><span class="num">2</span> Товары и цены</h2>
+        <p>FOCUS — приложение для саморазвития. Продаются цифровые товары: доступ к расширенным функциям (подписки) и внутренняя валюта.</p>
+        <div class="price"><div><div class="n">Подписка «Лайт»</div><div class="d">Расширенные функции, лимит ИИ 3 на раздел в месяц</div></div><div class="p">333 ₽/мес</div></div>
+        <div class="price"><div><div class="n">Подписка «Плюс»</div><div class="d">Больше функций, лимит ИИ 5 на раздел в месяц</div></div><div class="p">555 ₽/мес</div></div>
+        <div class="price"><div><div class="n">Подписка «Про»</div><div class="d">Максимум функций, лимит ИИ 10 на раздел в месяц</div></div><div class="p">777 ₽/мес</div></div>
+        <div class="price"><div><div class="n">F-coin — внутренняя валюта</div><div class="d">Для ИИ-запросов сверх лимита и функций приложения</div></div><div class="p">от 1 ₽</div></div>
+        <p class="note">Актуальные цены и пакеты — в приложении, раздел «Магазин».</p>
+    </div>
+
+    <div class="card">
+        <h2><span class="num">3</span> Как получить товар</h2>
+        <p>Товар цифровой. Доступ предоставляется <b>автоматически и сразу</b> после успешной оплаты: подписка активируется, F-coin зачисляются на баланс в приложении. Физической доставки нет.</p>
+    </div>
+
+    <div class="card">
+        <h2><span class="num">4</span> Оплата</h2>
+        <p>Оплата принимается онлайн через сервис ЮKassa по СБП (Система быстрых платежей). Платежи защищены. После оплаты покупатель получает чек на указанные контактные данные.</p>
+    </div>
+
+    <div class="card">
+        <h2><span class="num">5</span> Возврат</h2>
+        <p>Товар цифровой, доступ предоставляется мгновенно, поэтому возврат осуществляется в соответствии с законодательством РФ. Если товар не был предоставлен по технической причине (доступ не активировался, а средства списаны) — обратитесь по контактам ниже, средства вернутся в течение 10 рабочих дней.</p>
+    </div>
+
+    <div class="card">
+        <h2><span class="num">6</span> Публичная оферта</h2>
+        <p>Настоящий документ является публичной офертой. Оплачивая товар в приложении FOCUS, покупатель полностью принимает условия оферты. Продавец обязуется предоставить оплаченный цифровой доступ, покупатель — оплатить товар по указанной цене.</p>
+        <p>Продавец не отвечает за работоспособность устройства покупателя, доступ в интернет и иные обстоятельства вне его контроля. Приложение предоставляется «как есть». Продавец вправе изменять функции, цены и условия, публикуя изменения на данной странице.</p>
+    </div>
+
+    <div class="card">
+        <h2><span class="num">7</span> Контакты</h2>
+        <div class="req-row"><span class="k">Email</span><span class="v">moorsalimov@mail.ru</span></div>
+        <div class="req-row"><span class="k">Время ответа</span><span class="v">1–2 рабочих дня</span></div>
+    </div>
+
+    <div class="foot">
+        <span class="brand-sm">FOCUS</span> · focus-one.ru<br>
+        Самозанятый Мурсалимов Рамиль Маратович · ИНН 638204536826
+    </div>
+
+</div>
+</body>
+</html>

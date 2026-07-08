@@ -563,6 +563,7 @@ initAtmosphere(canvasId) {
 
         // РЕАЛЬНЫЙ ИИ (DeepSeek)
         if (window.fbAskAI) {
+            try { if (window.FocusStorage && FocusStorage.canUseAI && !FocusStorage.canUseAI('energy','text').ok) { el.innerHTML = '🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.'; return; } } catch(e){}
             const chargeStr = markedCharge.map(x=>x.name+' (сила '+x.p+'/4)').join(', ') || 'нет';
             const drainStr = markedDrain.map(x=>x.name+' (сила '+x.p+'/4)').join(', ') || 'нет';
             const sleepStr = sleep ? ('Сон: '+Math.round(sleep.hours)+' часов.') : '';
@@ -572,6 +573,7 @@ initAtmosphere(canvasId) {
             ];
             const res = await window.fbAskAI(prompt, 400);
             if (res.ok) {
+                try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('energy','text'); } catch(e){}
                 el.innerHTML = '🧠 ' + res.reply.replace(/</g,'&lt;').replace(/\n/g,'<br>');
                 rewardOncePerDay();
                 return;

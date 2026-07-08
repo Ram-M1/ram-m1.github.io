@@ -52,6 +52,7 @@
 </div>
 
 <script src="focus-astro.js"></script>
+<script src="focus-storage.js"></script>
 <script src="focus-core.js"></script>
 <script src="focus-ai.js"></script>
 <script src="firebase-config.js"></script>
@@ -98,7 +99,9 @@
             { role:'user', content: 'Мой знак: ' + z.sign + '. ' + astroCtx + '. Гороскоп на сегодня.' }
         ];
         if (!window.fbAskAI) { area.innerHTML = '<div class="forecast-card">ИИ недоступен.</div>'; return; }
+        try { if (window.FocusStorage && FocusStorage.canUseAI && !FocusStorage.canUseAI('astro','text').ok) { area.innerHTML = '<div class="forecast-card">🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.</div>'; return; } } catch(e){}
         let res = await window.fbAskAI(messages, 400);
+        if (res && res.ok) { try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('astro','text'); } catch(e){} }
         area.innerHTML = (res.ok && res.reply && res.reply.trim())
             ? '<div class="forecast-card">' + res.reply.trim().replace(/</g,'&lt;') + '</div>'
             : '<div class="forecast-card">⚠️ ' + (res.error || 'Ошибка') + '</div>';
@@ -114,7 +117,9 @@
             { role:'user', content: 'Мои астро-данные: ' + astroCtx + '.\n' + (aboutText ? ('Обо мне: ' + aboutText + '\n') : '') + 'Составь мой астропрогноз судьбы.' }
         ];
         if (!window.fbAskAI) { area.innerHTML = '<div class="forecast-card">ИИ недоступен, обнови страницу.</div>'; return; }
+        try { if (window.FocusStorage && FocusStorage.canUseAI && !FocusStorage.canUseAI('astro','text').ok) { area.innerHTML = '<div class="forecast-card">🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.</div>'; return; } } catch(e){}
         let res = await window.fbAskAI(messages, 600);
+        if (res && res.ok) { try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('astro','text'); } catch(e){} }
         area.innerHTML = (res.ok && res.reply && res.reply.trim())
             ? '<div class="forecast-card">' + res.reply.trim().replace(/</g,'&lt;') + '</div>'
             : '<div class="forecast-card">⚠️ Не удалось получить прогноз. ' + (res.error || '') + '</div>';

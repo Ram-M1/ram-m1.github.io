@@ -383,7 +383,11 @@
             </div>
             <button class="modal-btn-primary" id="confirmBtn">Оплатить</button>
             <button class="modal-btn-secondary" id="cancelBtn">Отмена</button>
+            <div style="text-align:center;font-size:11px;color:#8a8a96;margin-top:10px;line-height:1.5;">Оплачивая, вы принимаете <a href="rekvizity.html" target="_blank" style="color:var(--accent-2,#7C8CFF);">публичную оферту</a></div>
         </div>
+    </div>
+    <div style="text-align:center;padding:20px 0 8px;font-size:12px;color:#7a7a88;line-height:1.7;">
+        <a href="rekvizity.html" target="_blank" style="color:#8a8a96;text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.15);padding-bottom:1px;">Публичная оферта и реквизиты</a>
     </div>
 </div>
 <script src="focus-storage.js"></script>
@@ -740,16 +744,33 @@
             });
             const data = await res.json();
             if (data && data.ok && data.paid) {
-                // платёж прошёл — начисляем купленные монеты
-                let bought = 0;
-                try { bought = parseInt(localStorage.getItem('focus_coins_bought')) || 0; } catch(e){}
-                localStorage.setItem('focus_coins_bought', String(bought + pending.coins));
-                userCoins += pending.coins;
-                try { FocusStorage.addCoins(pending.coins); } catch(e){}
-                localStorage.removeItem('focus_pending_payment');
-                updateBalanceUI();
-                coinFX(pending.coins, 'Оплата прошла!', document.getElementById('buyCoinsBtn'));
-                toast('✓ Начислено ' + pending.coins + ' F-coin!');
+                // платёж прошёл
+                if (pending.plan) {
+                    // это была ПОДПИСКА — списываем остаток коинов и активируем
+                    if (pending.spendCoins) {
+                        try { FocusStorage.spendCoins(pending.spendCoins); } catch(e){}
+                    }
+                    if (typeof FocusStorage.setSubscription === 'function') {
+                        FocusStorage.setSubscription(pending.plan, pending.planDays || 30);
+                    } else {
+                        const until = new Date(Date.now() + (pending.planDays || 30)*24*60*60*1000).toISOString();
+                        FocusStorage.saveUser({ subscription: pending.plan, subscriptionUntil: until });
+                    }
+                    localStorage.removeItem('focus_pending_payment');
+                    updateBalanceUI();
+                    toast('✓ Подписка «' + pending.plan + '» активирована!');
+                } else {
+                    // это была покупка коинов — начисляем купленные монеты
+                    let bought = 0;
+                    try { bought = parseInt(localStorage.getItem('focus_coins_bought')) || 0; } catch(e){}
+                    localStorage.setItem('focus_coins_bought', String(bought + pending.coins));
+                    userCoins += pending.coins;
+                    try { FocusStorage.addCoins(pending.coins); } catch(e){}
+                    localStorage.removeItem('focus_pending_payment');
+                    updateBalanceUI();
+                    coinFX(pending.coins, 'Оплата прошла!', document.getElementById('buyCoinsBtn'));
+                    toast('✓ Начислено ' + pending.coins + ' F-coin!');
+                }
             } else if (data && data.canceled) {
                 localStorage.removeItem('focus_pending_payment');
             }
@@ -791,26 +812,56 @@
         modal.classList.add('show');
     }
 
-    document.getElementById('confirmBtn').addEventListener('click', () => {
+    document.getElementById('confirmBtn').addEventListener('click', async () => {
+        // Хватает коинов — оплата коинами (реально)
         if (userCoins >= selectedPlan.priceCoin) {
             userCoins -= selectedPlan.priceCoin;
+            try { FocusStorage.spendCoins(selectedPlan.priceCoin); } catch(e){}
             updateBalanceUI();
             coinFX(selectedPlan.priceCoin, `За подписку «${selectedPlan.name}»`, document.getElementById('confirmBtn'));
+            // активируем подписку на 30 дней
+            if (typeof FocusStorage.setSubscription === 'function') {
+                FocusStorage.setSubscription(selectedPlan.name, 30);
+            } else {
+                const until = new Date(Date.now() + 30*24*60*60*1000).toISOString();
+                FocusStorage.saveUser({ subscription: selectedPlan.name, subscriptionUntil: until });
+            }
             toast(`Подписка «${selectedPlan.name}» активирована! Списано ${selectedPlan.priceCoin} F-coins.`);
-        } else {
-            const shortage = selectedPlan.priceCoin - userCoins;
-            toast(`Подписка «${selectedPlan.name}» активирована! (доплата ${shortage} ₽ — симуляция)`);
-            userCoins = 0;
-            updateBalanceUI();
+            document.getElementById('purchaseModal').classList.remove('show');
+            return;
         }
-        // Активируем подписку на 30 дней (метод сам посчитает дату окончания)
-        if (typeof FocusStorage.setSubscription === 'function') {
-            FocusStorage.setSubscription(selectedPlan.name, 30);
-        } else {
-            const until = new Date(Date.now() + 30*24*60*60*1000).toISOString();
-            FocusStorage.saveUser({ subscription: selectedPlan.name, subscriptionUntil: until });
+
+        // Не хватает — доплата рублями через РЕАЛЬНЫЙ СБП-платёж (не симуляция!)
+        const shortage = selectedPlan.priceCoin - userCoins;
+        const btn = document.getElementById('confirmBtn');
+        btn.disabled = true;
+        toast('Создаю оплату через СБП...');
+        try {
+            const res = await fetch((window.FOCUS_AI_PROXY || 'https://focus-ai.playing-life-rama.workers.dev') + '/create-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: shortage,
+                    coins: 0,
+                    plan: selectedPlan.name,
+                    planDays: 30,
+                    userId: (FocusStorage.getUser().uid || FocusStorage.getUser().email || 'guest'),
+                    description: 'Подписка «' + selectedPlan.name + '» в FOCUS'
+                })
+            });
+            const data = await res.json();
+            if (data && data.ok && data.confirmationUrl) {
+                // запоминаем ожидающую подписку — активируем после успешной оплаты по возврату
+                try { localStorage.setItem('focus_pending_payment', JSON.stringify({ paymentId: data.paymentId, plan: selectedPlan.name, planDays: 30, spendCoins: userCoins, ts: Date.now() })); } catch(e){}
+                location.href = data.confirmationUrl;
+            } else {
+                toast(data && data.error ? data.error : 'Оплата временно недоступна');
+                btn.disabled = false;
+            }
+        } catch(e) {
+            toast('Ошибка оплаты, попробуй позже');
+            btn.disabled = false;
         }
-        document.getElementById('purchaseModal').classList.remove('show');
     });
 
     document.getElementById('cancelBtn').addEventListener('click', () => {

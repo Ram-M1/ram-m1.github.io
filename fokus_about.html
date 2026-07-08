@@ -445,9 +445,11 @@ initAtmosphere(canvasId) {
             { role:'user', content: userStory }
         ];
 
+        try { if (window.FocusStorage && FocusStorage.canUseAI && !FocusStorage.canUseAI('about','text').ok) { textEl.innerHTML = '🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.'; noteEl.innerHTML=''; result.classList.add('show'); return; } } catch(e){}
         let res = await window.fbAskAI(messages, 600);
 
         if (res.ok && res.reply && res.reply.trim()) {
+            try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('about','text'); } catch(e){}
             textEl.innerHTML = res.reply.trim().replace(/</g,'&lt;').replace(/\n/g,'<br>');
             noteEl.innerHTML = '🪞 Это разбор для размышления, а не диагноз. За профессиональной оценкой обращайся к психологу.';
             toast('Разбор готов ✓');

@@ -1248,6 +1248,12 @@ initAtmosphere(canvasId) {
         }
         if (!window.fbAskAI) { toast('ИИ недоступен, обнови страницу'); return; }
 
+        // есть ли фото-анализы для vision-разбора?
+        const photoDoc = docs.find(d => d.type === 'image' && d.data);
+        // гейт лимита: фото — дороже (photo), текст — обычный
+        const _aiType = (photoDoc && window.fbAskAIVision) ? 'photo' : 'text';
+        try { if (window.FocusStorage && FocusStorage.canUseAI && !FocusStorage.canUseAI('body', _aiType).ok) { toast('🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.'); return; } } catch(e){}
+
         let resBox = document.getElementById('aiLabResult');
         if (!resBox) {
             resBox = document.createElement('div');
@@ -1255,9 +1261,6 @@ initAtmosphere(canvasId) {
             resBox.style.cssText = 'margin-top:12px;padding:14px;background:rgba(124,140,255,0.08);border:1px solid rgba(124,140,255,0.25);border-radius:14px;font-size:13px;color:#e8e8ee;line-height:1.6;';
             document.getElementById('aiConsultBtn').after(resBox);
         }
-
-        // есть ли фото-анализы для vision-разбора?
-        const photoDoc = docs.find(d => d.type === 'image' && d.data);
 
         if (photoDoc && window.fbAskAIVision) {
             // РАЗБОР ФОТО через vision
@@ -1268,6 +1271,7 @@ initAtmosphere(canvasId) {
             ];
             const res = await window.fbAskAIVision(prompt, photoDoc.data, 700);
             if (res.ok) {
+                try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('body','photo'); } catch(e){}
                 resBox.innerHTML = '🧠 ' + res.reply.replace(/</g,'&lt;').replace(/\n/g,'<br>') + '<br><br><span style="font-size:11px;color:#9a9aab;">⚠️ Не заменяет врача. При проблемах обратись к специалисту.</span>';
             } else {
                 // vision не сработал — покажем причину + предложим текстовый ввод
@@ -1291,6 +1295,7 @@ initAtmosphere(canvasId) {
         ];
         const res = await window.fbAskAI(prompt, 500);
         if (res.ok) {
+            try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('body','text'); } catch(e){}
             resBox.innerHTML = '🧠 ' + res.reply.replace(/</g,'&lt;').replace(/\n/g,'<br>') + '<br><br><span style="font-size:11px;color:#9a9aab;">⚠️ Не заменяет врача.</span>';
         } else {
             resBox.innerHTML = '⚠️ ИИ недоступен: ' + (res.error||'ошибка');

@@ -238,7 +238,7 @@
         0%, 100% { box-shadow: 0 0 6px rgba(var(--accent-rgb),0.15); }
         50% { box-shadow: 0 0 18px rgba(var(--accent-rgb),0.4); }
     }
-    .ai-focus-card { background:linear-gradient(135deg, rgba(var(--accent-2-rgb),0.1), rgba(var(--accent-rgb),0.04)); border:1px solid rgba(var(--accent-2-rgb),0.25); border-radius:12px; padding:7px 10px; margin-bottom:6px; position:relative; }
+    .ai-focus-card { background:linear-gradient(135deg, rgba(var(--accent-2-rgb),0.1), rgba(var(--accent-rgb),0.04)); border:1px solid rgba(var(--accent-2-rgb),0.25); border-radius:12px; padding:7px 10px; margin-bottom:5px; position:relative; }
     .ai-card-head { display:flex; align-items:center; gap:6px; margin-bottom:2px; }
     .ai-card-title { font-size:12px; font-weight:700; color:var(--accent-2); }
     .ai-card-hint { font-size:10px; color:#9a9aab; margin-bottom:7px; line-height:1.25; }
@@ -270,7 +270,7 @@
     .ai-send-btn { width:36px; height:36px; flex-shrink:0; border-radius:10px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); display:flex; align-items:center; justify-content:center; color:#0a0a0f; cursor:pointer; }
     .ai-send-btn svg { width:15px; height:15px; }
     .ai-send-btn:active { transform:scale(0.92); }
-    .ai-result { margin-top:7px; font-size:11.5px; font-weight:600; display:none; align-items:center; gap:6px; padding:8px 10px; border-radius:9px; background:rgba(120,220,150,0.12); border:1px solid rgba(120,220,150,0.3); color:#78DC96; line-height:1.3; }
+    .ai-result { margin-top:7px; font-size:11.5px; font-weight:600; display:none; align-items:center; gap:6px; padding:8px 10px; border-radius:9px; background:rgba(120,220,150,0.12); border:1px solid rgba(120,220,150,0.3); color:#78DC96; line-height:1.3; max-height:120px; overflow-y:auto; }
     .ai-result.show { display:flex; }
     .ai-result.unknown { background:rgba(255,200,90,0.1); border-color:rgba(255,200,90,0.3); color:#FFD98A; }
 
@@ -278,8 +278,8 @@
         background: linear-gradient(135deg, rgba(var(--accent-2-rgb),0.07), rgba(var(--accent-rgb),0.04));
         border: 1px solid rgba(var(--accent-2-rgb),0.18);
         border-radius: 12px;
-        padding: 7px 13px;
-        margin-bottom: 8px;
+        padding: 5px 12px;
+        margin-bottom: 5px;
         position: relative;
     }
     .quote-container::before {
@@ -299,13 +299,13 @@
         letter-spacing: 0.1px;
     }
     .quote-author { font-size: 9px; color: var(--accent-2); letter-spacing: 0.6px; text-transform: uppercase; font-weight: 600; }
-    .life-timer { background:linear-gradient(135deg, rgba(255,120,80,0.08), rgba(var(--accent-rgb),0.03)); border:0.5px solid rgba(255,140,90,0.2); border-radius:12px; padding:7px 13px; margin-bottom:6px; text-align:center; }
+    .life-timer { background:linear-gradient(135deg, rgba(255,120,80,0.08), rgba(var(--accent-rgb),0.03)); border:0.5px solid rgba(255,140,90,0.2); border-radius:12px; padding:5px 12px; margin-bottom:5px; text-align:center; }
     .lt-row { display:flex; align-items:center; justify-content:center; gap:7px; }
     .lt-hourglass { width:15px; height:19px; flex-shrink:0; }
     .lt-word { font-size:11px; color:#FF9C64; font-weight:600; }
     .lt-time { font-size:14px; font-weight:800; color:var(--accent); font-variant-numeric:tabular-nums; letter-spacing:0.3px; text-shadow:0 0 12px rgba(var(--accent-rgb),0.4); }
     .lt-sub { font-size:9.5px; color:#8a8a96; margin-top:4px; letter-spacing:0.1px; }
-    .lt-bar { height:4px; background:rgba(255,255,255,0.08); border-radius:3px; margin-top:8px; overflow:hidden; }
+    .lt-bar { height:3px; background:rgba(255,255,255,0.08); border-radius:3px; margin-top:5px; overflow:hidden; }
     .lt-fill { height:100%; background:linear-gradient(90deg,#FF9C64,#FFD966); border-radius:3px; transition:width 0.5s; }
     .focus-grid {
         display: flex;
@@ -320,12 +320,12 @@
     .focus-tile {
         background: linear-gradient(135deg, rgba(35,35,46,0.42), rgba(22,22,30,0.42));
         border-radius: 14px;
-        padding: 11px 14px;
+        padding: 15px 16px;
         border: 0.5px solid rgba(var(--accent-rgb),0.12);
         cursor: pointer;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 13px;
         transition: 0.35s cubic-bezier(.2,.8,.2,1);
         opacity: 0;
         transform: translateY(10px);
@@ -1731,6 +1731,19 @@
             return matched;
         }
 
+        // извлечь ПОЛЕЗНЫЙ текст из команды (что заполнять) — убрать глаголы и триггер-слово
+        // ВАЖНО: \b не работает с кириллицей в JS, поэтому границы через пробелы/начало
+        function extractContent(text, rule){
+            let t = ' ' + (text||'').replace(/\s+/g,' ') + ' ';
+            const verbs = ['заполни','заполнить','запиши','запишите','отметь','отметьте','отметить','добавь','добавить','поставь','сделал','сделала','занёс','занеси','пожалуйста','можешь','мою','мой','моё','свою','сегодня','что','чтобы','я','ты','мне','был','была','очень'];
+            verbs.forEach(v => { t = t.replace(new RegExp('\\s' + v + '(?=\\s)', 'gi'), ' '); });
+            // убрать сработавшее ключевое слово + его хвост
+            (rule.kw||[]).forEach(k => { try { t = t.replace(new RegExp('\\s*' + k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '[а-яёА-ЯЁ]*', 'gi'), ' '); } catch(e){} });
+            // убрать ведущие предлоги/связки
+            for (let i=0;i<3;i++) t = t.replace(/^\s*(за|что|про|о|об|на|это|в|и)(?=\s)/i, ' ');
+            return t.replace(/\s+/g,' ').trim();
+        }
+
         const input = document.getElementById('aiInput');
         const result = document.getElementById('aiResult');
         const sendBtn = document.getElementById('aiSendBtn');
@@ -1742,67 +1755,84 @@
             if (!text) { input.focus(); return; }
             const matched = recognize(text);
             if (matched.length > 0) {
-                // распознали команду — записываем активность + отмечаем раздел выполненным
+                // разделы, которым НУЖЕН текст (не просто галочка)
+                const SEC_MAP = { contact:'relationships', habit:'faith_habits' };
+                const CONTENT_SECTIONS = ['gratitude','nutrition','braindump','mood','wishmap','relationships','faith_habits'];
+                const filledMsgs = [];
+                let needContent = null;
                 matched.forEach(m => {
                     try {
+                        const secId = SEC_MAP[m.action] || m.action;
+                        const content = extractContent(text, m);
+                        const isContentSec = CONTENT_SECTIONS.indexOf(secId) !== -1;
+                        // контентный раздел без текста — не отмечаем впустую, попросим текст
+                        if (isContentSec && !content) { needContent = m; return; }
+                        // награда/активность + галочка
                         if (window.FocusRewards) FocusRewards.mark(m.sphere, m.action);
                         else { FocusStorage.addActivity(m.sphere, m.action); FocusStorage.addCoins(1); }
-                        // отмечаем конкретный раздел как выполненный сегодня (как будто сам заполнил)
                         markSectionDone(m.action);
+                        // РЕАЛЬНО сохранить контент через реестр разделов
+                        if (content && window.FocusSections && FocusSections.SECTIONS[secId]) {
+                            const msg = FocusSections.fill(secId, content);
+                            if (msg) filledMsgs.push(msg);
+                        }
                     } catch(e){}
                 });
-                const labels = matched.map(m => m.label).join(', ');
                 result.className = 'ai-result show';
-                result.innerHTML = '<span class="check">✓</span> Отмечено: ' + labels + ' &nbsp;<span style="opacity:0.7;font-size:12px;">→ идёт в зачёт недели</span>';
+                if (needContent && !filledMsgs.length) {
+                    result.className = 'ai-result show unknown';
+                    const what = needContent.label.split('·').pop().trim();
+                    result.innerHTML = '📝 Напиши что именно записать в «' + what + '». Например: «благодарен за здоровье и семью».';
+                } else if (filledMsgs.length) {
+                    result.innerHTML = '<span class="check">✓</span> ' + filledMsgs.join('; ').replace(/</g,'&lt;');
+                } else {
+                    const labels = matched.map(m => m.label).join(', ');
+                    result.innerHTML = '<span class="check">✓</span> Отмечено: ' + labels + ' &nbsp;<span style="opacity:0.7;font-size:12px;">→ идёт в зачёт недели</span>';
+                }
                 input.value = '';
             } else {
-                // не быстрая команда — отвечаем прямо в компактном виде (та же логика, без открытия чата)
-                if (window.fbAskAI) {
+                // разговорный запрос — открываем расширенный чат и отвечаем ТАМ (один диалог, одна память, без распирания карточки)
+                if (window.fbAskAI && window._focusOpenChatWith) {
+                    let canAsk = true;
+                    try { if (FocusStorage.canUseAI) canAsk = FocusStorage.canUseAI('mentor', 'text').ok; } catch(e){}
+                    if (!canAsk) {
+                        result.className = 'ai-result show unknown';
+                        result.innerHTML = '🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.';
+                        clearTimeout(window._aiTimer);
+                        window._aiTimer = setTimeout(() => { result.className = 'ai-result'; }, 8000);
+                        return;
+                    }
+                    result.className = 'ai-result';
+                    window._focusOpenChatWith(text);
+                    input.value = '';
+                    return;
+                } else if (window.fbAskAI) {
+                    // фолбэк: чат ещё не готов — короткий ответ прямо в карточке
                     result.className = 'ai-result show';
                     result.innerHTML = '<span class="ai-thinking">🧠 Думаю...</span>';
                     let canAsk = true;
                     try { if (FocusStorage.canUseAI) canAsk = FocusStorage.canUseAI('mentor', 'text').ok; } catch(e){}
                     if (!canAsk) { result.innerHTML = '🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.'; return; }
-
                     const meUser = (function(){ try { return JSON.parse(localStorage.getItem('focus_user')) || {}; } catch(e){ return {}; } })();
                     const asstName = meUser.assistantName || 'ассистент';
-                    let astroCtx = '';
-                    try { if (meUser.birthDate && window.FocusAstro) astroCtx = FocusAstro.contextForAI(meUser); } catch(e){}
-
-                    // единая история (та же что в раскрытом чате) — с памятью 7 дней + облако
                     if (window.FocusChatMemory) FocusChatMemory.push({ role:'user', content: text });
-                    else { if (!window._focusChatHistory) window._focusChatHistory = []; window._focusChatHistory.push({ role:'user', content: text }); }
-
                     const sysPrompt = window._focusChatSystemPrompt ? window._focusChatSystemPrompt() :
-                        ('Тебя зовут ' + asstName + '. Ты умный ассистент FOCUS. Отвечай коротко, по делу, живым русским.' + (astroCtx ? (' Тип личности: ' + astroCtx + '.') : ''));
-                    const prompt = [{ role: 'system', content: sysPrompt }, ...(window.FocusChatMemory ? FocusChatMemory.recent(10) : window._focusChatHistory.slice(-10)).map(m=>({role:m.role,content:m.content}))];
-
+                        ('Тебя зовут ' + asstName + '. Ты умный ассистент FOCUS. Отвечай коротко, по делу, живым русским.');
+                    const prompt = [{ role: 'system', content: sysPrompt }, ...(window.FocusChatMemory ? FocusChatMemory.recent(10) : []).map(m=>({role:m.role,content:m.content}))];
                     let res = await window.fbAskAI(prompt, 500);
                     if (res.ok && res.reply && res.reply.trim()) {
-                        let full = res.reply.trim();
-                        if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: full });
-                        else window._focusChatHistory.push({ role:'assistant', content: full });
-                        let reply = full;
-                        // напоминание [REMIND:текст|когда]
-                        const remindMatch = reply.match(/\[REMIND:([^|\]]+)\|([^\]]+)\]/i);
-                        if (remindMatch && window.FocusReminders) {
-                            reply = reply.replace(/\[REMIND:[^\]]+\]/gi, '').trim();
-                            FocusReminders.schedule(remindMatch[1].trim(), remindMatch[2].trim());
-                        }
-                        const fillMatch = reply.match(/\[FILL:([a-z_]+)\|([^\]]+)\]/i);
-                        if (fillMatch && window._focusApplyFill) {
-                            reply = reply.replace(/\[FILL:[^\]]+\]/gi, '').trim();
-                            window._focusApplyFill(fillMatch[1].toLowerCase(), fillMatch[2].trim());
-                            result.innerHTML = '✅ ' + (reply || 'Записал!').replace(/</g,'&lt;');
-                        } else {
-                            result.innerHTML = '🧠 ' + reply.replace(/</g,'&lt;').replace(/\n/g,'<br>');
-                        }
+                        let reply = res.reply.trim();
+                        if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: reply });
+                        reply = reply.replace(/\[FILL:[^\]]+\]/gi, '').replace(/\[REMIND:[^\]]+\]/gi, '').trim();
+                        result.innerHTML = '🧠 ' + reply.replace(/</g,'&lt;').replace(/\n/g,'<br>');
                         try { if (FocusStorage.useAI) FocusStorage.useAI('mentor', 'text'); } catch(e){}
                         input.value = '';
                     } else {
                         result.className = 'ai-result show unknown';
                         result.innerHTML = '⚠️ ИИ не ответил. ' + (res.error || '');
                     }
+                    clearTimeout(window._aiTimer);
+                    window._aiTimer = setTimeout(() => { result.className = 'ai-result'; }, 8000);
                     return;
                 } else {
                     result.className = 'ai-result show unknown';
@@ -1891,12 +1921,16 @@
                         userCtx = FocusSections.userContext();
                     }
                 } catch(e){}
-                return 'Тебя зовут ' + asstName + '. Ты — умный персональный ассистент в приложении FOCUS (саморазвитие). ' +
-                    'Помогаешь с привычками, здоровьем, мышлением, мотивацией, ЗАПОЛНЯЕШЬ ЛЮБЫЕ РАЗДЕЛЫ за пользователя и СТАВИШЬ НАПОМИНАНИЯ.\n\n' +
+                return 'Тебя зовут ' + asstName + '. Ты — умный персональный ассистент-ИСПОЛНИТЕЛЬ в приложении FOCUS (саморазвитие). ' +
+                    'Работаешь как слуга: чётко и ГРАМОТНО делаешь всё за пользователя, ЗАПОЛНЯЕШЬ ЛЮБЫЕ РАЗДЕЛЫ и СТАВИШЬ НАПОМИНАНИЯ.\n\n' +
                     'ВСЕ РАЗДЕЛЫ (используй эти id в [FILL]): ' + (sectionsList || 'workout, nutrition, sleep, gratitude') + '.\n' +
-                    (userCtx ? ('ЧТО СОЗДАЛ ЮЗЕР: ' + userCtx + '.\n') : '') +
-                    '\nГЛАВНОЕ ПРАВИЛО: НЕ задавай лишних вопросов. Если команда понятна — делай СРАЗУ.\n' +
-                    'Максимум что можно — уточнить ОДНУ деталь, без которой нельзя корректно заполнить (например «запиши что поел» → спроси что именно). Во всех остальных случаях действуй сразу.\n\n' +
+                    (userCtx ? ('ЧТО СОЗДАЛ ЮЗЕР (его реальные данные — ОПИРАЙСЯ на них): ' + userCtx + '.\n') : '') +
+                    '\nПРАВИЛА ИСПОЛНИТЕЛЯ:\n' +
+                    '1. ИСПРАВЛЯЙ ОРФОГРАФИЮ И ОПЕЧАТКИ юзера — в раздел записывай ГРАМОТНО, с заглавной буквы. («зделал трениворку ног» → запиши «Тренировка ног»; «памидоры агурцы» → «Помидоры, огурцы»).\n' +
+                    '2. ЗНАЙ СОДЕРЖИМОЕ разделов (см. выше) — упражнения, тренировки, лекарства, БАДы, привычки, желания юзера. «заполни тренировку по плану» → возьми тренировку юзера из списка и отметь её.\n' +
+                    '   ПРАВИЛО СУЩЕСТВОВАНИЯ (для ЛЮБОГО раздела, где юзер сам создаёт сущности — тренировки, лекарства, БАДы и т.п.): если просят отметить/выполнить/принять то, чего НЕТ в его списках выше — НЕ выдумывай и НЕ ставь [FILL]. Скажи по-человечески: «У тебя пока нет такого-то — сначала создай/добавь его в разделе N». Работает для любых названий. Говори естественно: «тренировка ног», а не «программа Ноги».\n' +
+                    '   (Разделы куда можно свободно ДОБАВЛЯТЬ новое без предварительного создания: благодарность, разгрузка мозга, карта желаний, духовные привычки, питание, настроение, сон — туда просто записывай.)\n' +
+                    '3. НЕ задавай лишних вопросов — если понятно, делай СРАЗУ. Если данных реально не хватает (например «запиши что поел» без блюда) — задай ОДИН короткий уточняющий вопрос и НЕ ставь [FILL]. Всё ясно — заполняй сразу.\n\n' +
                     'ЗАПОЛНЕНИЕ РАЗДЕЛА: в конце ответа добавь служебную строку [FILL:id|данные], где id — из списка разделов выше.\n' +
                     'Примеры: [FILL:workout|Зарядка выполнена]  [FILL:sleep|7]  [FILL:nutrition|Овсянка]  [FILL:training|Тренировка ног по плану]  [FILL:gratitude|Благодарен за день]  [FILL:braindump|Позвонить маме]  [FILL:faith_habits|Утренняя молитва]\n' +
                     '«заполни тренировку по плану» → иди в training, отметь по программе юзера, заверши: [FILL:training|По программе завершена].\n\n' +
@@ -1913,6 +1947,7 @@
                 try {
                     if (window.FocusSections) {
                         const msg = FocusSections.fill(type, data);
+                        if (msg && msg.indexOf('__NEEDCREATE__') === 0) { addMsg('bot', msg.replace('__NEEDCREATE__','')); return; }
                         if (msg) { addFilled(msg); return; }
                         const sec = FocusSections.SECTIONS[type];
                         if (sec) { addFilled('Раздел «' + sec.name + '» лучше заполнить внутри — открой его. Могу поставить напоминание.'); return; }
@@ -1972,6 +2007,12 @@
 
             chatSend.addEventListener('click', sendChat);
             chatInput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') sendChat(); });
+
+            // ЕДИНЫЙ АССИСТЕНТ: открыть чат и сразу отправить сообщение из компактной карточки
+            window._focusOpenChatWith = function(text){
+                openChat();
+                setTimeout(function(){ chatInput.value = text; sendChat(); }, 320);
+            };
 
             // голосовой ввод в чате
             const SRc = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -2454,6 +2495,12 @@
             var target = new Date(birth);
             target.setFullYear(birth.getFullYear() + lifeGoal);
             timerEl.style.display = 'block';
+            function plural(n, one, few, many){
+                var n10 = n % 10, n100 = n % 100;
+                if (n10 === 1 && n100 !== 11) return one;
+                if (n10 >= 2 && n10 <= 4 && (n100 < 10 || n100 >= 20)) return few;
+                return many;
+            }
             function update(){
                 var now = new Date();
                 var msLeft = target - now;
@@ -2470,7 +2517,9 @@
                 var mins = Math.floor((afterD % 3600) / 60);
                 var secs = Math.floor(afterD % 60);
                 document.getElementById('ltMain').innerText =
-                    years + ' лет, ' + days + ' дней ' + String(hours).padStart(2,'0') + ':' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
+                    years + ' ' + plural(years,'год','года','лет') + ', ' +
+                    days + ' ' + plural(days,'день','дня','дней') + ' ' +
+                    String(hours).padStart(2,'0') + ':' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
             }
             update();
             setInterval(update, 1000);
