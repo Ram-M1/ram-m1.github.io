@@ -2357,7 +2357,7 @@
     #greetOverlay.has-spot::before { opacity:0; }
     .greet-spotlight { position:absolute; display:none; border-radius:20px;
         /* лёгкое затемнение вокруг + технологичная подсветка */
-        box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 25px 4px rgba(200,170,255,0.55), inset 0 0 20px rgba(200,170,255,0.15);
+        box-shadow:0 0 0 9999px rgba(3,3,7,0.94), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 25px 4px rgba(200,170,255,0.55), inset 0 0 20px rgba(200,170,255,0.15);
         pointer-events:none; transition:all 0.5s cubic-bezier(0.34,1.2,0.64,1); z-index:5001; }
     /* анимированные углы-скобки — технологичный вид */
     .greet-spotlight::before, .greet-spotlight::after { content:''; position:absolute; width:22px; height:22px; border:2.5px solid #FFD966; }
@@ -2368,11 +2368,12 @@
     .tour-glow { position:relative; z-index:5002 !important; border-radius:16px; box-shadow:0 0 0 2px rgba(200,170,255,0.9), 0 0 18px 3px rgba(200,170,255,0.5); animation:tourBreath 2s ease-in-out infinite; }
     .tour-glow::after { content:''; position:absolute; inset:0; border-radius:inherit; background:linear-gradient(135deg, rgba(35,35,46,0.9), rgba(22,22,30,0.9)); z-index:-1; }
     @keyframes tourBreath { 0%,100%{ box-shadow:0 0 0 2px rgba(200,170,255,0.7), 0 0 14px 2px rgba(200,170,255,0.4); } 50%{ box-shadow:0 0 0 2px rgba(255,217,102,0.9), 0 0 22px 4px rgba(200,170,255,0.7); } }
-    @keyframes spotScan { 0%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } 50%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(255,217,102,1), 0 0 32px 6px rgba(200,170,255,0.7), inset 0 0 25px rgba(200,170,255,0.2); } 100%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } }
+    @keyframes spotScan { 0%{ box-shadow:0 0 0 9999px rgba(3,3,7,0.94), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } 50%{ box-shadow:0 0 0 9999px rgba(3,3,7,0.94), 0 0 0 1.5px rgba(255,217,102,1), 0 0 32px 6px rgba(200,170,255,0.7), inset 0 0 25px rgba(200,170,255,0.2); } 100%{ box-shadow:0 0 0 9999px rgba(3,3,7,0.94), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } }
     .greet-spotlight.pulsing { animation:spotScan 2.2s ease-in-out infinite; }
     .greet-box { position:absolute; left:50%; transform:translateX(-50%); width:calc(100% - 44px); max-width:350px; background:transparent; border:none; border-radius:0; padding:6px; text-align:center; z-index:5003; box-shadow:none; top:50%; margin-top:-140px; max-height:none; overflow:visible; transition:top 1.0s cubic-bezier(0.34,1,0.64,1), margin-top 1.0s, left 1.0s, transform 1.0s, opacity 0.6s; }
-    #greetOrbFree { position:absolute; z-index:5102; width:72px; height:72px; left:50%; top:230px; transform:translate(-50%,-50%); transition:left 1.5s cubic-bezier(0.4,0,0.2,1), top 1.5s cubic-bezier(0.4,0,0.2,1), width 1.5s, height 1.5s, opacity 0.6s; pointer-events:none; }
+    #greetOrbFree { position:absolute; z-index:5102; width:230px; height:230px; left:50%; top:250px; transform:translate(-50%,-50%); transition:left 1.5s cubic-bezier(0.4,0,0.2,1), top 1.5s cubic-bezier(0.4,0,0.2,1), width 1.5s, height 1.5s, opacity 0.6s; pointer-events:none; }
     #greetOrbFree canvas { width:100%; height:100%; display:block; }
+    #greetOverlay.darkbg { background:#000; }
     #greetOverlay.finishing::before { opacity:0 !important; }
     #greetOverlay.finishing .greet-box { opacity:0; transition:opacity 0.5s; }
     .greet-box.bottom { top:auto; bottom:28px; margin-top:0; }
@@ -2523,7 +2524,7 @@
             ov.innerHTML = '<div class="greet-spotlight" id="greetSpot"></div>' +
                 '<canvas id="greetFx" style="position:absolute;inset:0;z-index:5100;pointer-events:none;"></canvas>' +
                 '<canvas id="greetBirth" style="position:absolute;inset:0;z-index:5101;pointer-events:none;"></canvas>' +
-                '<div id="greetOrbFree"><canvas class="focus-orb-canvas greet-orb" width="72" height="72"></canvas></div>' +
+                '<div id="greetOrbFree"><canvas class="focus-orb-canvas greet-orb" width="230" height="230" data-birth="1"></canvas></div>' +
                 '<div class="greet-box" id="greetBox">' +
                     '<div class="greet-name" id="greetTitle"></div>' +
                     '<div class="greet-text" id="greetTextEl"></div>' +
@@ -2577,9 +2578,21 @@
                     var aa=Math.random()*6.28, rad=R*0.15+Math.random()*R*0.6;
                     dust.push({sx:sx,sy:sy,px:sx,py:sy,a:aa,rad:rad,tx:cx+Math.cos(aa)*rad,ty:cy+Math.sin(aa)*rad*0.85,sp:0.006+Math.random()*0.02,sz:0.7+Math.random()*2.2,hue:Math.random(),pull:R*0.0012,ell:0.75+Math.random()*0.2,tw:Math.random()*6.28,star:Math.random()<0.14}); }
                 // молнии
-                var bolts=[]; function jag(x1,y1,x2,y2,amp,seg){ var p=[[x1,y1]]; for(var q=1;q<seg;q++){var tt=q/seg; p.push([x1+(x2-x1)*tt+(Math.random()-.5)*amp, y1+(y2-y1)*tt+(Math.random()-.5)*amp]);} p.push([x2,y2]); return p; }
-                function drawBolt(pts,w,al){ bx.globalCompositeOperation='lighter'; bx.lineCap='round'; var L=[[w*3,0.14],[w*1.7,0.4],[w,0.92]];
-                    for(var l=0;l<3;l++){ bx.lineWidth=L[l][0]; bx.beginPath(); bx.moveTo(pts[0][0],pts[0][1]); for(var m=1;m<pts.length;m++) bx.lineTo(pts[m][0],pts[m][1]); bx.strokeStyle=l<2?'rgba(127,208,255,'+(L[l][1]*al)+')':'rgba(240,250,255,'+(L[l][1]*al)+')'; bx.stroke(); } bx.globalCompositeOperation='source-over'; }
+                var bolts=[];
+                // ветвящаяся молния (рекурсивное смещение + ветки) — качественно
+                function segs(x1,y1,x2,y2,disp,gen){ var out=[]; if(gen>5)gen=5;
+                    (function sub(ax,ay,bx2,by,d,g){ if(g<=0){ out.push([ax,ay,bx2,by]); return; }
+                        var mx=(ax+bx2)/2, my=(ay+by)/2, nx=-(by-ay), ny=(bx2-ax), ln=Math.hypot(nx,ny)||1; nx/=ln; ny/=ln;
+                        var off=(Math.random()-0.5)*d; mx+=nx*off; my+=ny*off;
+                        sub(ax,ay,mx,my,d/2,g-1); sub(mx,my,bx2,by,d/2,g-1);
+                        if(g>2 && Math.random()<0.3){ var ang=Math.atan2(by-ay,bx2-ax)+(Math.random()-0.5)*1.2, l2=Math.hypot(bx2-mx,by-my)*(0.4+Math.random()*0.35); sub(mx,my, mx+Math.cos(ang)*l2, my+Math.sin(ang)*l2, d/2, g-2); }
+                    })(x1,y1,x2,y2,disp,gen); return out; }
+                function drawBolt(S,w,al){ bx.globalCompositeOperation='lighter'; bx.lineCap='round';
+                    var L=[[w*3.5,0.14],[w*1.8,0.4],[w,0.95]];
+                    for(var l=0;l<3;l++){ bx.lineWidth=L[l][0]; bx.beginPath(); for(var q=0;q<S.length;q++){ bx.moveTo(S[q][0],S[q][1]); bx.lineTo(S[q][2],S[q][3]); }
+                        bx.strokeStyle=l<2?'rgba(127,208,255,'+(L[l][1]*al)+')':'rgba(240,250,255,'+(L[l][1]*al)+')'; bx.stroke(); }
+                    bx.globalCompositeOperation='source-over'; }
+                function addBolt(x1,y1,x2,y2,disp,w,life){ if(bolts.length>9) return; bolts.push({x1:x1,y1:y1,x2:x2,y2:y2,disp:disp,w:w,life:life,max:life,segs:null,fr:0}); }
                 var woven=new Array(nodes.length*nodes.length).fill(0), arcs=[], seeded=false, frameN=0;
                 var clamp=function(v){return Math.max(0,Math.min(1,v));}, easeOut=function(t){return 1-Math.pow(1-t,3);}, easeIO=function(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;};
                 // тайминги (мс) — медленно, кинематографично
@@ -2615,7 +2628,7 @@
                     // проекция узлов
                     var pc=nodes.map(function(n){return proj(n.lat,n.lon,rot);});
                     // МОЛНИИ ПРОБИВАЮТ ядро
-                    if(e>T_pierceS && e<T_pierceE && Math.random()<0.3){ var pa=Math.random()*6.28; bolts.push({pts:jag(cx+Math.cos(pa)*150,cy+Math.sin(pa)*150,cx,cy,20,6),w:2.2,life:1,max:1}); }
+                    if(e>T_pierceS && e<T_pierceE && Math.random()<0.28){ var pa=Math.random()*6.28; addBolt(cx+Math.cos(pa)*150,cy+Math.sin(pa)*150,cx,cy,22,2.4,1); }
                     // СЕТКА ТКЁТСЯ МОЛНИЯМИ (узлы раскрываются, дуги-молнии по рёбрам)
                     if(revealN>0){
                         var revealed=new Array(nodes.length).fill(false); for(var r=0;r<revealN;r++) revealed[revealOrder[r]]=true;
@@ -2629,12 +2642,12 @@
                         for(var r2=0;r2<revealN;r2++){ var ni=revealOrder[r2], p=pc[ni], depth=(p.z+1)/2, tw=0.6+0.4*Math.sin(t*3+nodes[ni].ph);
                             var fresh=r2>revealN-5?(1-(revealN-r2)/5):0;
                             bx.fillStyle='rgba(200,225,255,'+Math.min(1,(0.3+0.6*depth)*tw+fresh*0.8)+')'; bx.beginPath(); bx.arc(p.x,p.y,(1.2+2*depth)+fresh*2.5,0,6.29); bx.fill();
-                            if(fresh>0.55 && Math.random()<0.5) bolts.push({pts:jag(cx,cy,p.x,p.y,9,4),w:1.3,life:0.9,max:0.9});
+                            if(fresh>0.55 && Math.random()<0.45) addBolt(cx,cy,p.x,p.y,10,1.4,0.9);
                         }
                         bx.globalCompositeOperation='source-over';
                     }
                     // отрисовка молний
-                    for(var bi=bolts.length-1;bi>=0;bi--){ var bb=bolts[bi]; if(frameN%2===0) bb.pts=jag(bb.pts[0][0],bb.pts[0][1],bb.pts[bb.pts.length-1][0],bb.pts[bb.pts.length-1][1],10,bb.pts.length-1); drawBolt(bb.pts,bb.w,Math.min(1,bb.life/bb.max*1.4)); bb.life-=0.13; if(bb.life<=0) bolts.splice(bi,1); }
+                    for(var bi=bolts.length-1;bi>=0;bi--){ var bb=bolts[bi]; if(bb.fr%2===0||!bb.segs) bb.segs=segs(bb.x1,bb.y1,bb.x2,bb.y2,bb.disp,4); bb.fr++; drawBolt(bb.segs,bb.w,Math.min(1,bb.life/bb.max*1.4)); bb.life-=0.13; if(bb.life<=0) bolts.splice(bi,1); }
                     // ЗАВЕРШЕНИЕ — передаём эстафету рабочему орбу
                     if(e>=T_done){ cancelAnimationFrame(raf); onDone&&onDone(); }
                 }
@@ -2723,16 +2736,15 @@
                 var orb = document.getElementById('greetOrbFree');
                 var box = document.getElementById('greetBox');
                 if(!orb || !box) return;
-                // орб: центр → низ → низ → верх → центр(перед полётом домой)
-                var orbPos = [ [50,'220px'], [50,'575px'], [50,'575px'], [50,'105px'], [50,'240px'] ];
-                var op = orbPos[i] || [50,'240px'];
-                orb.style.left = op[0]+'%'; orb.style.top = op[1];
-                // текст: центр / слева-вверху / справа-вверху / справа / центр
+                // орб: рождение крупно в центре → мелкий в позициях тура
+                var orbPos = [ [50,'250px','230px'], [50,'560px','64px'], [50,'560px','64px'], [50,'95px','64px'], [50,'250px','64px'] ];
+                var op = orbPos[i] || [50,'250px','64px'];
+                orb.style.left = op[0]+'%'; orb.style.top = op[1]; orb.style.width = op[2]; orb.style.height = op[2];
                 box.style.marginTop = '0';
-                if(i===0){ box.style.width='calc(100% - 44px)'; box.style.left='50%'; box.style.top='300px'; }
-                else if(i===1){ box.style.width='62%'; box.style.left='34%'; box.style.top='120px'; }   // кристалл справа-вверху → текст слева-вверху
-                else if(i===2){ box.style.width='62%'; box.style.left='64%'; box.style.top='120px'; }   // логотип слева-вверху → текст справа-вверху
-                else if(i===3){ box.style.width='58%'; box.style.left='62%'; box.style.top='300px'; }   // значки слева → текст справа
+                if(i===0){ box.style.width='calc(100% - 44px)'; box.style.left='50%'; box.style.top='430px'; }
+                else if(i===1){ box.style.width='62%'; box.style.left='34%'; box.style.top='120px'; }
+                else if(i===2){ box.style.width='62%'; box.style.left='64%'; box.style.top='120px'; }
+                else if(i===3){ box.style.width='58%'; box.style.left='62%'; box.style.top='300px'; }
                 else { box.style.width='calc(100% - 44px)'; box.style.left='50%'; box.style.top='300px'; }
             }
 
@@ -2747,18 +2759,11 @@
                 document.getElementById('greetProgress').innerHTML = prog;
                 highlight(step);
                 positionForStep(idx);
+                if(step.target){ ov.classList.remove('darkbg'); } else { ov.classList.add('darkbg'); }
                 if(idx===0){
-                    // ПОЛНОЕ РОЖДЕНИЕ: прячем рабочий орб и текст, запускаем фазовую сборку
-                    var of0=document.getElementById('greetOrbFree'); if(of0) of0.style.opacity='0';
+                    // орб рождается САМ (data-birth) — крупно в центре по фазам ~7.5с; текст и кнопки прячем
                     var gb0=document.getElementById('greetBox'); if(gb0){ gb0.style.transition='opacity .5s'; gb0.style.opacity='0'; }
-                    var oc0=orbCenter();
-                    runBirth(oc0.x, oc0.y, function(){
-                        if(of0) of0.style.opacity='1';    // рабочий орб проявляется ПОВЕРХ сотканной сферы
-                        if(gb0) gb0.style.opacity='1';
-                        // убираем холст рождения после того как рабочий орб проявился (плавная стыковка)
-                        setTimeout(function(){ var bcv=document.getElementById('greetBirth'); if(bcv){ var bx2=bcv.getContext('2d'); bx2.clearRect(0,0,bcv.width,bcv.height); } }, 700);
-                        setTimeout(function(){ burnText(txtEl); }, 500);
-                    });
+                    setTimeout(function(){ if(gb0) gb0.style.opacity='1'; positionForStep(0); burnText(txtEl); }, 7600);
                 } else {
                     setTimeout(function(){ burnText(txtEl); }, 1600);
                 }
