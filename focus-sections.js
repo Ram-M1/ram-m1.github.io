@@ -12,7 +12,16 @@
   function writeJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
   function markDone(section) { try { if (window.FocusRewards) FocusRewards.mark(section.group, section.reward); } catch (e) {} }
   function splitItems(data) {
-    return String(data || '').split(/\s*\|\s*|\n|(?:^|\s)\d+[.)]\s*/).map(function (s) { return s.trim(); }).filter(Boolean);
+    var s = String(data || '').trim();
+    // если есть разделители | или переносы — по ним
+    if (/[|\n]/.test(s)) {
+      return s.split(/\s*\|\s*|\n/).map(function (x) { return x.trim(); }).filter(Boolean);
+    }
+    // "1. X 2. Y" или "1) X 2) Y" или "1 X 2 Y 3 Z" — по номерам пунктов
+    if (/(^|\s)\d+[.)\s]/.test(s) && (s.match(/(^|\s)\d+[.)\s]/g) || []).length >= 2) {
+      return s.split(/(?:^|\s)\d+[.)]\s*|(?:^|\s)(?=\d\s)\d\s+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    }
+    return [s].filter(Boolean);
   }
   function cap(s) { s = String(s || '').trim(); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 

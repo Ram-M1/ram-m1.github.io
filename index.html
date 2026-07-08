@@ -1755,78 +1755,146 @@
             if (!text) { input.focus(); return; }
             const matched = recognize(text);
             if (matched.length > 0) {
-                // разделы, которым НУЖЕН текст (не просто галочка)
                 const SEC_MAP = { contact:'relationships', habit:'faith_habits' };
-                const CONTENT_SECTIONS = ['gratitude','nutrition','braindump','mood','wishmap','relationships','faith_habits'];
+                // есть ли реальный контент для заполнения хоть в одном совпавшем разделе?
+                const hasContent = matched.some(m => extractContent(text, m).length > 0);
+
+                if (!hasContent) {
+                    // ЧИСТАЯ ОТМЕТКА («отметил зарядку», «помолился») — мгновенно, без ИИ
+                    matched.forEach(m => {
+                        try {
+                            if (window.FocusRewards) FocusRewards.mark(m.sphere, m.action);
+                            else { FocusStorage.addActivity(m.sphere, m.action); FocusStorage.addCoins(1); }
+                            markSectionDone(m.action);
+                        } catch(e){}
+                    });
+                    const labels = matched.map(m => m.label).join(', ');
+                    result.className = 'ai-result show';
+                    result.innerHTML = '<span class="check">✓</span> Отмечено: ' + labels + ' &nbsp;<span style="opacity:0.7;font-size:12px;">→ идёт в зачёт недели</span>';
+                    input.value = '';
+                    clearTimeout(window._aiTimer);
+                    window._aiTimer = setTimeout(() => { result.className = 'ai-result'; }, 8000);
+                    return;
+                }
+
+                // ЗАПОЛНЕНИЕ С КОНТЕНТОМ → ИИ (правит орфографию, разбивает по пунктам, оформляет грамотно)
+                if (window.fbAskAI) {
+                    let canAsk = true;
+                    try { if (FocusStorage.canUseAI) canAsk = FocusStorage.canUseAI('mentor','text').ok; } catch(e){}
+                    if (!canAsk) {
+                        result.className = 'ai-result show unknown';
+                        result.innerHTML = '🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.';
+                        input.value = ''; clearTimeout(window._aiTimer);
+                        window._aiTimer = setTimeout(() => { result.className = 'ai-result'; }, 8000);
+                        return;
+                    }
+                    result.className = 'ai-result show';
+                    result.innerHTML = '<span class="ai-thinking">🧠 Записываю грамотно...</span>';
+                    if (window.FocusChatMemory) FocusChatMemory.push({ role:'user', content: text });
+                    const meUser0 = (function(){ try { return JSON.parse(localStorage.getItem('focus_user'))||{}; } catch(e){ return {}; } })();
+                    const asstName0 = meUser0.assistantName || 'ассистент';
+                    const sysPrompt = window._focusChatSystemPrompt ? window._focusChatSystemPrompt() : ('Тебя зовут ' + asstName0 + '. Ты ассистент FOCUS. Заполняй разделы грамотно через [FILL:раздел|пункт1|пункт2], исправляя орфографию.');
+                    const _ctx = (window.FocusChatMemory ? (window._focusChatHistory || []) : []).slice(-8);
+                    const prompt = [{ role: 'system', content: sysPrompt }, ..._ctx.map(m=>({role:m.role,content:m.content}))];
+                    let res = await window.fbAskAI(prompt, 500);
+                    if (res.ok && res.reply && res.reply.trim()) {
+                        let full = res.reply.trim();
+                        if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: full });
+                        let reply = full.replace(/\[REMIND:[^\]]+\]/gi, '').trim();
+                        const fillMatch = reply.match(/\[FILL:([a-z_]+)\|([^\]]+)\]/i);
+                        if (fillMatch) {
+                            reply = reply.replace(/\[FILL:[^\]]+\]/gi, '').trim();
+                            let fillMsg = '';
+                            try { if (window.FocusSections) fillMsg = FocusSections.fill(fillMatch[1].toLowerCase(), fillMatch[2].trim()) || ''; } catch(e){}
+                            if (fillMsg && fillMsg.indexOf('__NEEDCREATE__') === 0) {
+                                result.className = 'ai-result show unknown';
+                                result.innerHTML = fillMsg.replace('__NEEDCREATE__', '').replace(/</g,'&lt;');
+                            } else {
+                                result.innerHTML = '<span class="check">✓</span> ' + (fillMsg || reply || 'Записал!').replace(/</g,'&lt;');
+                            }
+                        } else {
+                            // ИИ решил уточнить или ответить вместо заполнения
+                            result.innerHTML = '🧠 ' + reply.replace(/</g,'&lt;').replace(/\n/g,'<br>');
+                        }
+                        try { if (FocusStorage.useAI) FocusStorage.useAI('mentor','text'); } catch(e){}
+                        input.value = '';
+                    } else {
+                        result.className = 'ai-result show unknown';
+                        result.innerHTML = '⚠️ ИИ не ответил. ' + (res.error || '');
+                    }
+                    clearTimeout(window._aiTimer);
+                    window._aiTimer = setTimeout(() => { result.className = 'ai-result'; }, 8000);
+                    return;
+                }
+
+                // нет ИИ — фолбэк на быстрое заполнение (грубое, но лучше чем ничего)
                 const filledMsgs = [];
-                let needContent = null;
                 matched.forEach(m => {
                     try {
                         const secId = SEC_MAP[m.action] || m.action;
                         const content = extractContent(text, m);
-                        const isContentSec = CONTENT_SECTIONS.indexOf(secId) !== -1;
-                        // контентный раздел без текста — не отмечаем впустую, попросим текст
-                        if (isContentSec && !content) { needContent = m; return; }
-                        // награда/активность + галочка
                         if (window.FocusRewards) FocusRewards.mark(m.sphere, m.action);
-                        else { FocusStorage.addActivity(m.sphere, m.action); FocusStorage.addCoins(1); }
                         markSectionDone(m.action);
-                        // РЕАЛЬНО сохранить контент через реестр разделов
                         if (content && window.FocusSections && FocusSections.SECTIONS[secId]) {
                             const msg = FocusSections.fill(secId, content);
-                            if (msg) filledMsgs.push(msg);
+                            if (msg && msg.indexOf('__NEEDCREATE__') !== 0) filledMsgs.push(msg);
                         }
                     } catch(e){}
                 });
                 result.className = 'ai-result show';
-                if (needContent && !filledMsgs.length) {
-                    result.className = 'ai-result show unknown';
-                    const what = needContent.label.split('·').pop().trim();
-                    result.innerHTML = '📝 Напиши что именно записать в «' + what + '». Например: «благодарен за здоровье и семью».';
-                } else if (filledMsgs.length) {
-                    result.innerHTML = '<span class="check">✓</span> ' + filledMsgs.join('; ').replace(/</g,'&lt;');
-                } else {
-                    const labels = matched.map(m => m.label).join(', ');
-                    result.innerHTML = '<span class="check">✓</span> Отмечено: ' + labels + ' &nbsp;<span style="opacity:0.7;font-size:12px;">→ идёт в зачёт недели</span>';
-                }
+                result.innerHTML = '<span class="check">✓</span> ' + (filledMsgs.join('; ') || 'Отмечено').replace(/</g,'&lt;');
                 input.value = '';
+                clearTimeout(window._aiTimer);
+                window._aiTimer = setTimeout(() => { result.className = 'ai-result'; }, 8000);
+                return;
             } else {
-                // разговорный запрос — открываем расширенный чат и отвечаем ТАМ (один диалог, одна память, без распирания карточки)
-                if (window.fbAskAI && window._focusOpenChatWith) {
+                // РАЗГОВОРНЫЙ запрос. Короткий ответ показываем В КАРТОЧКЕ, длинный (не влезает) —
+                // автоматически открываем расширенный чат (один ИИ, одна память).
+                if (window.fbAskAI) {
                     let canAsk = true;
                     try { if (FocusStorage.canUseAI) canAsk = FocusStorage.canUseAI('mentor', 'text').ok; } catch(e){}
                     if (!canAsk) {
                         result.className = 'ai-result show unknown';
                         result.innerHTML = '🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.';
-                        clearTimeout(window._aiTimer);
+                        input.value = ''; clearTimeout(window._aiTimer);
                         window._aiTimer = setTimeout(() => { result.className = 'ai-result'; }, 8000);
                         return;
                     }
-                    result.className = 'ai-result';
-                    window._focusOpenChatWith(text);
-                    input.value = '';
-                    return;
-                } else if (window.fbAskAI) {
-                    // фолбэк: чат ещё не готов — короткий ответ прямо в карточке
                     result.className = 'ai-result show';
                     result.innerHTML = '<span class="ai-thinking">🧠 Думаю...</span>';
-                    let canAsk = true;
-                    try { if (FocusStorage.canUseAI) canAsk = FocusStorage.canUseAI('mentor', 'text').ok; } catch(e){}
-                    if (!canAsk) { result.innerHTML = '🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.'; return; }
-                    const meUser = (function(){ try { return JSON.parse(localStorage.getItem('focus_user')) || {}; } catch(e){ return {}; } })();
-                    const asstName = meUser.assistantName || 'ассистент';
                     if (window.FocusChatMemory) FocusChatMemory.push({ role:'user', content: text });
-                    const sysPrompt = window._focusChatSystemPrompt ? window._focusChatSystemPrompt() :
-                        ('Тебя зовут ' + asstName + '. Ты умный ассистент FOCUS. Отвечай коротко, по делу, живым русским.');
-                    const prompt = [{ role: 'system', content: sysPrompt }, ...(window.FocusChatMemory ? FocusChatMemory.recent(10) : []).map(m=>({role:m.role,content:m.content}))];
-                    let res = await window.fbAskAI(prompt, 500);
+                    const meUserC = (function(){ try { return JSON.parse(localStorage.getItem('focus_user')) || {}; } catch(e){ return {}; } })();
+                    const asstNameC = meUserC.assistantName || 'ассистент';
+                    const sysPromptC = window._focusChatSystemPrompt ? window._focusChatSystemPrompt() :
+                        ('Тебя зовут ' + asstNameC + '. Ты умный ассистент FOCUS. Отвечай коротко, по делу, живым русским.');
+                    const _ctxC = (window.FocusChatMemory ? (window._focusChatHistory || []) : []).slice(-10);
+                    const promptC = [{ role: 'system', content: sysPromptC }, ..._ctxC.map(m=>({role:m.role,content:m.content}))];
+                    let res = await window.fbAskAI(promptC, 500);
                     if (res.ok && res.reply && res.reply.trim()) {
-                        let reply = res.reply.trim();
-                        if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: reply });
-                        reply = reply.replace(/\[FILL:[^\]]+\]/gi, '').replace(/\[REMIND:[^\]]+\]/gi, '').trim();
-                        result.innerHTML = '🧠 ' + reply.replace(/</g,'&lt;').replace(/\n/g,'<br>');
+                        let full = res.reply.trim();
+                        if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: full });
+                        let reply = full;
+                        const remindMatch = reply.match(/\[REMIND:([^|\]]+)\|([^\]]+)\]/i);
+                        if (remindMatch && window.FocusReminders) { reply = reply.replace(/\[REMIND:[^\]]+\]/gi,'').trim(); FocusReminders.schedule(remindMatch[1].trim(), remindMatch[2].trim()); }
+                        const fillMatch = reply.match(/\[FILL:([a-z_]+)\|([^\]]+)\]/i);
                         try { if (FocusStorage.useAI) FocusStorage.useAI('mentor', 'text'); } catch(e){}
                         input.value = '';
+                        if (fillMatch) {
+                            reply = reply.replace(/\[FILL:[^\]]+\]/gi,'').trim();
+                            let fillMsg = '';
+                            try { if (window.FocusSections) fillMsg = FocusSections.fill(fillMatch[1].toLowerCase(), fillMatch[2].trim()) || ''; } catch(e){}
+                            if (fillMsg && fillMsg.indexOf('__NEEDCREATE__') === 0) { result.className = 'ai-result show unknown'; result.innerHTML = fillMsg.replace('__NEEDCREATE__','').replace(/</g,'&lt;'); }
+                            else result.innerHTML = '<span class="check">✓</span> ' + (fillMsg || reply || 'Записал!').replace(/</g,'&lt;');
+                        } else {
+                            reply = reply.trim();
+                            const isLong = reply.length > 200 || (reply.match(/\n/g) || []).length >= 3;
+                            if (isLong && window._focusOpenChat) {
+                                result.className = 'ai-result';   // прячем карточку
+                                window._focusOpenChat();           // чат покажет обмен из памяти
+                            } else {
+                                result.innerHTML = '🧠 ' + reply.replace(/</g,'&lt;').replace(/\n/g,'<br>');
+                            }
+                        }
                     } else {
                         result.className = 'ai-result show unknown';
                         result.innerHTML = '⚠️ ИИ не ответил. ' + (res.error || '');
@@ -1891,12 +1959,13 @@
             function openChat(){
                 overlay.classList.add('show');
                 if (window.FocusOrb) window.FocusOrb.autoMount();
-                // перерисовываем всю историю (что накопилось в компактном виде тоже)
+                // перерисовываем всю историю (что накопилось в компактном виде тоже) — из ЖИВОЙ памяти
                 msgsBox.innerHTML = '';
-                if (!history.length) {
+                var _h = (window.FocusChatMemory ? (window._focusChatHistory || FocusChatMemory.load()) : history) || [];
+                if (!_h.length) {
                     addMsg('bot', 'Привет' + (meUser.name ? ', ' + meUser.name : '') + '! Я ' + asstName + '. Могу дать совет, обсудить что угодно, или заполнить за тебя раздел — просто скажи «запиши что я поел», «отметь зарядку», «я спал 7 часов». Что нужно?');
                 } else {
-                    history.forEach(function(m){
+                    _h.forEach(function(m){
                         if (m.role === 'user') addMsg('user', m.content);
                         else if (m.role === 'assistant') addMsg('bot', m.content.replace(/\[FILL:[^\]]+\]/gi,'').replace(/\[REMIND:[^\]]+\]/gi,'').trim());
                     });
@@ -1924,9 +1993,11 @@
                 return 'Тебя зовут ' + asstName + '. Ты — умный персональный ассистент-ИСПОЛНИТЕЛЬ в приложении FOCUS (саморазвитие). ' +
                     'Работаешь как слуга: чётко и ГРАМОТНО делаешь всё за пользователя, ЗАПОЛНЯЕШЬ ЛЮБЫЕ РАЗДЕЛЫ и СТАВИШЬ НАПОМИНАНИЯ.\n\n' +
                     'ВСЕ РАЗДЕЛЫ (используй эти id в [FILL]): ' + (sectionsList || 'workout, nutrition, sleep, gratitude') + '.\n' +
-                    (userCtx ? ('ЧТО СОЗДАЛ ЮЗЕР (его реальные данные — ОПИРАЙСЯ на них): ' + userCtx + '.\n') : '') +
+                    (userCtx ? ('СПРАВКА о данных юзера (используй ТОЛЬКО для заполнения разделов и когда прямо спрашивают; НЕ пересказывай и НЕ упоминай это без вопроса): ' + userCtx + '.\n') : '') +
                     '\nПРАВИЛА ИСПОЛНИТЕЛЯ:\n' +
+                    '0. На приветствие («привет», «здарова») — просто поздоровайся коротко и спроси чем помочь. НЕ перечисляй данные разделов, не отчитывайся о благодарностях и т.п. без прямого вопроса.\n' +
                     '1. ИСПРАВЛЯЙ ОРФОГРАФИЮ И ОПЕЧАТКИ юзера — в раздел записывай ГРАМОТНО, с заглавной буквы. («зделал трениворку ног» → запиши «Тренировка ног»; «памидоры агурцы» → «Помидоры, огурцы»).\n' +
+                    '   НЕСКОЛЬКО ПУНКТОВ: если юзер перечисляет несколько (1..., 2..., 3... или через запятую) — раздели их в [FILL] символом «|», каждый с исправленной орфографией и заглавной буквы. Пример: «заполни благодарность 1 за утрои 2 за семью 3 за здоровие» → [FILL:gratitude|За утро|За семью|За здоровье].\n' +
                     '2. ЗНАЙ СОДЕРЖИМОЕ разделов (см. выше) — упражнения, тренировки, лекарства, БАДы, привычки, желания юзера. «заполни тренировку по плану» → возьми тренировку юзера из списка и отметь её.\n' +
                     '   ПРАВИЛО СУЩЕСТВОВАНИЯ (для ЛЮБОГО раздела, где юзер сам создаёт сущности — тренировки, лекарства, БАДы и т.п.): если просят отметить/выполнить/принять то, чего НЕТ в его списках выше — НЕ выдумывай и НЕ ставь [FILL]. Скажи по-человечески: «У тебя пока нет такого-то — сначала создай/добавь его в разделе N». Работает для любых названий. Говори естественно: «тренировка ног», а не «программа Ноги».\n' +
                     '   (Разделы куда можно свободно ДОБАВЛЯТЬ новое без предварительного создания: благодарность, разгрузка мозга, карта желаний, духовные привычки, питание, настроение, сон — туда просто записывай.)\n' +
@@ -1975,7 +2046,8 @@
 
                 if (!window.fbAskAI) { typing.remove(); addMsg('bot', 'ИИ недоступен, обнови страницу.'); return; }
 
-                const messages = [{ role:'system', content: systemPrompt() }, ...history.slice(-10)];
+                const _ctx = (window.FocusChatMemory ? (window._focusChatHistory || []) : history).slice(-10);
+                const messages = [{ role:'system', content: systemPrompt() }, ..._ctx];
                 let res = await window.fbAskAI(messages, 500);
                 typing.remove();
 
@@ -2013,6 +2085,8 @@
                 openChat();
                 setTimeout(function(){ chatInput.value = text; sendChat(); }, 320);
             };
+            // открыть чат без отправки (обмен уже в памяти — чат его отрисует)
+            window._focusOpenChat = openChat;
 
             // голосовой ввод в чате
             const SRc = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -2485,44 +2559,50 @@
         setTimeout(initGreeting, 800);
         // ===== ТАЙМЕР ЖИЗНИ =====
         (function initLifeTimer(){
-            var u; try { u = JSON.parse(localStorage.getItem('focus_user')) || {}; } catch(e){ return; }
-            if (!u.birthDate) return;
-            var lifeGoal = parseInt(u.lifeGoal) || 90;
             var timerEl = document.getElementById('lifeTimer');
             if (!timerEl) return;
-            var birth = new Date(u.birthDate + 'T00:00:00');
-            if (isNaN(birth)) return;
-            var target = new Date(birth);
-            target.setFullYear(birth.getFullYear() + lifeGoal);
-            timerEl.style.display = 'block';
+            var started = false;
             function plural(n, one, few, many){
                 var n10 = n % 10, n100 = n % 100;
                 if (n10 === 1 && n100 !== 11) return one;
                 if (n10 >= 2 && n10 <= 4 && (n100 < 10 || n100 >= 20)) return few;
                 return many;
             }
-            function update(){
-                var now = new Date();
-                var msLeft = target - now;
-                if (msLeft <= 0) {
-                    document.getElementById('ltMain').innerText = 'Каждый день — подарок ✨';
-                    return;
+            function tryStart(){
+                if (started) return;
+                var u; try { u = JSON.parse(localStorage.getItem('focus_user')) || {}; } catch(e){ return; }
+                if (!u.birthDate) return; // данные ещё не подгрузились из облака — ждём
+                var lifeGoal = parseInt(u.lifeGoal) || 90;
+                var birth = new Date(u.birthDate + 'T00:00:00');
+                if (isNaN(birth)) return;
+                var target = new Date(birth);
+                target.setFullYear(birth.getFullYear() + lifeGoal);
+                started = true;
+                timerEl.style.display = 'block';
+                function update(){
+                    var msLeft = target - new Date();
+                    if (msLeft <= 0) { document.getElementById('ltMain').innerText = 'Каждый день — подарок ✨'; return; }
+                    var secLeft = Math.floor(msLeft / 1000);
+                    var years = Math.floor(secLeft / (365.25*24*3600));
+                    var afterY = secLeft - years * (365.25*24*3600);
+                    var days = Math.floor(afterY / (24*3600));
+                    var afterD = afterY - days*24*3600;
+                    var hours = Math.floor(afterD / 3600);
+                    var mins = Math.floor((afterD % 3600) / 60);
+                    var secs = Math.floor(afterD % 60);
+                    document.getElementById('ltMain').innerText =
+                        years + ' ' + plural(years,'год','года','лет') + ', ' +
+                        days + ' ' + plural(days,'день','дня','дней') + ' ' +
+                        String(hours).padStart(2,'0') + ':' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
                 }
-                var secLeft = Math.floor(msLeft / 1000);
-                var years = Math.floor(secLeft / (365.25*24*3600));
-                var afterY = secLeft - years * (365.25*24*3600);
-                var days = Math.floor(afterY / (24*3600));
-                var afterD = afterY - days*24*3600;
-                var hours = Math.floor(afterD / 3600);
-                var mins = Math.floor((afterD % 3600) / 60);
-                var secs = Math.floor(afterD % 60);
-                document.getElementById('ltMain').innerText =
-                    years + ' ' + plural(years,'год','года','лет') + ', ' +
-                    days + ' ' + plural(days,'день','дня','дней') + ' ' +
-                    String(hours).padStart(2,'0') + ':' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
+                update();
+                setInterval(update, 1000);
             }
-            update();
-            setInterval(update, 1000);
+            tryStart();
+            if (!started) {
+                var tries = 0;
+                var iv = setInterval(function(){ tries++; tryStart(); if (started || tries > 40) clearInterval(iv); }, 500);
+            }
         })();
         // подставляем имя ассистента в заголовок и плейсхолдер
         (function(){
