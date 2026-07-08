@@ -2336,12 +2336,12 @@
 </script>
     <script src="focus-chat-fab.js"></script>
     <style>
-    #greetOverlay { position:fixed; inset:0; z-index:5000; display:block; opacity:0; transition:opacity 0.4s; pointer-events:auto; }
+    #greetOverlay { position:absolute; inset:0; border-radius:52px; overflow:hidden; z-index:5000; display:block; opacity:0; transition:opacity 0.4s; pointer-events:auto; }
     #greetOverlay.show { opacity:1; }
     /* лёгкое затемнение только через тень споллайта — сам оверлей прозрачный */
     #greetOverlay::before { content:''; position:fixed; inset:0; background:rgba(8,8,16,0.35); backdrop-filter:blur(1.5px); transition:opacity 0.4s; }
     #greetOverlay.has-spot::before { opacity:0; }
-    .greet-spotlight { position:fixed; display:none; border-radius:20px;
+    .greet-spotlight { position:absolute; display:none; border-radius:20px;
         /* лёгкое затемнение вокруг + технологичная подсветка */
         box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 25px 4px rgba(200,170,255,0.55), inset 0 0 20px rgba(200,170,255,0.15);
         pointer-events:none; transition:all 0.5s cubic-bezier(0.34,1.2,0.64,1); z-index:5001; }
@@ -2356,14 +2356,14 @@
     @keyframes tourBreath { 0%,100%{ box-shadow:0 0 0 2px rgba(200,170,255,0.7), 0 0 14px 2px rgba(200,170,255,0.4); } 50%{ box-shadow:0 0 0 2px rgba(255,217,102,0.9), 0 0 22px 4px rgba(200,170,255,0.7); } }
     @keyframes spotScan { 0%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } 50%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(255,217,102,1), 0 0 32px 6px rgba(200,170,255,0.7), inset 0 0 25px rgba(200,170,255,0.2); } 100%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } }
     .greet-spotlight.pulsing { animation:spotScan 2.2s ease-in-out infinite; }
-    .greet-box { position:fixed; left:50%; transform:translateX(-50%); width:calc(100% - 40px); max-width:350px; background:linear-gradient(165deg, rgba(30,26,48,0.97), rgba(20,16,32,0.97)); backdrop-filter:blur(20px); border:1px solid rgba(200,170,255,0.35); border-radius:22px; padding:16px 18px; text-align:center; z-index:5003; box-shadow:0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(124,140,255,0.15); top:50%; margin-top:-150px; transition:top 0.5s cubic-bezier(0.34,1.2,0.64,1), margin-top 0.5s; }
+    .greet-box { position:absolute; left:50%; transform:translateX(-50%); width:calc(100% - 40px); max-width:350px; background:linear-gradient(165deg, rgba(30,26,48,0.97), rgba(20,16,32,0.97)); backdrop-filter:blur(20px); border:1px solid rgba(200,170,255,0.35); border-radius:22px; padding:16px 18px; text-align:center; z-index:5003; box-shadow:0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(124,140,255,0.15); top:50%; margin-top:-150px; max-height:92vh; overflow-y:auto; transition:top 0.5s cubic-bezier(0.34,1.2,0.64,1), margin-top 0.5s; }
     .greet-box.bottom { top:auto; bottom:28px; margin-top:0; }
     .greet-box.top { top:96px; margin-top:0; bottom:auto; }
     .greet-orb { width:58px; height:58px; margin:0 auto 8px; display:block; }
     @keyframes orbFloat { 0%,100%{ transform:translateY(0) scale(1);} 50%{ transform:translateY(-4px) scale(1.05);} }
     @keyframes orbRing { 0%,100%{ transform:scale(1); opacity:0.5;} 50%{ transform:scale(1.15); opacity:0.1;} }
     .greet-name { font-size:18px; font-weight:800; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:8px; }
-    .greet-text { font-size:12.5px; line-height:1.5; color:#e8e8f0; margin-bottom:12px; max-height:44vh; overflow-y:auto; }
+    .greet-text { font-size:12.5px; line-height:1.5; color:#e8e8f0; margin-bottom:12px; max-height:38vh; overflow-y:auto; }
     .greet-progress { display:flex; gap:6px; justify-content:center; margin-bottom:16px; }
     .gp-dot { width:6px; height:6px; border-radius:50%; background:rgba(200,170,255,0.25); transition:all 0.4s; }
     .gp-dot.active { background:linear-gradient(90deg,#C8AAFF,#FFD966); width:22px; border-radius:4px; box-shadow:0 0 8px rgba(200,170,255,0.6); }
@@ -2503,7 +2503,7 @@
             var ov = document.createElement('div');
             ov.id = 'greetOverlay';
             ov.innerHTML = '<div class="greet-spotlight" id="greetSpot"></div>' +
-                '<canvas id="greetFx" style="position:fixed;inset:0;z-index:5100;pointer-events:none;"></canvas>' +
+                '<canvas id="greetFx" style="position:absolute;inset:0;z-index:5100;pointer-events:none;"></canvas>' +
                 '<div class="greet-box" id="greetBox">' +
                     '<canvas class="focus-orb-canvas greet-orb" width="72" height="72"></canvas>' +
                     '<div class="greet-name" id="greetTitle"></div>' +
@@ -2514,18 +2514,18 @@
                         '<button class="greet-next" id="greetNext">Далее →</button>' +
                     '</div>' +
                 '</div>';
-            document.body.appendChild(ov);
+            (document.querySelector(".phone")||document.body).appendChild(ov);
             if (window.FocusOrb) window.FocusOrb.autoMount();
             requestAnimationFrame(function(){ ov.classList.add('show'); });
 
             // ===== МОЛНИИ (выжигание текста + переходы) =====
             var fxCv = document.getElementById('greetFx'), fxCtx = fxCv.getContext('2d');
-            function fxSize(){ fxCv.width = window.innerWidth*2; fxCv.height = window.innerHeight*2; fxCtx.setTransform(2,0,0,2,0,0); }
+            function fxSize(){ var ph=document.querySelector(".phone"); var w=ph?ph.clientWidth:375, h=ph?ph.clientHeight:700; fxCv.width=w*2; fxCv.height=h*2; fxCv.style.width=w+"px"; fxCv.style.height=h+"px"; fxCtx.setTransform(2,0,0,2,0,0); }
             fxSize(); window.addEventListener('resize', fxSize);
             var fxBolts = [];
             function jag(x1,y1,x2,y2,amp,seg){ var p=[[x1,y1]]; for(var i=1;i<seg;i++){var t=i/seg; p.push([x1+(x2-x1)*t+(Math.random()-.5)*amp, y1+(y2-y1)*t+(Math.random()-.5)*amp]);} p.push([x2,y2]); return p; }
             function fxBolt(x1,y1,x2,y2,fast){ fxBolts.push({x1:x1,y1:y1,x2:x2,y2:y2,fast:fast,life:1,pts:null,fr:0}); }
-            (function fxLoop(){ requestAnimationFrame(fxLoop); fxCtx.clearRect(0,0,window.innerWidth,window.innerHeight);
+            (function fxLoop(){ requestAnimationFrame(fxLoop); var ph=document.querySelector(".phone"); fxCtx.clearRect(0,0,ph?ph.clientWidth:375,ph?ph.clientHeight:700);
                 for(var i=fxBolts.length-1;i>=0;i--){ var b=fxBolts[i]; if(b.fr%2===0||!b.pts) b.pts=jag(b.x1,b.y1,b.x2,b.y2,b.fast?9:15,b.fast?5:8); b.fr++;
                     var pts=b.pts, o=b.life, w=b.fast?1.3:2.2; fxCtx.lineCap='round'; fxCtx.globalCompositeOperation='lighter';
                     var L=[[w*3,0.14],[w*1.7,0.4],[w,0.92]];
@@ -2533,7 +2533,7 @@
                         fxCtx.strokeStyle=l<2?'rgba(127,208,255,'+(L[l][1]*o)+')':'rgba(240,250,255,'+(L[l][1]*o)+')'; fxCtx.stroke(); }
                     fxCtx.globalCompositeOperation='source-over'; b.life-=b.fast?0.4:0.24; if(b.life<=0) fxBolts.splice(i,1); }
             })();
-            function orbCenter(){ var el=document.querySelector('.greet-orb'); if(!el) return {x:window.innerWidth/2,y:200}; var r=el.getBoundingClientRect(); return {x:r.left+r.width/2, y:r.top+r.height/2}; }
+            function orbCenter(){ var el=document.querySelector('.greet-orb'); var cr=fxCv.getBoundingClientRect(); if(!el) return {x:cr.width/2,y:200}; var r=el.getBoundingClientRect(); return {x:r.left+r.width/2-cr.left, y:r.top+r.height/2-cr.top}; }
             // выжигание текста молнией: буквы проявляются, из орба бьёт молния (5 слов медленно → разгон)
             var writeTimer = null;
             function burnText(el){
@@ -2545,12 +2545,12 @@
                     else if(n.nodeName==='BR'){ chars.push('<br>'); }
                     else { chars.push('<hs>'); for(var c of (n.textContent||'')){ chars.push(c); } chars.push('</hs>'); }
                 }); })(tmp);
-                el.innerHTML=''; var shown=''; var i=0; var oc=orbCenter(); var SLOW=22;
+                el.innerHTML=''; var shown=''; var i=0; var oc=orbCenter(); var SLOW=22; var cvr=fxCv.getBoundingClientRect();
                 (function tick(){
                     if(i>=chars.length){ el.innerHTML=full; writeTimer=null; return; }
                     var ch=chars[i]; shown += (ch==='<hs>'?'<span class="hl">':ch==='</hs>'?'</span>':ch); el.innerHTML=shown;
                     var r=el.getBoundingClientRect();
-                    if(ch!=='<br>'&&ch!=='<hs>'&&ch!=='</hs>'){ var fast=i>=SLOW; if(Math.random()<(fast?0.5:1)) fxBolt(oc.x,oc.y, r.left+r.width*0.5+(Math.random()-.5)*50, r.top+r.height-6, fast); }
+                    if(ch!=='<br>'&&ch!=='<hs>'&&ch!=='</hs>'){ var fast=i>=SLOW; if(Math.random()<(fast?0.5:1)) fxBolt(oc.x,oc.y, (r.left-cvr.left)+r.width*0.5+(Math.random()-.5)*50, (r.top-cvr.top)+r.height-6, fast); }
                     i++; var d = i<SLOW?60:(i<SLOW+30?14:6); writeTimer=setTimeout(tick,d);
                 })();
             }
@@ -2571,50 +2571,43 @@
                     // вернуть окно в центр (сбросить inline-позицию от шагов с целью)
                     box.style.top = '50%';
                     box.style.bottom = 'auto';
-                    box.style.marginTop = '-150px';
+                    var bh = box.offsetHeight || 300;
+                    box.style.marginTop = '-' + Math.min(bh/2, window.innerHeight*0.45) + 'px';
                     return;
                 }
                 var els = step.targetAll ? Array.from(document.querySelectorAll(step.target)) : [document.querySelector(step.target)];
                 els = els.filter(Boolean);
                 if (!els.length) { spot.style.display = 'none'; ov.classList.remove('has-spot'); return; }
 
-                // ЕДИНАЯ логика для всех шагов (в т.ч. сферы): спотлайт-вырез вокруг
-                // цели затемняет всё вокруг и подсвечивает — точь-в-точь как на кристалле/логотипе.
+                var phoneEl = document.querySelector('.phone');
+                var pr = phoneEl ? phoneEl.getBoundingClientRect() : { left:0, top:0, right:window.innerWidth, bottom:window.innerHeight };
                 var r1 = els[0].getBoundingClientRect();
                 var minX = r1.left, minY = r1.top, maxX = r1.right, maxY = r1.bottom;
                 els.forEach(function(el){ var r = el.getBoundingClientRect(); minX=Math.min(minX,r.left); minY=Math.min(minY,r.top); maxX=Math.max(maxX,r.right); maxY=Math.max(maxY,r.bottom); });
                 var pad = 8;
+                // координаты ОТНОСИТЕЛЬНО ТЕЛЕФОНА (оверлей внутри .phone)
+                var relX = minX - pr.left, relY = minY - pr.top, relW = maxX - minX, relH = maxY - minY;
                 spot.style.display = 'block';
                 spot.classList.add('pulsing');
                 ov.classList.add('has-spot');
-                spot.style.left = (minX - pad) + 'px';
-                spot.style.top = (minY - pad) + 'px';
-                spot.style.width = (maxX - minX + pad*2) + 'px';
-                spot.style.height = (maxY - minY + pad*2) + 'px';
-                // МОЛНИЯ из орба в подсвечиваемую зону (переход)
-                try { var oc = orbCenter(); var tx=(minX+maxX)/2, ty=(minY+maxY)/2; for(var b=0;b<6;b++) setTimeout(function(){ fxBolt(oc.x,oc.y,tx,ty,false); }, b*60); } catch(e){}
+                spot.style.left = (relX - pad) + 'px';
+                spot.style.top = (relY - pad) + 'px';
+                spot.style.width = (relW + pad*2) + 'px';
+                spot.style.height = (relH + pad*2) + 'px';
+                // МОЛНИЯ из орба в подсвечиваемую зону (координаты холста = телефона)
+                try { var oc = orbCenter(); var tx=relX+relW/2, ty=relY+relH/2; for(var b=0;b<6;b++) (function(bb){ setTimeout(function(){ fxBolt(oc.x,oc.y,tx,ty,false); }, bb*60); })(b); } catch(e){}
 
-                // Позиционируем окно относительно РАМКИ ТЕЛЕФОНА (а не окна браузера) —
-                // иначе на десктопе окно уезжает мимо. Ставим в свободную зону над/под подсветкой,
-                // чтобы оно никогда не накрывало цель.
+                // Окно в свободной зоне над/под подсветкой (координаты телефона)
                 box.classList.remove('top','bottom');
-                var phoneEl = document.querySelector('.phone');
-                var pr = phoneEl ? phoneEl.getBoundingClientRect() : { top:0, bottom:window.innerHeight };
                 var margin = 16;
                 var boxH = box.offsetHeight || 240;
-                var gapTop = minY - pr.top;
-                var gapBottom = pr.bottom - maxY;
+                var phoneH = phoneEl ? phoneEl.clientHeight : 700;
+                var gapTop = relY;
+                var gapBottom = phoneH - (relY + relH);
                 var topPx;
-                if (gapTop >= boxH + margin * 2) {
-                    // места сверху достаточно — окно над подсветкой
-                    topPx = (minY - boxH - margin);
-                } else if (gapBottom >= boxH + margin * 2) {
-                    // иначе — под подсветкой
-                    topPx = (maxY + margin);
-                } else {
-                    // впритык — прижимаем к верху рамки (там всё затемнено)
-                    topPx = (pr.top + margin);
-                }
+                if (gapTop >= boxH + margin * 2) { topPx = (relY - boxH - margin); }
+                else if (gapBottom >= boxH + margin * 2) { topPx = (relY + relH + margin); }
+                else { topPx = margin; }
                 box.style.top = topPx + 'px';
                 box.style.bottom = 'auto';
                 box.style.marginTop = '0';
