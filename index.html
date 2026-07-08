@@ -2370,8 +2370,14 @@
     .tour-glow { position:relative; z-index:5002 !important; border-radius:16px; box-shadow:0 0 0 2px rgba(200,170,255,0.9), 0 0 18px 3px rgba(200,170,255,0.5); animation:tourBreath 2s ease-in-out infinite; }
     .tour-glow::after { content:''; position:absolute; inset:0; border-radius:inherit; background:linear-gradient(135deg, rgba(35,35,46,0.9), rgba(22,22,30,0.9)); z-index:-1; }
     @keyframes tourBreath { 0%,100%{ box-shadow:0 0 0 2px rgba(200,170,255,0.7), 0 0 14px 2px rgba(200,170,255,0.4); } 50%{ box-shadow:0 0 0 2px rgba(255,217,102,0.9), 0 0 22px 4px rgba(200,170,255,0.7); } }
-    @keyframes spotScan { 0%{ box-shadow:0 0 0 9999px rgba(3,3,7,0.94), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } 50%{ box-shadow:0 0 0 9999px rgba(3,3,7,0.94), 0 0 0 1.5px rgba(255,217,102,1), 0 0 32px 6px rgba(200,170,255,0.7), inset 0 0 25px rgba(200,170,255,0.2); } 100%{ box-shadow:0 0 0 9999px rgba(3,3,7,0.94), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } }
-    .greet-spotlight.pulsing { animation:spotScan 2.2s ease-in-out infinite; }
+    @keyframes spotScan {
+      0%{ box-shadow:0 0 0 9999px rgba(3,3,7,0.94), 0 0 0 2px rgba(127,208,255,0.95), 0 0 26px 6px rgba(127,208,255,0.55), 0 0 60px 14px rgba(127,208,255,0.28), inset 0 0 26px rgba(127,208,255,0.18); }
+      50%{ box-shadow:0 0 0 9999px rgba(3,3,7,0.92), 0 0 0 2.5px rgba(255,225,140,1), 0 0 46px 12px rgba(200,180,255,0.85), 0 0 90px 24px rgba(127,208,255,0.45), inset 0 0 40px rgba(200,180,255,0.32); }
+      100%{ box-shadow:0 0 0 9999px rgba(3,3,7,0.94), 0 0 0 2px rgba(127,208,255,0.95), 0 0 26px 6px rgba(127,208,255,0.55), 0 0 60px 14px rgba(127,208,255,0.28), inset 0 0 26px rgba(127,208,255,0.18); }
+    }
+    .greet-spotlight.pulsing { animation:spotScan 1.8s ease-in-out infinite; }
+    .greet-spotlight.pulsing::after { content:''; position:absolute; inset:-6px; border-radius:inherit; background:radial-gradient(circle at 50% 50%, rgba(127,208,255,0.18), transparent 70%); animation:spotBreath 1.8s ease-in-out infinite; pointer-events:none; }
+    @keyframes spotBreath { 0%,100%{ opacity:0.4; transform:scale(1); } 50%{ opacity:0.9; transform:scale(1.06); } }
     .greet-box { position:absolute; left:50%; transform:translateX(-50%); width:calc(100% - 44px); max-width:350px; background:transparent; border:none; border-radius:0; padding:6px; text-align:center; z-index:5003; box-shadow:none; top:50%; margin-top:-140px; max-height:none; overflow:visible; transition:top 1.0s cubic-bezier(0.34,1,0.64,1), margin-top 1.0s, left 1.0s, transform 1.0s, opacity 0.6s; }
     #greetOrbFree { position:absolute; z-index:5102; width:360px; height:640px; left:50%; top:320px; transform:translate(-50%,-50%); transition:left 1.5s cubic-bezier(0.4,0,0.2,1), top 1.5s cubic-bezier(0.4,0,0.2,1), width 1.5s, height 1.5s, opacity 0.6s; pointer-events:none; }
     #greetOrbFree canvas { width:100%; height:100%; display:block; }
@@ -2384,7 +2390,7 @@
     @keyframes orbFloat { 0%,100%{ transform:translateY(0) scale(1);} 50%{ transform:translateY(-4px) scale(1.05);} }
     @keyframes orbRing { 0%,100%{ transform:scale(1); opacity:0.5;} 50%{ transform:scale(1.15); opacity:0.1;} }
     .greet-name { font-size:17px; font-weight:800; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:8px; }
-    .greet-text { font-size:11.5px; line-height:1.4; color:#e8e8f0; margin-bottom:12px; max-height:38vh; overflow-y:auto; }
+    .greet-text { font-size:11.5px; line-height:1.4; color:#e8e8f0; margin-bottom:10px; max-height:30vh; overflow-y:auto; }
     .greet-progress { display:flex; gap:6px; justify-content:center; margin-bottom:16px; }
     .gp-dot { width:6px; height:6px; border-radius:50%; background:rgba(200,170,255,0.25); transition:all 0.4s; }
     .gp-dot.active { background:linear-gradient(90deg,#C8AAFF,#FFD966); width:22px; border-radius:4px; box-shadow:0 0 8px rgba(200,170,255,0.6); }
@@ -2709,14 +2715,14 @@
                 // координаты ОТНОСИТЕЛЬНО ТЕЛЕФОНА (оверлей внутри .phone)
                 var relX = minX - pr.left, relY = minY - pr.top, relW = maxX - minX, relH = maxY - minY;
                 spot.style.display = 'block';
-                spot.classList.add('pulsing');
                 ov.classList.add('has-spot');
                 spot.style.left = (relX - pad) + 'px';
                 spot.style.top = (relY - pad) + 'px';
                 spot.style.width = (relW + pad*2) + 'px';
                 spot.style.height = (relH + pad*2) + 'px';
-                // МОЛНИЯ из орба в подсвечиваемую зону (координаты холста = телефона)
-                try { var oc = orbCenter(); var tx=relX+relW/2, ty=relY+relH/2; for(var b=0;b<6;b++) (function(bb){ setTimeout(function(){ fxBolt(oc.x,oc.y,tx,ty,false); }, bb*60); })(b); } catch(e){}
+                spot.classList.remove('pulsing');                          // пока НЕ светится (орб ещё едет)
+                spot.style.boxShadow = '0 0 0 9999px rgba(3,3,7,0.94)';    // просто затемнение вокруг, без свечения
+                window._spotTgt = { x: relX + relW/2, y: relY + relH/2 };  // цель для удара после прилёта орба
 
                 // Окно в свободной зоне над/под подсветкой (координаты телефона)
                 box.classList.remove('top','bottom');
@@ -2739,7 +2745,7 @@
                 var box = document.getElementById('greetBox');
                 if(!orb || !box) return;
                 // орб: рождение крупно в центре → мелкий в позициях тура
-                var orbPos = [ [50,'320px','360px','640px'], [50,'560px','150px','267px'], [50,'560px','150px','267px'], [50,'100px','150px','267px'], [50,'250px','150px','267px'] ];
+                var orbPos = [ [50,'320px','360px','640px'], [50,'545px','252px','448px'], [50,'545px','252px','448px'], [50,'120px','252px','448px'], [50,'250px','252px','448px'] ];
                 var op = orbPos[i] || [50,'250px','64px','64px'];
                 orb.style.left = op[0]+'%'; orb.style.top = op[1]; orb.style.width = op[2]; orb.style.height = op[3]||op[2];
                 box.style.marginTop = '0';
@@ -2763,11 +2769,28 @@
                 positionForStep(idx);
                 if(step.target){ ov.classList.remove('darkbg'); } else { ov.classList.add('darkbg'); }
                 if(idx===0){
-                    // орб рождается САМ (data-birth) — крупно в центре по фазам ~7.5с; текст и кнопки прячем
+                    // орб рождается САМ (data-birth) — крупно в центре по фазам ~8с; текст и кнопки прячем
                     var gb0=document.getElementById('greetBox'); if(gb0){ gb0.style.transition='opacity .5s'; gb0.style.opacity='0'; }
-                    setTimeout(function(){ if(gb0) gb0.style.opacity='1'; positionForStep(0); burnText(txtEl); }, 8600);
+                    setTimeout(function(){
+                        // после рождения: орб уменьшается и уходит ВВЕРХ, текст ниже — кнопка «Далее» помещается
+                        var orb0=document.getElementById('greetOrbFree');
+                        if(orb0){ orb0.style.width='252px'; orb0.style.height='448px'; orb0.style.top='150px'; orb0.style.left='50%'; }
+                        if(gb0){ gb0.style.width='calc(100% - 40px)'; gb0.style.left='50%'; gb0.style.top='285px'; gb0.style.opacity='1'; }
+                        burnText(txtEl);
+                    }, 8600);
+                } else if(step.target){
+                    // ЖИВАЯ последовательность: орб спокойно долетает (1.6с) → бьёт молнией из нового места → объект плавно загорается → текст
+                    setTimeout(function(){
+                        var oc = orbCenter();                          // ТЕКУЩЕЕ (прилетевшее) место орба
+                        var tgt = window._spotTgt || {x:oc.x,y:oc.y};
+                        var n=0; var strike=setInterval(function(){ fxBolt(oc.x,oc.y,tgt.x,tgt.y,false); n++; if(n>=5) clearInterval(strike); }, 70);
+                        // объект плавно загорается (пульс-градиент) чуть позже удара
+                        setTimeout(function(){ var sp=document.getElementById('greetSpot'); if(sp){ sp.style.boxShadow=''; sp.classList.add('pulsing'); } }, 260);
+                        // текст после того как объект ожил
+                        setTimeout(function(){ burnText(txtEl); }, 620);
+                    }, 1650);
                 } else {
-                    setTimeout(function(){ burnText(txtEl); }, 1600);
+                    setTimeout(function(){ burnText(txtEl); }, 1200);
                 }
                 speak(step.voice);
             }
@@ -2791,8 +2814,8 @@
                     // НАСТОЯЩИЙ орб плавно летит на своё место в шапке (живой, с картинкой)
                     of.style.left = ((hr.left - pr.left) + hr.width/2) + 'px';
                     of.style.top = ((hr.top - pr.top) + hr.height/2) + 'px';
-                    of.style.width = (hr.width*2.4) + 'px';
-                    of.style.height = (hr.width*2.4*640/360) + 'px';
+                    of.style.width = (hr.width*3.6) + 'px';
+                    of.style.height = (hr.width*3.6*640/360) + 'px';
                     setTimeout(function(){ ov.classList.remove('show'); setTimeout(function(){ ov.remove(); }, 450); }, 1700);
                 } else {
                     ov.classList.remove('show'); setTimeout(function(){ ov.remove(); }, 300);

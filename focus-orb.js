@@ -188,15 +188,17 @@
       for(var k=0;k<parts.length;k++){
         var pt=parts[k];
         var px,py,lifeA;
-        if(birth && !dustAlive){
-          // орбитальная цель
-          var ox=CX+Math.cos(pt.a)*pt.rad, oy=CY+Math.sin(pt.a)*pt.rad*pt.ell;
-          var ft=ez(Math.max(0,Math.min(1, dustFly + (k%20)/70)));
-          px = pt.bfx + (ox-pt.bfx)*ft; py = pt.bfy + (oy-pt.bfy)*ft; lifeA=0.4+0.6*ft;
+        // угол крутится ВСЕГДА — частицы сразу вплетаются в живой вихрь (не замирают)
+        pt.a+=pt.sp; pt.tw+=0.05;
+        // спираль внутрь — только когда орб ожил (при влёте радиус держим, чтоб красиво село на орбиту)
+        if(!birth || bs>4){ pt.rad-=pt.pull; if(pt.rad<minR){ parts[k]=newPart(false); if(birth){ parts[k].bfx=CX; parts[k].bfy=CY; } continue; } }
+        var ox=CX+Math.cos(pt.a)*pt.rad, oy=CY+Math.sin(pt.a)*pt.rad*pt.ell;   // ЖИВАЯ вращающаяся орбитальная точка
+        if(birth && bs<4.3){
+          // стаггер-прилёт с края → к вращающейся точке (частицы закручиваются по ходу, не стоя)
+          var arr = ez(Math.max(0,Math.min(1, (bs-1.5-(k%24)*0.05)/1.6 )));
+          px = pt.bfx + (ox-pt.bfx)*arr; py = pt.bfy + (oy-pt.bfy)*arr; lifeA=0.35+0.65*arr;
         } else {
-          pt.a+=pt.sp; pt.rad-=pt.pull; pt.tw+=0.05;
-          if(pt.rad<minR){ parts[k]=newPart(false); if(birth){ parts[k].bfx=px||CX; parts[k].bfy=py||CY; } continue; }
-          px=CX+Math.cos(pt.a)*pt.rad; py=CY+Math.sin(pt.a)*pt.rad*pt.ell; lifeA=Math.min(1,(pt.rad-minR)/(R*0.5));
+          px=ox; py=oy; lifeA=Math.min(1,(pt.rad-minR)/(R*0.5));
         }
         var flick=0.7+0.3*Math.sin(pt.tw), sz=pt.sz*(W/600);
         var pg=ctx.createRadialGradient(px,py,0,px,py,sz*3);
