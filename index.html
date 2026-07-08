@@ -634,7 +634,7 @@
 <script src="focus-analytics.js"></script>
 </head>
 <body>
-<div id="preGreetCover" style="position:fixed;inset:0;background:#000;z-index:4999;transition:opacity .4s;"></div>
+<div id="preGreetCover" style="position:fixed;inset:0;background:#000;z-index:2147483647;transition:opacity .5s;"></div>
 <script>
   // мгновенно решаем: если это новый юзер (не приветствовали) — держим чёрный экран, чтобы главная не мелькнула до приветствия
   (function(){ try {
@@ -646,6 +646,8 @@
       if(cover){ cover.style.opacity='0'; setTimeout(function(){ cover && cover.remove(); }, 400); }
     }
     // иначе заглушка остаётся; initGreeting уберёт её когда оверлей появится
+    // СТРАХОВКА: если приветствие не стартовало за 5с — убрать заглушку (чтоб не завис чёрный экран)
+    setTimeout(function(){ var c=document.getElementById('preGreetCover'); if(c){ c.style.opacity='0'; setTimeout(function(){ c&&c.remove(); },500); } }, 5000);
   } catch(e){ var c=document.getElementById('preGreetCover'); if(c) c.remove(); } })();
 </script>
 <div class="phone">
@@ -2371,7 +2373,7 @@
     @keyframes spotScan { 0%{ box-shadow:0 0 0 9999px rgba(3,3,7,0.94), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } 50%{ box-shadow:0 0 0 9999px rgba(3,3,7,0.94), 0 0 0 1.5px rgba(255,217,102,1), 0 0 32px 6px rgba(200,170,255,0.7), inset 0 0 25px rgba(200,170,255,0.2); } 100%{ box-shadow:0 0 0 9999px rgba(3,3,7,0.94), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } }
     .greet-spotlight.pulsing { animation:spotScan 2.2s ease-in-out infinite; }
     .greet-box { position:absolute; left:50%; transform:translateX(-50%); width:calc(100% - 44px); max-width:350px; background:transparent; border:none; border-radius:0; padding:6px; text-align:center; z-index:5003; box-shadow:none; top:50%; margin-top:-140px; max-height:none; overflow:visible; transition:top 1.0s cubic-bezier(0.34,1,0.64,1), margin-top 1.0s, left 1.0s, transform 1.0s, opacity 0.6s; }
-    #greetOrbFree { position:absolute; z-index:5102; width:230px; height:230px; left:50%; top:250px; transform:translate(-50%,-50%); transition:left 1.5s cubic-bezier(0.4,0,0.2,1), top 1.5s cubic-bezier(0.4,0,0.2,1), width 1.5s, height 1.5s, opacity 0.6s; pointer-events:none; }
+    #greetOrbFree { position:absolute; z-index:5102; width:360px; height:640px; left:50%; top:320px; transform:translate(-50%,-50%); transition:left 1.5s cubic-bezier(0.4,0,0.2,1), top 1.5s cubic-bezier(0.4,0,0.2,1), width 1.5s, height 1.5s, opacity 0.6s; pointer-events:none; }
     #greetOrbFree canvas { width:100%; height:100%; display:block; }
     #greetOverlay.darkbg { background:#000; }
     #greetOverlay.finishing::before { opacity:0 !important; }
@@ -2382,7 +2384,7 @@
     @keyframes orbFloat { 0%,100%{ transform:translateY(0) scale(1);} 50%{ transform:translateY(-4px) scale(1.05);} }
     @keyframes orbRing { 0%,100%{ transform:scale(1); opacity:0.5;} 50%{ transform:scale(1.15); opacity:0.1;} }
     .greet-name { font-size:17px; font-weight:800; background:linear-gradient(135deg,#C8AAFF,#FFD966); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:8px; }
-    .greet-text { font-size:12px; line-height:1.45; color:#e8e8f0; margin-bottom:12px; max-height:38vh; overflow-y:auto; }
+    .greet-text { font-size:11.5px; line-height:1.4; color:#e8e8f0; margin-bottom:12px; max-height:38vh; overflow-y:auto; }
     .greet-progress { display:flex; gap:6px; justify-content:center; margin-bottom:16px; }
     .gp-dot { width:6px; height:6px; border-radius:50%; background:rgba(200,170,255,0.25); transition:all 0.4s; }
     .gp-dot.active { background:linear-gradient(90deg,#C8AAFF,#FFD966); width:22px; border-radius:4px; box-shadow:0 0 8px rgba(200,170,255,0.6); }
@@ -2524,7 +2526,7 @@
             ov.innerHTML = '<div class="greet-spotlight" id="greetSpot"></div>' +
                 '<canvas id="greetFx" style="position:absolute;inset:0;z-index:5100;pointer-events:none;"></canvas>' +
                 '<canvas id="greetBirth" style="position:absolute;inset:0;z-index:5101;pointer-events:none;"></canvas>' +
-                '<div id="greetOrbFree"><canvas class="focus-orb-canvas greet-orb" width="230" height="230" data-birth="1"></canvas></div>' +
+                '<div id="greetOrbFree"><canvas class="focus-orb-canvas greet-orb" width="360" height="640" data-birth="1"></canvas></div>' +
                 '<div class="greet-box" id="greetBox">' +
                     '<div class="greet-name" id="greetTitle"></div>' +
                     '<div class="greet-text" id="greetTextEl"></div>' +
@@ -2737,9 +2739,9 @@
                 var box = document.getElementById('greetBox');
                 if(!orb || !box) return;
                 // орб: рождение крупно в центре → мелкий в позициях тура
-                var orbPos = [ [50,'250px','230px'], [50,'560px','64px'], [50,'560px','64px'], [50,'95px','64px'], [50,'250px','64px'] ];
-                var op = orbPos[i] || [50,'250px','64px'];
-                orb.style.left = op[0]+'%'; orb.style.top = op[1]; orb.style.width = op[2]; orb.style.height = op[2];
+                var orbPos = [ [50,'320px','360px','640px'], [50,'560px','150px','267px'], [50,'560px','150px','267px'], [50,'100px','150px','267px'], [50,'250px','150px','267px'] ];
+                var op = orbPos[i] || [50,'250px','64px','64px'];
+                orb.style.left = op[0]+'%'; orb.style.top = op[1]; orb.style.width = op[2]; orb.style.height = op[3]||op[2];
                 box.style.marginTop = '0';
                 if(i===0){ box.style.width='calc(100% - 44px)'; box.style.left='50%'; box.style.top='430px'; }
                 else if(i===1){ box.style.width='62%'; box.style.left='34%'; box.style.top='120px'; }
@@ -2763,7 +2765,7 @@
                 if(idx===0){
                     // орб рождается САМ (data-birth) — крупно в центре по фазам ~7.5с; текст и кнопки прячем
                     var gb0=document.getElementById('greetBox'); if(gb0){ gb0.style.transition='opacity .5s'; gb0.style.opacity='0'; }
-                    setTimeout(function(){ if(gb0) gb0.style.opacity='1'; positionForStep(0); burnText(txtEl); }, 7600);
+                    setTimeout(function(){ if(gb0) gb0.style.opacity='1'; positionForStep(0); burnText(txtEl); }, 8600);
                 } else {
                     setTimeout(function(){ burnText(txtEl); }, 1600);
                 }
@@ -2789,8 +2791,8 @@
                     // НАСТОЯЩИЙ орб плавно летит на своё место в шапке (живой, с картинкой)
                     of.style.left = ((hr.left - pr.left) + hr.width/2) + 'px';
                     of.style.top = ((hr.top - pr.top) + hr.height/2) + 'px';
-                    of.style.width = hr.width + 'px';
-                    of.style.height = hr.height + 'px';
+                    of.style.width = (hr.width*2.4) + 'px';
+                    of.style.height = (hr.width*2.4*640/360) + 'px';
                     setTimeout(function(){ ov.classList.remove('show'); setTimeout(function(){ ov.remove(); }, 450); }, 1700);
                 } else {
                     ov.classList.remove('show'); setTimeout(function(){ ov.remove(); }, 300);

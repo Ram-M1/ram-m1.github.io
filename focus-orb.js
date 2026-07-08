@@ -44,6 +44,7 @@
     canvas.height = cssH*DPR;
     var W=canvas.width, H=canvas.height, CX=W/2, CY=H/2;
     var R = Math.min(W,H)/2 - Math.min(W,H)*0.06;
+    if(canvas.getAttribute('data-birth')==='1') R = Math.min(W,H)*0.14;   // при рождении орб умеренный, а частицы летят от краёв всего холста (=экрана)
 
     // масштаб деталей от размера (маленькая иконка — меньше частиц)
     var small = cssW < 90;
@@ -114,17 +115,18 @@
       t+=0.016;
       ctx.clearRect(0,0,W,H);
       var rot=t*0.22;
-      // === ПРОГРЕСС РОЖДЕНИЯ ===
-      var bp = 1;
-      if (birth){ if(birthT0===null) birthT0=t; bp = Math.min(1,(t-birthT0)/BIRTH_T); }
+      // === ПРОГРЕСС РОЖДЕНИЯ (строгие фазы по 2 сек) ===
+      var bp = 1, bs = 99;
+      if (birth){ if(birthT0===null) birthT0=t; bs = (t-birthT0)/0.48; bp = Math.min(1, bs/8); }  // bs ≈ секунды
       var ez=function(x){return 1-Math.pow(1-Math.max(0,Math.min(1,x)),3);};
       var eio=function(x){x=Math.max(0,Math.min(1,x));return x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;};
-      // фазы: ядро(0-0.22) → пыль влёт(0.12-0.55) → пробой(0.3-0.5) → сетка(0.38-0.85) → живой(0.82-1)
-      var coreI = birth ? ez(bp/0.22) : 1;
-      var dustFly = birth ? (bp-0.12)/0.43 : 1;          // 0..1 влёт пыли
-      var dustAlive = !birth || bp>0.55;
-      var revealN = birth ? (bp<0.38?0:Math.floor(eio((bp-0.38)/0.47)*nodes.length)) : nodes.length;
-      var aliveA = birth ? Math.max(0,Math.min(1,(bp-0.82)/0.18)) : 1;
+      // ФАЗЫ: ядро 0-2с → пыль от краёв+вращение 2-4с → молнии пробивают 4-6с → сетка ткётся 6-8с → живой 8с+
+      var coreI = birth ? ez(bs/2) : 1;
+      var dustFly = birth ? (bs-2)/2 : 1;                 // влёт пыли 2-4с
+      var dustAlive = !birth || bs>4;                     // после 4с — вращается
+      var pierceOn = birth && bs>4 && bs<6.2;             // пробой 4-6с
+      var revealN = birth ? (bs<6?0:Math.floor(eio((bs-6)/2)*nodes.length)) : nodes.length;  // сетка 6-8с
+      var aliveA = birth ? Math.max(0,Math.min(1,(bs-8)/0.6)) : 1;
 
       var breathe = 1 + Math.sin(t*0.7)*0.06;
       var Rb = R * breathe;
@@ -171,7 +173,7 @@
       }
 
       // МОЛНИИ пробивают ядро (фаза пробоя)
-      if(birth && bp>0.3 && bp<0.52 && weaveBolts.length<8 && Math.random()<0.28){ var pa=Math.random()*6.28; weaveBolts.push({x:CX+Math.cos(pa)*R*1.4,y:CY+Math.sin(pa)*R*1.4,life:1,segs:null,fr:0,pierce:1}); }
+      if(birth && pierceOn && weaveBolts.length<8 && Math.random()<0.3){ var pa=Math.random()*6.28; weaveBolts.push({x:CX+Math.cos(pa)*Math.max(W,H)*0.5,y:CY+Math.sin(pa)*Math.max(W,H)*0.5,life:1,segs:null,fr:0,pierce:1}); }
       // отрисовка плетущих/пробивающих молний (качественные, кэш формы)
       for(var wb=weaveBolts.length-1;wb>=0;wb--){ var W2=weaveBolts[wb];
         if(W2.fr%2===0||!W2.segs) W2.segs = W2.pierce ? segsB(W2.x,W2.y,CX,CY,22,4) : segsB(CX,CY,W2.x,W2.y,10,4); W2.fr++;
