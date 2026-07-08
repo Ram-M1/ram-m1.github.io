@@ -39,7 +39,7 @@
     // рендер в 2x для чёткости
     var cssW = canvas.clientWidth || parseInt(canvas.getAttribute('width'),10) || 120;
     var cssH = canvas.clientHeight || parseInt(canvas.getAttribute('height'),10) || 120;
-    var DPR = 2;
+    var DPR = (canvas.getAttribute("data-birth")==="1") ? 1.6 : 2;
     canvas.width = cssW*DPR;
     canvas.height = cssH*DPR;
     var W=canvas.width, H=canvas.height, CX=W/2, CY=H/2;
@@ -49,7 +49,7 @@
     // масштаб деталей от размера (маленькая иконка — меньше частиц)
     var small = cssW < 90;
     var rings = small ? 8 : 11;
-    var partCount = small ? 60 : 160;
+    var partCount = small ? 60 : (canvas.getAttribute("data-birth")==="1" ? 115 : 160);
     var lineNear = small ? 0.5 : 0.42;
 
     var pal = makeColorFn(THEME_PALETTES[readTheme()]);

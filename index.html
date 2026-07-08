@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
+<script>
+  // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
+  try {
+    var _g = localStorage.getItem('focus_greeted');
+    var _u = JSON.parse(localStorage.getItem('focus_user')||'{}');
+    if (!_g && _u && _u.name && _u.assistantName) document.documentElement.classList.add('booting');
+  } catch(e){}
+</script>
+<style>
+  html.booting, html.booting body { background:#000 !important; }
+</style>
 <script>try{var _t=localStorage.getItem('focus_theme')||'original';document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
 <meta charset="UTF-8">
 <link rel="manifest" href="manifest.json">
@@ -643,7 +654,7 @@
     var cover = document.getElementById('preGreetCover');
     if (greeted || !u || !u.name || !u.assistantName) {
       // приветствие не нужно — убираем заглушку сразу
-      if(cover){ cover.style.opacity='0'; setTimeout(function(){ cover && cover.remove(); }, 400); }
+      if(cover){ cover.style.opacity='0'; setTimeout(function(){ cover && cover.remove(); }, 400); } document.documentElement.classList.remove('booting');
     }
     // иначе заглушка остаётся; initGreeting уберёт её когда оверлей появится
     // СТРАХОВКА: если приветствие не стартовало за 5с — убрать заглушку (чтоб не завис чёрный экран)
@@ -2345,8 +2356,19 @@
 </script>
 <script>
     if ('serviceWorker' in navigator) {
+        // авто-обновление: когда новый воркер берёт контроль — один раз перезагружаем страницу,
+        // чтобы не грузилась старая версия под новой (устраняет мелькание/лаги старого кода)
+        var _hadController = !!navigator.serviceWorker.controller;
+        var _refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function(){
+            if (_refreshing || !_hadController) return;   // не перезагружаем при самой первой установке
+            _refreshing = true;
+            location.reload();
+        });
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js').catch(() => {});
+            navigator.serviceWorker.register('sw.js').then(function(reg){
+                if (reg && reg.update) { try { reg.update(); } catch(e){} }   // проверяем обновление воркера сразу
+            }).catch(() => {});
         });
     }
 </script>
@@ -2532,8 +2554,8 @@
             var ov = document.createElement('div');
             ov.id = 'greetOverlay';
             ov.innerHTML = '<div class="greet-spotlight" id="greetSpot"><i></i></div>' +
-                '<canvas id="greetFx" style="position:absolute;inset:0;z-index:5108;pointer-events:none;"></canvas>' +
-                '<canvas id="greetBirth" style="position:absolute;inset:0;z-index:5101;pointer-events:none;"></canvas>' +
+                '<canvas id="greetFx" style="position:absolute;inset:0;z-index:5115;pointer-events:none;"></canvas>' +
+                '' +
                 '<div id="greetOrbFree"><canvas class="focus-orb-canvas greet-orb" width="360" height="640" data-birth="1"></canvas></div>' +
                 '<div class="greet-box" id="greetBox">' +
                     '<div class="greet-name" id="greetTitle"></div>' +
@@ -2546,7 +2568,7 @@
                 '</div>';
             (document.querySelector(".phone")||document.body).appendChild(ov);
             if (window.FocusOrb) window.FocusOrb.autoMount();
-            requestAnimationFrame(function(){ ov.classList.add('show'); var pc=document.getElementById('preGreetCover'); if(pc){ pc.style.opacity='0'; setTimeout(function(){ pc.remove(); },400); } });
+            requestAnimationFrame(function(){ ov.classList.add('show'); document.documentElement.classList.remove('booting'); var pc=document.getElementById('preGreetCover'); if(pc){ pc.style.opacity='0'; setTimeout(function(){ pc.remove(); },400); } });
 
             // ===== МОЛНИИ (выжигание текста + переходы) =====
             var fxCv = document.getElementById('greetFx'), fxCtx = fxCv.getContext('2d');
@@ -2775,8 +2797,8 @@
                     setTimeout(function(){
                         // после рождения: орб уменьшается и уходит ВВЕРХ, текст ниже — кнопка «Далее» помещается
                         var orb0=document.getElementById('greetOrbFree');
-                        if(orb0){ orb0.style.width='252px'; orb0.style.height='448px'; orb0.style.top='150px'; orb0.style.left='50%'; }
-                        if(gb0){ gb0.style.width='calc(100% - 40px)'; gb0.style.left='50%'; gb0.style.top='285px'; gb0.style.opacity='1'; }
+                        if(orb0){ orb0.style.width='180px'; orb0.style.height='320px'; orb0.style.top='115px'; orb0.style.left='50%'; }
+                        if(gb0){ gb0.style.width='calc(100% - 40px)'; gb0.style.left='50%'; gb0.style.top='300px'; gb0.style.opacity='1'; }
                         burnText(txtEl);
                     }, 8600);
                 } else if(step.target){
