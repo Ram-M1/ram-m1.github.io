@@ -2339,7 +2339,7 @@
     #greetOverlay { position:absolute; inset:0; border-radius:52px; overflow:hidden; z-index:5000; display:block; opacity:0; transition:opacity 0.4s; pointer-events:auto; }
     #greetOverlay.show { opacity:1; }
     /* лёгкое затемнение только через тень споллайта — сам оверлей прозрачный */
-    #greetOverlay::before { content:''; position:fixed; inset:0; background:rgba(8,8,16,0.35); backdrop-filter:blur(1.5px); transition:opacity 0.4s; }
+    #greetOverlay::before { content:''; position:absolute; inset:0; background:rgba(6,6,12,0.94); transition:opacity 0.5s; }
     #greetOverlay.has-spot::before { opacity:0; }
     .greet-spotlight { position:absolute; display:none; border-radius:20px;
         /* лёгкое затемнение вокруг + технологичная подсветка */
@@ -2356,7 +2356,9 @@
     @keyframes tourBreath { 0%,100%{ box-shadow:0 0 0 2px rgba(200,170,255,0.7), 0 0 14px 2px rgba(200,170,255,0.4); } 50%{ box-shadow:0 0 0 2px rgba(255,217,102,0.9), 0 0 22px 4px rgba(200,170,255,0.7); } }
     @keyframes spotScan { 0%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } 50%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(255,217,102,1), 0 0 32px 6px rgba(200,170,255,0.7), inset 0 0 25px rgba(200,170,255,0.2); } 100%{ box-shadow:0 0 0 9999px rgba(8,8,16,0.42), 0 0 0 1.5px rgba(200,170,255,0.9), 0 0 20px 3px rgba(200,170,255,0.4), inset 0 0 20px rgba(200,170,255,0.1); } }
     .greet-spotlight.pulsing { animation:spotScan 2.2s ease-in-out infinite; }
-    .greet-box { position:absolute; left:50%; transform:translateX(-50%); width:calc(100% - 40px); max-width:350px; background:linear-gradient(165deg, rgba(30,26,48,0.97), rgba(20,16,32,0.97)); backdrop-filter:blur(20px); border:1px solid rgba(200,170,255,0.35); border-radius:22px; padding:16px 18px; text-align:center; z-index:5003; box-shadow:0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(124,140,255,0.15); top:50%; margin-top:-150px; max-height:92vh; overflow-y:auto; transition:top 0.5s cubic-bezier(0.34,1.2,0.64,1), margin-top 0.5s; }
+    .greet-box { position:absolute; left:50%; transform:translateX(-50%); width:calc(100% - 44px); max-width:350px; background:transparent; border:none; border-radius:0; padding:8px; text-align:center; z-index:5003; box-shadow:none; top:50%; margin-top:-150px; max-height:60vh; overflow-y:auto; transition:top 0.6s cubic-bezier(0.34,1,0.64,1), margin-top 0.6s, left 0.6s, transform 0.6s; }
+    #greetOrbFree { position:absolute; z-index:5102; width:72px; height:72px; left:50%; top:230px; transform:translate(-50%,-50%); transition:left 0.9s cubic-bezier(0.4,0,0.2,1), top 0.9s cubic-bezier(0.4,0,0.2,1), width 0.9s, height 0.9s; pointer-events:none; }
+    #greetOrbFree canvas { width:100%; height:100%; display:block; }
     .greet-box.bottom { top:auto; bottom:28px; margin-top:0; }
     .greet-box.top { top:96px; margin-top:0; bottom:auto; }
     .greet-orb { width:58px; height:58px; margin:0 auto 8px; display:block; }
@@ -2486,7 +2488,7 @@
                     voice: 'Слева — логотип. Там ты настроишь всё под себя: темы, уведомления, а ещё сможешь взять под крыло ребёнка или близкого человека.'
                 },
                 {
-                    target: '.focus-tile[data-sphere]',
+                    target: '.focus-tile[data-sphere] .tile-icon',
                     targetAll: true,
                     title: '✦ Сферы твоей жизни',
                     text: 'А это — сферы твоей жизни: тело, энергия, мысли, отношения, вера. Выбирай любую и двигайся к лучшей версии себя. Делай сам или просто скажи мне — я всё запишу за тебя.',
@@ -2504,8 +2506,8 @@
             ov.id = 'greetOverlay';
             ov.innerHTML = '<div class="greet-spotlight" id="greetSpot"></div>' +
                 '<canvas id="greetFx" style="position:absolute;inset:0;z-index:5100;pointer-events:none;"></canvas>' +
+                '<div id="greetOrbFree"><canvas class="focus-orb-canvas greet-orb" width="72" height="72"></canvas></div>' +
                 '<div class="greet-box" id="greetBox">' +
-                    '<canvas class="focus-orb-canvas greet-orb" width="72" height="72"></canvas>' +
                     '<div class="greet-name" id="greetTitle"></div>' +
                     '<div class="greet-text" id="greetTextEl"></div>' +
                     '<div class="greet-progress" id="greetProgress"></div>' +
@@ -2613,6 +2615,23 @@
                 box.style.marginTop = '0';
             }
 
+            function positionForStep(i){
+                var orb = document.getElementById('greetOrbFree');
+                var box = document.getElementById('greetBox');
+                if(!orb || !box) return;
+                // орб: центр → низ → низ → верх → центр(перед полётом домой)
+                var orbPos = [ [50,'220px'], [50,'575px'], [50,'575px'], [50,'105px'], [50,'240px'] ];
+                var op = orbPos[i] || [50,'240px'];
+                orb.style.left = op[0]+'%'; orb.style.top = op[1];
+                // текст: центр / слева-вверху / справа-вверху / справа / центр
+                box.style.marginTop = '0';
+                if(i===0){ box.style.width='calc(100% - 44px)'; box.style.left='50%'; box.style.top='300px'; }
+                else if(i===1){ box.style.width='62%'; box.style.left='34%'; box.style.top='120px'; }   // кристалл справа-вверху → текст слева-вверху
+                else if(i===2){ box.style.width='62%'; box.style.left='64%'; box.style.top='120px'; }   // логотип слева-вверху → текст справа-вверху
+                else if(i===3){ box.style.width='58%'; box.style.left='62%'; box.style.top='300px'; }   // значки слева → текст справа
+                else { box.style.width='calc(100% - 44px)'; box.style.left='50%'; box.style.top='300px'; }
+            }
+
             function renderStep(){
                 var step = steps[idx];
                 document.getElementById('greetTitle').innerHTML = step.title;
@@ -2623,8 +2642,9 @@
                 for (var i = 0; i < steps.length; i++) prog += '<span class="gp-dot' + (i === idx ? ' active' : '') + '"></span>';
                 document.getElementById('greetProgress').innerHTML = prog;
                 highlight(step);
-                // выжигаем текст молнией
-                setTimeout(function(){ burnText(txtEl); }, 250);
+                positionForStep(idx);
+                // выжигаем текст молнией (орб уже переехал — молнии полетят из нового места)
+                setTimeout(function(){ burnText(txtEl); }, 650);
                 speak(step.voice);
             }
 
@@ -2639,7 +2659,7 @@
                 document.querySelectorAll('.tour-glow').forEach(function(el){ el.classList.remove('tour-glow'); });
                 document.getElementById('greetSpot').style.display='none'; ov.classList.remove('has-spot');
                 // ОРБ ЛЕТИТ НА СВОЁ МЕСТО В ШАПКЕ (.ai-mini-orb) и остаётся там
-                var orbEl = document.querySelector('.greet-orb'), homeEl = document.querySelector('.ai-mini-orb');
+                var orbEl = document.querySelector('.greet-orb'), homeEl = document.querySelector('.ai-mini-orb'); var _of=document.getElementById('greetOrbFree'); if(_of) _of.style.opacity='0';
                 var box = document.getElementById('greetBox'); if(box) box.style.transition='opacity .35s'; 
                 if(orbEl && homeEl){
                     var from = orbEl.getBoundingClientRect(), to = homeEl.getBoundingClientRect();
@@ -2663,7 +2683,7 @@
             // старт тура (без голоса — сразу)
             renderStep();
         }
-        setTimeout(initGreeting, 800);
+        setTimeout(initGreeting, 120);
         // ===== ТАЙМЕР ЖИЗНИ =====
         (function initLifeTimer(){
             var timerEl = document.getElementById('lifeTimer');
