@@ -2350,7 +2350,7 @@
 </script>
     <script src="focus-chat-fab.js"></script>
     <style>
-    #greetOverlay { position:absolute; inset:0; border-radius:52px; overflow:hidden; background:#000; z-index:5000; display:block; opacity:0; transition:opacity 0.4s; pointer-events:auto; }
+    #greetOverlay { position:absolute; inset:0; border-radius:52px; overflow:hidden; z-index:5000; display:block; opacity:0; transition:opacity 0.4s; pointer-events:auto; }
     #greetOverlay.show { opacity:1; }
     /* лёгкое затемнение только через тень споллайта — сам оверлей прозрачный */
     #greetOverlay::before { content:''; position:absolute; inset:0; background:rgba(3,3,7,0.985); transition:opacity 0.5s; }
@@ -2559,7 +2559,7 @@
                 var bcv = document.getElementById('greetBirth'); if(!bcv){ onDone&&onDone(); return; }
                 var bx = bcv.getContext('2d');
                 var ph = document.querySelector('.phone'); var PWc = ph?ph.clientWidth:375, PHc = ph?ph.clientHeight:700;
-                bcv.width = PWc*2; bcv.height = PHc*2; bx.setTransform(2,0,0,2,0,0);
+                bcv.width = PWc*2; bcv.height = PHc*2; bcv.style.width = PWc+'px'; bcv.style.height = PHc+'px'; bx.setTransform(2,0,0,2,0,0);
                 var R = 70;                      // радиус крупной формы рождения
                 var P0=[93,224,255], P1=[200,170,255], P2=[255,107,213];
                 function pal(h,a){ var c0,c1,t; if(h<0.5){c0=P0;c1=P1;t=h/0.5;} else {c0=P1;c1=P2;t=(h-0.5)/0.5;}
@@ -2636,7 +2636,7 @@
                     // отрисовка молний
                     for(var bi=bolts.length-1;bi>=0;bi--){ var bb=bolts[bi]; if(frameN%2===0) bb.pts=jag(bb.pts[0][0],bb.pts[0][1],bb.pts[bb.pts.length-1][0],bb.pts[bb.pts.length-1][1],10,bb.pts.length-1); drawBolt(bb.pts,bb.w,Math.min(1,bb.life/bb.max*1.4)); bb.life-=0.13; if(bb.life<=0) bolts.splice(bi,1); }
                     // ЗАВЕРШЕНИЕ — передаём эстафету рабочему орбу
-                    if(e>=T_done){ cancelAnimationFrame(raf); bx.clearRect(0,0,PWc,PHc); onDone&&onDone(); }
+                    if(e>=T_done){ cancelAnimationFrame(raf); onDone&&onDone(); }
                 }
                 raf=requestAnimationFrame(frame);
             }
@@ -2753,9 +2753,11 @@
                     var gb0=document.getElementById('greetBox'); if(gb0){ gb0.style.transition='opacity .5s'; gb0.style.opacity='0'; }
                     var oc0=orbCenter();
                     runBirth(oc0.x, oc0.y, function(){
-                        if(of0) of0.style.opacity='1';    // рабочий орб проявляется на месте рождения
+                        if(of0) of0.style.opacity='1';    // рабочий орб проявляется ПОВЕРХ сотканной сферы
                         if(gb0) gb0.style.opacity='1';
-                        burnText(txtEl);                  // текст выжигается
+                        // убираем холст рождения после того как рабочий орб проявился (плавная стыковка)
+                        setTimeout(function(){ var bcv=document.getElementById('greetBirth'); if(bcv){ var bx2=bcv.getContext('2d'); bx2.clearRect(0,0,bcv.width,bcv.height); } }, 700);
+                        setTimeout(function(){ burnText(txtEl); }, 500);
                     });
                 } else {
                     setTimeout(function(){ burnText(txtEl); }, 1600);
