@@ -10,7 +10,7 @@
      и ускоряем загрузку — что особенно важно при слабом интернете)
 */
 
-const CACHE_NAME = 'focus-cache-v87';
+const CACHE_NAME = 'focus-cache-v90';
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
@@ -59,10 +59,10 @@ self.addEventListener('fetch', (event) => {
                 .catch(() => caches.open(CACHE_NAME).then((cache) => cache.match(request)))
         );
     } else {
-        // HTML-страницы — сначала сеть (видим актуальную версию),
-        // при отсутствии сети — берём последнюю сохранённую копию
+        // HTML-страницы — ТОЛЬКО СЕТЬ (никогда не отдаём старую закэшированную страницу).
+        // Кэш используем лишь как аварийный офлайн-фолбэк.
         event.respondWith(
-            fetch(request)
+            fetch(request, { cache: 'no-store' })
                 .then((response) => {
                     if (response.ok) {
                         const copy = response.clone();
