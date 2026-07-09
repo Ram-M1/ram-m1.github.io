@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v113 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v115 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -24,6 +24,15 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>FOCUS — Главная</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="Управляй собой: тело, разум, энергия, судьба">
+<meta property="og:description" content="Твоя жизнь — под твоим контролем">
+<meta property="og:image" content="https://focus-one.ru/icon-512.png">
+<meta property="og:url" content="https://focus-one.ru">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Управляй собой: тело, разум, энергия, судьба">
+<meta name="twitter:description" content="Твоя жизнь — под твоим контролем">
+<meta name="twitter:image" content="https://focus-one.ru/icon-512.png">
 <style>
     :root, [data-theme="original"] {
         --accent: #FFD966; --accent-rgb: 255,217,102;
@@ -2445,10 +2454,10 @@
     .greet-progress { display:flex; gap:6px; justify-content:center; margin-bottom:16px; }
     .gp-dot { width:6px; height:6px; border-radius:50%; background:rgba(200,170,255,0.25); transition:all 0.4s; }
     .gp-dot.active { background:linear-gradient(90deg,#C8AAFF,#FFD966); width:22px; border-radius:4px; box-shadow:0 0 8px rgba(200,170,255,0.6); }
-    .greet-btns { display:flex; gap:10px; }
-    .greet-skip-all { flex:0 0 auto; padding:13px 18px; border:none; border-radius:14px; background:rgba(255,255,255,0.06); color:#9a9aab; font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; transition:all 0.15s; }
+    .greet-btns { display:flex; gap:8px; }
+    .greet-skip-all { flex:0 0 auto; padding:9px 15px; border:none; border-radius:11px; background:rgba(255,255,255,0.05); color:#8e8e9e; font-size:12px; font-weight:600; font-family:inherit; cursor:pointer; transition:all 0.15s; }
     .greet-skip-all:active { transform:scale(0.95); }
-    .greet-next { flex:1; padding:13px; border:none; border-radius:14px; background:linear-gradient(135deg,#C8AAFF,#FFD966); color:#0a0a0f; font-size:15px; font-weight:800; font-family:inherit; cursor:pointer; box-shadow:0 4px 16px rgba(200,170,255,0.35); transition:all 0.15s; }
+    .greet-next { flex:1; padding:9px 14px; border:none; border-radius:11px; background:linear-gradient(135deg,#C8AAFF,#FFD966); color:#0a0a0f; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; box-shadow:0 3px 12px rgba(200,170,255,0.28); transition:all 0.15s; }
     .greet-next:active { transform:scale(0.97); }
     </style>
     <script>
@@ -2595,7 +2604,16 @@
                 '</div>';
             (document.querySelector(".phone")||document.body).appendChild(ov);
             if (window.FocusOrb) window.FocusOrb.autoMount();
-            requestAnimationFrame(function(){ ov.classList.add('show'); document.documentElement.classList.remove('booting'); var pc=document.getElementById('preGreetCover'); if(pc){ pc.style.opacity='0'; setTimeout(function(){ pc.remove(); },400); } });
+            // overlay ставим ТЁМНЫМ и МГНОВЕННО непрозрачным (без плавного opacity), затем убираем cover —
+            // так между cover и overlay нет ни кадра где видна главная.
+            ov.classList.add('darkbg');                 // сразу чёрный фон (рождение — тёмное)
+            ov.style.transition = 'none';
+            ov.classList.add('show');                    // opacity:1 мгновенно
+            requestAnimationFrame(function(){
+                ov.style.transition = '';                // вернуть плавность для дальнейшего
+                document.documentElement.classList.remove('booting');
+                var pc=document.getElementById('preGreetCover'); if(pc){ pc.style.opacity='0'; setTimeout(function(){ pc.remove(); },400); }
+            });
 
             // ===== МОЛНИИ (выжигание текста + переходы) =====
             var fxCv = document.getElementById('greetFx'), fxCtx = fxCv.getContext('2d');
@@ -2847,7 +2865,7 @@
                 txtEl.setAttribute('data-full', step.text); txtEl.innerHTML = '';         // текст скрыт до удара
                 document.getElementById('greetNext').innerText = (idx === steps.length - 1) ? 'Начать! 🚀' : 'Далее →';
                 var btns = document.getElementById('greetBtns');
-                if(btns){ btns.style.transition='opacity .45s'; btns.style.opacity='0'; btns.style.pointerEvents='none'; }  // кнопки скрыты до удара
+                if(btns){ btns.style.transition='none'; btns.style.opacity='0'; btns.style.pointerEvents='none'; void btns.offsetWidth; }  // мгновенно скрыты (без мелькания)
                 highlight(step);
                 positionForStep(idx);
                 if(step.target){ ov.classList.remove('darkbg'); } else { ov.classList.add('darkbg'); }
@@ -2857,7 +2875,7 @@
                     var b = document.getElementById('greetBtns'); if(!b) return;
                     var r=b.getBoundingClientRect(), cvr=fxCv.getBoundingClientRect();
                     boltBurst((r.left-cvr.left)+r.width/2,(r.top-cvr.top)+r.height/2,4);
-                    b.style.opacity='1'; b.style.pointerEvents='auto';
+                    b.style.transition='opacity .45s'; b.style.opacity='1'; b.style.pointerEvents='auto';
                 }
                 // ПОСЛЕДОВАТЕЛЬНОСТЬ 3 УДАРОВ: НАЗВАНИЕ → (пауза) ТЕКСТ → (пауза) КНОПКИ
                 function sequence(tx,ty){
