@@ -10,7 +10,7 @@
      и ускоряем загрузку — что особенно важно при слабом интернете)
 */
 
-const CACHE_NAME = 'focus-cache-v112';
+const CACHE_NAME = 'focus-cache-v113';
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v112 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v113 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -2587,7 +2587,7 @@
                 '<div class="greet-box" id="greetBox">' +
                     '<div class="greet-name" id="greetTitle"></div>' +
                     '<div class="greet-text" id="greetTextEl"></div>' +
-                    '<div class="greet-progress" id="greetProgress"></div>' +
+                    
                     '<div class="greet-btns" id="greetBtns">' +
                         '<button class="greet-skip-all" id="greetSkipAll">Пропустить</button>' +
                         '<button class="greet-next" id="greetNext">Далее →</button>' +
@@ -2606,7 +2606,7 @@
             function buildBolt(x1,y1,x2,y2,fast){
                 var amp=fast?8:14, seg=fast?8:12;
                 var main=jagPath(x1,y1,x2,y2,amp,seg);
-                var branches=[]; var nb=fast?2:4;
+                var branches=[]; var nb=fast?1:2;
                 var dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy)||1, baseAng=Math.atan2(dy,dx);
                 for(var b=0;b<nb;b++){
                     var idx=1+Math.floor(Math.random()*(main.length-2));
@@ -2622,17 +2622,16 @@
             (function fxLoop(){ requestAnimationFrame(fxLoop); var ph=document.querySelector(".phone"); fxCtx.clearRect(0,0,ph?ph.clientWidth:375,ph?ph.clientHeight:700);
                 for(var i=fxBolts.length-1;i>=0;i--){ var b=fxBolts[i];
                     if(b.fr%2===0||!b.shape) b.shape=buildBolt(b.x1,b.y1,b.x2,b.y2,b.fast); b.fr++;
-                    var flick=0.75+Math.random()*0.25; var o=b.life*flick, w=b.fast?1.2:2.0;
+                    var flick=0.8+Math.random()*0.2; var o=b.life*flick, w=b.fast?0.9:1.4;
                     fxCtx.lineCap='round'; fxCtx.lineJoin='round'; fxCtx.globalCompositeOperation='lighter';
-                    // ветки — тоньше и слегка тусклее
+                    // ветки — тонкие
                     for(var br=0;br<b.shape.branches.length;br++){ var bp=b.shape.branches[br];
-                        strokePath(bp,w*2.4,'127,208,255',0.10*o); strokePath(bp,w*1.1,'170,215,255',0.45*o); strokePath(bp,w*0.55,'235,248,255',0.8*o); }
-                    // основной разряд — ореол → тело → белое ядро
+                        strokePath(bp,w*1.6,'150,205,255',0.32*o); strokePath(bp,w*0.6,'235,248,255',0.85*o); }
+                    // основной разряд — ореол → тело → белое ядро (тонко)
                     var M=b.shape.main;
-                    strokePath(M,w*7,'127,208,255',0.07*o);
-                    strokePath(M,w*3.4,'127,208,255',0.18*o);
-                    strokePath(M,w*1.8,'180,225,255',0.5*o);
-                    strokePath(M,w,'245,252,255',0.95*o);
+                    strokePath(M,w*3,'127,208,255',0.12*o);
+                    strokePath(M,w*1.5,'180,225,255',0.45*o);
+                    strokePath(M,w*0.7,'245,252,255',0.95*o);
                     fxCtx.globalCompositeOperation='source-over';
                     b.life-=b.fast?0.4:0.2; if(b.life<=0) fxBolts.splice(i,1); }
             })();
@@ -2849,9 +2848,6 @@
                 document.getElementById('greetNext').innerText = (idx === steps.length - 1) ? 'Начать! 🚀' : 'Далее →';
                 var btns = document.getElementById('greetBtns');
                 if(btns){ btns.style.transition='opacity .45s'; btns.style.opacity='0'; btns.style.pointerEvents='none'; }  // кнопки скрыты до удара
-                var prog = '';
-                for (var i = 0; i < steps.length; i++) prog += '<span class="gp-dot' + (i === idx ? ' active' : '') + '"></span>';
-                document.getElementById('greetProgress').innerHTML = prog;
                 highlight(step);
                 positionForStep(idx);
                 if(step.target){ ov.classList.remove('darkbg'); } else { ov.classList.add('darkbg'); }

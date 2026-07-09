@@ -101,7 +101,7 @@
         if(g>2&&Math.random()<0.3){var ang=Math.atan2(by-ay,bx2-ax)+(Math.random()-0.5)*1.2,l2=Math.hypot(bx2-mx,by-my)*(0.4+Math.random()*0.35);sub(mx,my,mx+Math.cos(ang)*l2,my+Math.sin(ang)*l2,d/2,g-2);}
       })(x1,y1,x2,y2,disp,gen); return out; }
     function drawWeave(S,w,al){ ctx.globalCompositeOperation='lighter'; ctx.lineCap='round'; ctx.lineJoin='round';
-      var L=[[w*6,0.06,'127,208,255'],[w*3.2,0.16,'127,208,255'],[w*1.7,0.5,'180,225,255'],[w,0.95,'245,252,255']];
+      var L=[[w*3,0.12,'127,208,255'],[w*1.5,0.42,'180,225,255'],[w*0.7,0.95,'245,252,255']];
       for(var l=0;l<L.length;l++){ctx.lineWidth=L[l][0];ctx.beginPath();for(var q=0;q<S.length;q++){ctx.moveTo(S[q][0],S[q][1]);ctx.lineTo(S[q][2],S[q][3]);}ctx.strokeStyle='rgba('+L[l][2]+','+(L[l][1]*al)+')';ctx.stroke();}
       ctx.globalCompositeOperation='source-over'; }
 
@@ -174,11 +174,11 @@
       }
 
       // МОЛНИИ пробивают ядро (фаза пробоя)
-      if(birth && pierceOn && weaveBolts.length<8 && Math.random()<0.3){ var pa=Math.random()*6.28; var mrg=Math.min(W,H)*0.10; var ox=CX+Math.cos(pa)*Math.max(W,H)*0.5, oy=CY+Math.sin(pa)*Math.max(W,H)*0.5; ox=Math.max(mrg,Math.min(W-mrg,ox)); oy=Math.max(mrg,Math.min(H-mrg,oy)); weaveBolts.push({x:ox,y:oy,life:1,segs:null,fr:0,pierce:1}); }
+      if(birth && pierceOn && weaveBolts.length<7 && Math.random()<0.3){ var pa=Math.random()*6.28; var er=Math.max(W,H)*0.62; weaveBolts.push({x:CX+Math.cos(pa)*er,y:CY+Math.sin(pa)*er,life:1,segs:null,fr:0,pierce:1}); }
       // отрисовка плетущих/пробивающих молний (качественные, кэш формы)
       for(var wb=weaveBolts.length-1;wb>=0;wb--){ var W2=weaveBolts[wb];
-        if(W2.fr%2===0||!W2.segs) W2.segs = W2.pierce ? segsB(W2.x,W2.y,CX,CY,22,4) : segsB(CX,CY,W2.x,W2.y,10,4); W2.fr++;
-        drawWeave(W2.segs, W2.pierce?2.4:1.4, Math.min(1,W2.life*1.4)); W2.life-=0.13; if(W2.life<=0) weaveBolts.splice(wb,1); }
+        if(W2.fr%2===0||!W2.segs) W2.segs = W2.pierce ? segsB(W2.x,W2.y,CX,CY,18,3) : segsB(CX,CY,W2.x,W2.y,10,3); W2.fr++;
+        drawWeave(W2.segs, W2.pierce?1.5:1.0, Math.min(1,W2.life*1.4)); W2.life-=0.15; if(W2.life<=0) weaveBolts.splice(wb,1); }
       // родные импульсы (живой орб)
       if(aliveA>0.5 && Math.random()<0.06) bolts.push({i:Math.floor(Math.random()*nodes.length),life:1});
       for(var b=bolts.length-1;b>=0;b--){ var bo=bolts[b]; bo.life-=0.08; if(bo.life<=0){bolts.splice(b,1);continue;}
