@@ -785,6 +785,7 @@
             if (window.fbSaveUserData && window.fbCurrentUser && window.fbCurrentUser()) {
                 const fullUser = FocusStorage.getUser();
                 window.fbSaveUserData({
+                    email: fullUser.email || '',
                     name: fullUser.name || '', age: fullUser.age || '',
                     birthDate: fullUser.birthDate || '', city: fullUser.city || '',
                     phone: fullUser.phone || '', assistantName: fullUser.assistantName || '',

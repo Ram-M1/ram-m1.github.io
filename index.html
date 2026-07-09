@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v109 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v112 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -646,7 +646,6 @@
 <script src="focus-analytics.js"></script>
 </head>
 <body>
-<div id="verBadge" style="position:fixed;left:6px;bottom:6px;z-index:2147483647;background:#7fd0ff;color:#000;font:700 12px/1 sans-serif;padding:4px 8px;border-radius:6px;pointer-events:none;">v109</div>
 <div id="preGreetCover" style="position:fixed;inset:0;background:#000;z-index:2147483647;transition:opacity .5s;"></div>
 <script>
   // мгновенно решаем: если это новый юзер (не приветствовали) — держим чёрный экран, чтобы главная не мелькнула до приветствия
@@ -2589,7 +2588,7 @@
                     '<div class="greet-name" id="greetTitle"></div>' +
                     '<div class="greet-text" id="greetTextEl"></div>' +
                     '<div class="greet-progress" id="greetProgress"></div>' +
-                    '<div class="greet-btns">' +
+                    '<div class="greet-btns" id="greetBtns">' +
                         '<button class="greet-skip-all" id="greetSkipAll">Пропустить</button>' +
                         '<button class="greet-next" id="greetNext">Далее →</button>' +
                     '</div>' +
@@ -2603,15 +2602,39 @@
             function fxSize(){ var ph=document.querySelector(".phone"); var w=ph?ph.clientWidth:375, h=ph?ph.clientHeight:700; fxCv.width=w*2; fxCv.height=h*2; fxCv.style.width=w+"px"; fxCv.style.height=h+"px"; fxCtx.setTransform(2,0,0,2,0,0); }
             fxSize(); window.addEventListener('resize', fxSize);
             var fxBolts = [];
-            function jag(x1,y1,x2,y2,amp,seg){ var p=[[x1,y1]]; for(var i=1;i<seg;i++){var t=i/seg; p.push([x1+(x2-x1)*t+(Math.random()-.5)*amp, y1+(y2-y1)*t+(Math.random()-.5)*amp]);} p.push([x2,y2]); return p; }
-            function fxBolt(x1,y1,x2,y2,fast){ fxBolts.push({x1:x1,y1:y1,x2:x2,y2:y2,fast:fast,life:1,pts:null,fr:0}); }
+            function jagPath(x1,y1,x2,y2,amp,seg){ var p=[[x1,y1]]; for(var i=1;i<seg;i++){var t=i/seg; p.push([x1+(x2-x1)*t+(Math.random()-.5)*amp, y1+(y2-y1)*t+(Math.random()-.5)*amp]);} p.push([x2,y2]); return p; }
+            function buildBolt(x1,y1,x2,y2,fast){
+                var amp=fast?8:14, seg=fast?8:12;
+                var main=jagPath(x1,y1,x2,y2,amp,seg);
+                var branches=[]; var nb=fast?2:4;
+                var dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy)||1, baseAng=Math.atan2(dy,dx);
+                for(var b=0;b<nb;b++){
+                    var idx=1+Math.floor(Math.random()*(main.length-2));
+                    var sx=main[idx][0], sy=main[idx][1];
+                    var bl=(fast?0.13:0.26)*len*(0.5+Math.random());
+                    var ang=baseAng+(Math.random()-0.5)*1.7;
+                    branches.push(jagPath(sx,sy,sx+Math.cos(ang)*bl,sy+Math.sin(ang)*bl,amp*0.7,Math.max(3,Math.floor(seg*0.45))));
+                }
+                return {main:main,branches:branches};
+            }
+            function fxBolt(x1,y1,x2,y2,fast){ fxBolts.push({x1:x1,y1:y1,x2:x2,y2:y2,fast:fast,life:1,shape:null,fr:0}); }
+            function strokePath(pts,w,col,a){ fxCtx.lineWidth=w; fxCtx.strokeStyle='rgba('+col+','+a+')'; fxCtx.beginPath(); fxCtx.moveTo(pts[0][0],pts[0][1]); for(var k=1;k<pts.length;k++) fxCtx.lineTo(pts[k][0],pts[k][1]); fxCtx.stroke(); }
             (function fxLoop(){ requestAnimationFrame(fxLoop); var ph=document.querySelector(".phone"); fxCtx.clearRect(0,0,ph?ph.clientWidth:375,ph?ph.clientHeight:700);
-                for(var i=fxBolts.length-1;i>=0;i--){ var b=fxBolts[i]; if(b.fr%2===0||!b.pts) b.pts=jag(b.x1,b.y1,b.x2,b.y2,b.fast?9:15,b.fast?5:8); b.fr++;
-                    var pts=b.pts, o=b.life, w=b.fast?1.3:2.2; fxCtx.lineCap='round'; fxCtx.globalCompositeOperation='lighter';
-                    var L=[[w*3,0.14],[w*1.7,0.4],[w,0.92]];
-                    for(var l=0;l<3;l++){ fxCtx.lineWidth=L[l][0]; fxCtx.beginPath(); fxCtx.moveTo(pts[0][0],pts[0][1]); for(var k=1;k<pts.length;k++) fxCtx.lineTo(pts[k][0],pts[k][1]);
-                        fxCtx.strokeStyle=l<2?'rgba(127,208,255,'+(L[l][1]*o)+')':'rgba(240,250,255,'+(L[l][1]*o)+')'; fxCtx.stroke(); }
-                    fxCtx.globalCompositeOperation='source-over'; b.life-=b.fast?0.4:0.24; if(b.life<=0) fxBolts.splice(i,1); }
+                for(var i=fxBolts.length-1;i>=0;i--){ var b=fxBolts[i];
+                    if(b.fr%2===0||!b.shape) b.shape=buildBolt(b.x1,b.y1,b.x2,b.y2,b.fast); b.fr++;
+                    var flick=0.75+Math.random()*0.25; var o=b.life*flick, w=b.fast?1.2:2.0;
+                    fxCtx.lineCap='round'; fxCtx.lineJoin='round'; fxCtx.globalCompositeOperation='lighter';
+                    // ветки — тоньше и слегка тусклее
+                    for(var br=0;br<b.shape.branches.length;br++){ var bp=b.shape.branches[br];
+                        strokePath(bp,w*2.4,'127,208,255',0.10*o); strokePath(bp,w*1.1,'170,215,255',0.45*o); strokePath(bp,w*0.55,'235,248,255',0.8*o); }
+                    // основной разряд — ореол → тело → белое ядро
+                    var M=b.shape.main;
+                    strokePath(M,w*7,'127,208,255',0.07*o);
+                    strokePath(M,w*3.4,'127,208,255',0.18*o);
+                    strokePath(M,w*1.8,'180,225,255',0.5*o);
+                    strokePath(M,w,'245,252,255',0.95*o);
+                    fxCtx.globalCompositeOperation='source-over';
+                    b.life-=b.fast?0.4:0.2; if(b.life<=0) fxBolts.splice(i,1); }
             })();
             function orbCenter(){ var el=document.querySelector('.greet-orb'); var cr=fxCv.getBoundingClientRect(); if(!el) return {x:cr.width/2,y:200}; var r=el.getBoundingClientRect(); return {x:r.left+r.width/2-cr.left, y:r.top+r.height/2-cr.top}; }
 
@@ -2715,7 +2738,8 @@
             }
             // выжигание текста молнией: буквы проявляются, из орба бьёт молния (5 слов медленно → разгон)
             var writeTimer = null;
-            function burnText(el){
+            function burnEl(el, done){
+                if(!el){ if(done)done(); return; }
                 if(writeTimer){ clearTimeout(writeTimer); writeTimer=null; }
                 var full = el.getAttribute('data-full') || el.innerHTML;
                 var tmp = document.createElement('div'); tmp.innerHTML = full;
@@ -2726,13 +2750,16 @@
                 }); })(tmp);
                 el.innerHTML=''; var shown=''; var i=0; var oc=orbCenter(); var SLOW=22; var cvr=fxCv.getBoundingClientRect();
                 (function tick(){
-                    if(i>=chars.length){ el.innerHTML=full; writeTimer=null; return; }
+                    if(i>=chars.length){ el.innerHTML=full; writeTimer=null; if(done)done(); return; }
                     var ch=chars[i]; shown += (ch==='<hs>'?'<span class="hl">':ch==='</hs>'?'</span>':ch); el.innerHTML=shown;
                     var r=el.getBoundingClientRect();
                     if(ch!=='<br>'&&ch!=='<hs>'&&ch!=='</hs>'){ var fast=i>=SLOW; if(Math.random()<(fast?0.5:1)) fxBolt(oc.x,oc.y, (r.left-cvr.left)+r.width*0.5+(Math.random()-.5)*50, (r.top-cvr.top)+r.height-6, fast); }
                     i++; var d = i<SLOW?95:(i<SLOW+30?24:12); writeTimer=setTimeout(tick,d);
                 })();
             }
+            function burnText(el){ burnEl(el); }
+            // залп молний из орба в точку (несколько разрядов)
+            function boltBurst(tx,ty,count){ var oc=orbCenter(); var n=0; var iv=setInterval(function(){ fxBolt(oc.x,oc.y,tx,ty,false); n++; if(n>=(count||5)) clearInterval(iv); }, 70); }
 
             var idx = 0;
 
@@ -2815,39 +2842,59 @@
 
             function renderStep(){
                 var step = steps[idx];
-                document.getElementById('greetTitle').innerHTML = step.title;
+                var titleEl = document.getElementById('greetTitle');
+                titleEl.setAttribute('data-full', step.title); titleEl.innerHTML = '';   // название скрыто до удара
                 var txtEl = document.getElementById('greetTextEl');
-                txtEl.setAttribute('data-full', step.text); txtEl.innerHTML = '';
+                txtEl.setAttribute('data-full', step.text); txtEl.innerHTML = '';         // текст скрыт до удара
                 document.getElementById('greetNext').innerText = (idx === steps.length - 1) ? 'Начать! 🚀' : 'Далее →';
+                var btns = document.getElementById('greetBtns');
+                if(btns){ btns.style.transition='opacity .45s'; btns.style.opacity='0'; btns.style.pointerEvents='none'; }  // кнопки скрыты до удара
                 var prog = '';
                 for (var i = 0; i < steps.length; i++) prog += '<span class="gp-dot' + (i === idx ? ' active' : '') + '"></span>';
                 document.getElementById('greetProgress').innerHTML = prog;
                 highlight(step);
                 positionForStep(idx);
                 if(step.target){ ov.classList.remove('darkbg'); } else { ov.classList.add('darkbg'); }
+
+                // раскрытие кнопок отдельным ударом
+                function revealButtons(){
+                    var b = document.getElementById('greetBtns'); if(!b) return;
+                    var r=b.getBoundingClientRect(), cvr=fxCv.getBoundingClientRect();
+                    boltBurst((r.left-cvr.left)+r.width/2,(r.top-cvr.top)+r.height/2,4);
+                    b.style.opacity='1'; b.style.pointerEvents='auto';
+                }
+                // ПОСЛЕДОВАТЕЛЬНОСТЬ 3 УДАРОВ: НАЗВАНИЕ → (пауза) ТЕКСТ → (пауза) КНОПКИ
+                function sequence(tx,ty){
+                    boltBurst(tx,ty,4);                                  // удар 1
+                    setTimeout(function(){ burnEl(titleEl, function(){    // выжигаем название
+                        setTimeout(function(){                           // пауза — прочувствовать
+                            boltBurst(tx,ty,5);                         // удар 2
+                            setTimeout(function(){ burnEl(txtEl, function(){  // выжигаем текст
+                                setTimeout(revealButtons, 850);          // пауза → удар 3 (кнопки)
+                            }); }, 220);
+                        }, 850);
+                    }); }, 240);
+                }
+
                 if(idx===0){
-                    // орб рождается САМ (data-birth) — крупно в центре по фазам ~8с; текст и кнопки прячем
                     var gb0=document.getElementById('greetBox'); if(gb0){ gb0.style.transition='opacity .5s'; gb0.style.opacity='0'; }
                     setTimeout(function(){
-                        // орб умеренно уменьшается и уходит вверх (не мелкий), текст ниже
                         var orb0=document.getElementById('greetOrbFree');
                         if(orb0){ orb0.style.width='230px'; orb0.style.height='409px'; orb0.style.top='155px'; orb0.style.left='50%'; }
                         if(gb0){ gb0.style.width='calc(100% - 40px)'; gb0.style.left='50%'; gb0.style.top='340px'; }
-                        // ЖДЁМ пока орб доедет (1.5с), ТОЛЬКО ПОТОМ текст и выжигание — молнии из НОВОГО места
-                        setTimeout(function(){ if(gb0) gb0.style.opacity='1'; burnText(txtEl); }, 1550);
+                        setTimeout(function(){ if(gb0) gb0.style.opacity='1'; var oc=orbCenter(); sequence(oc.x, oc.y+120); }, 1550);
                     }, 8600);
                 } else if(step.target){
-                    // орб долетает (1.6с) → бьёт молнией из нового места → ТОЛЬКО ТОГДА объект выходит из темноты и загорается
                     setTimeout(function(){
                         var oc = orbCenter();
                         var tgt = window._spotTgt || {x:oc.x,y:oc.y};
-                        var n=0; var strike=setInterval(function(){ fxBolt(oc.x,oc.y,tgt.x,tgt.y,false); n++; if(n>=5) clearInterval(strike); }, 70);
-                        // в момент удара — вырез РАСКРЫВАЕТСЯ на объект (диафрагма) + зажигается свечение
+                        boltBurst(tgt.x,tgt.y,5);   // удар в объект — раскрытие из темноты
                         setTimeout(function(){ var sp=document.getElementById('greetSpot'); ov.classList.add('has-spot'); if(sp && window._spotRect){ sp.style.left=window._spotRect.left+'px'; sp.style.top=window._spotRect.top+'px'; sp.style.width=window._spotRect.w+'px'; sp.style.height=window._spotRect.h+'px'; sp.classList.add('pulsing'); } }, 240);
-                        setTimeout(function(){ burnText(txtEl); }, 640);
+                        // затем последовательность название→текст→кнопки (бьём в область окна)
+                        setTimeout(function(){ var tb=document.getElementById('greetBox').getBoundingClientRect(), cvr=fxCv.getBoundingClientRect(); sequence((tb.left-cvr.left)+tb.width/2,(tb.top-cvr.top)+30); }, 950);
                     }, 1650);
                 } else {
-                    setTimeout(function(){ burnText(txtEl); }, 1200);
+                    setTimeout(function(){ var oc=orbCenter(); sequence(oc.x, oc.y+80); }, 1200);
                 }
                 speak(step.voice);
             }

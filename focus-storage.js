@@ -194,8 +194,18 @@ const FocusStorage = {
     applyCloudData(data) {
         if (!data) return;
         try {
-            // профиль слиянием
-            this.saveUser(data);
+            // профиль слиянием — но НЕ затираем непустые локальные поля пустыми из облака
+            // (у юзеров, пострадавших от старого бага, облако могло быть неполным)
+            var local = this.getUser();
+            var merged = {};
+            Object.keys(data).forEach(function(k){
+                if (k === 'extraData') return;
+                var v = data[k];
+                var isEmpty = (v == null || v === '' || (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0));
+                // берём облачное значение только если оно не пустое, ИЛИ локального нет
+                if (!isEmpty || local[k] == null || local[k] === '') merged[k] = v;
+            });
+            this.saveUser(merged);
             // все пользовательские ключи (тренировки, программы, дневники и т.п.) — пишем обратно
             if (data.extraData && typeof data.extraData === 'object') {
                 Object.keys(data.extraData).forEach(function(k){

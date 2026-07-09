@@ -534,6 +534,26 @@ window.fbOpenChat = async function(otherUid, otherName) {
 // ===== АДМИН / РАЗРАБОТЧИК =====
 window.ADMIN_EMAIL = 'moorsalimov@mail.ru';
 
+// поиск юзеров по ИМЕНИ (частичное совпадение, до 10 результатов)
+window.fbFindUsersByName = async function(query) {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return { ok: false, error: 'Не авторизован' };
+  const q = (query || '').trim().toLowerCase();
+  if (q.length < 2) return { ok: false, error: 'Введи минимум 2 буквы' };
+  try {
+    const snap = await getDocs(collection(db, 'users'));
+    const found = [];
+    snap.forEach(d => {
+      if (d.id === user.uid) return;
+      const data = d.data();
+      const nm = (data.name || '').toLowerCase();
+      if (nm && nm.indexOf(q) !== -1) found.push({ uid: d.id, name: data.name || 'Пользователь', phone: data.phone || '' });
+    });
+    if (!found.length) return { ok: false, error: 'Никого с таким именем не найдено' };
+    return { ok: true, users: found.slice(0, 10) };
+  } catch (e) { return { ok: false, error: e.message }; }
+};
+
 window.fbFindAdminUid = async function() {
   try {
     const snap = await getDocs(collection(db, 'users'));

@@ -100,8 +100,9 @@
         var off=(Math.random()-0.5)*d;mx+=nx*off;my+=ny*off; sub(ax,ay,mx,my,d/2,g-1); sub(mx,my,bx2,by,d/2,g-1);
         if(g>2&&Math.random()<0.3){var ang=Math.atan2(by-ay,bx2-ax)+(Math.random()-0.5)*1.2,l2=Math.hypot(bx2-mx,by-my)*(0.4+Math.random()*0.35);sub(mx,my,mx+Math.cos(ang)*l2,my+Math.sin(ang)*l2,d/2,g-2);}
       })(x1,y1,x2,y2,disp,gen); return out; }
-    function drawWeave(S,w,al){ ctx.globalCompositeOperation='lighter'; ctx.lineCap='round'; var L=[[w*3.5,0.14],[w*1.8,0.4],[w,0.95]];
-      for(var l=0;l<3;l++){ctx.lineWidth=L[l][0];ctx.beginPath();for(var q=0;q<S.length;q++){ctx.moveTo(S[q][0],S[q][1]);ctx.lineTo(S[q][2],S[q][3]);}ctx.strokeStyle=l<2?'rgba(127,208,255,'+(L[l][1]*al)+')':'rgba(240,250,255,'+(L[l][1]*al)+')';ctx.stroke();}
+    function drawWeave(S,w,al){ ctx.globalCompositeOperation='lighter'; ctx.lineCap='round'; ctx.lineJoin='round';
+      var L=[[w*6,0.06,'127,208,255'],[w*3.2,0.16,'127,208,255'],[w*1.7,0.5,'180,225,255'],[w,0.95,'245,252,255']];
+      for(var l=0;l<L.length;l++){ctx.lineWidth=L[l][0];ctx.beginPath();for(var q=0;q<S.length;q++){ctx.moveTo(S[q][0],S[q][1]);ctx.lineTo(S[q][2],S[q][3]);}ctx.strokeStyle='rgba('+L[l][2]+','+(L[l][1]*al)+')';ctx.stroke();}
       ctx.globalCompositeOperation='source-over'; }
 
     function proj(lat,lon,rot,rr){
@@ -173,7 +174,7 @@
       }
 
       // МОЛНИИ пробивают ядро (фаза пробоя)
-      if(birth && pierceOn && weaveBolts.length<8 && Math.random()<0.3){ var pa=Math.random()*6.28; weaveBolts.push({x:CX+Math.cos(pa)*Math.max(W,H)*0.5,y:CY+Math.sin(pa)*Math.max(W,H)*0.5,life:1,segs:null,fr:0,pierce:1}); }
+      if(birth && pierceOn && weaveBolts.length<8 && Math.random()<0.3){ var pa=Math.random()*6.28; var mrg=Math.min(W,H)*0.10; var ox=CX+Math.cos(pa)*Math.max(W,H)*0.5, oy=CY+Math.sin(pa)*Math.max(W,H)*0.5; ox=Math.max(mrg,Math.min(W-mrg,ox)); oy=Math.max(mrg,Math.min(H-mrg,oy)); weaveBolts.push({x:ox,y:oy,life:1,segs:null,fr:0,pierce:1}); }
       // отрисовка плетущих/пробивающих молний (качественные, кэш формы)
       for(var wb=weaveBolts.length-1;wb>=0;wb--){ var W2=weaveBolts[wb];
         if(W2.fr%2===0||!W2.segs) W2.segs = W2.pierce ? segsB(W2.x,W2.y,CX,CY,22,4) : segsB(CX,CY,W2.x,W2.y,10,4); W2.fr++;

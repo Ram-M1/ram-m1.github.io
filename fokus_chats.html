@@ -294,9 +294,9 @@
     <div class="modal" id="phoneModal">
         <div class="contacts-sheet">
             <div class="sheet-handle"></div>
-            <div class="sheet-title">Найти по номеру</div>
+            <div class="sheet-title">Найти пользователя</div>
             <div class="sheet-sub">Введи номер телефона человека — если он есть в FOCUS, откроется чат.</div>
-            <input type="tel" class="chat-search" id="phoneSearchInput" placeholder="+7 900 000 00 00" style="margin-bottom:12px;">
+            <input type="text" class="chat-search" id="phoneSearchInput" placeholder="Имя или +7 900 000 00 00" style="margin-bottom:12px;">
             <div class="group-create-row">
                 <button class="group-btn cancel" id="cancelPhone">Отмена</button>
                 <button class="group-btn create" id="findPhone">Найти</button>
@@ -559,35 +559,42 @@ initAtmosphere(canvasId) {
     phoneModal.addEventListener('click', (e) => { if (e.target.id === 'phoneModal') phoneModal.classList.remove('show'); });
 
     document.getElementById('findPhone').addEventListener('click', async () => {
-        const phone = document.getElementById('phoneSearchInput').value.trim();
+        const raw = document.getElementById('phoneSearchInput').value.trim();
         const resBox = document.getElementById('phoneSearchResult');
-        if (!phone) { resBox.innerHTML = '<div class="empty-chats">Введи номер</div>'; return; }
-        if (!window.fbFindUserByPhone) { resBox.innerHTML = '<div class="empty-chats">Firebase не готов, обнови страницу</div>'; return; }
+        if (!raw) { resBox.innerHTML = '<div class="empty-chats">Введи имя или номер</div>'; return; }
         resBox.innerHTML = '<div class="empty-chats">Ищем...</div>';
-        const res = await window.fbFindUserByPhone(phone);
-        if (res.ok) {
-            const u = res.user;
-            resBox.innerHTML = `
-                <div class="contact-item">
-                    <div class="chat-avatar" style="width:44px;height:44px;font-size:17px;">${escapeHtml((u.name[0]||'?').toUpperCase())}</div>
-                    <div class="contact-info">
-                        <div class="contact-name">${escapeHtml(u.name)}</div>
-                        <div class="contact-phone">${escapeHtml(u.phone||'')}</div>
-                    </div>
-                    <div class="contact-action has-app" id="startChatBtn">Написать</div>
-                </div>`;
-            document.getElementById('startChatBtn').addEventListener('click', async () => {
-                const open = await window.fbOpenChat(u.uid, u.name);
+        // если ввод в основном цифры — ищем по номеру, иначе по имени
+        const digitCount = (raw.match(/\d/g) || []).length;
+        const looksPhone = digitCount >= 7;
+        let matches = [];
+        if (looksPhone && window.fbFindUserByPhone) {
+            const res = await window.fbFindUserByPhone(raw);
+            if (res.ok) matches = [res.user];
+            else if (window.fbFindUsersByName) { const r2 = await window.fbFindUsersByName(raw); if (r2.ok) matches = r2.users; }
+            if (!matches.length) { resBox.innerHTML = '<div class="empty-chats">' + (res.error||'Не найден') + '</div>'; return; }
+        } else if (window.fbFindUsersByName) {
+            const res = await window.fbFindUsersByName(raw);
+            if (!res.ok) { resBox.innerHTML = '<div class="empty-chats">' + (res.error||'Не найден') + '</div>'; return; }
+            matches = res.users;
+        }
+        resBox.innerHTML = matches.map(function(u, i){
+            return '<div class="contact-item">'
+                + '<div class="chat-avatar" style="width:44px;height:44px;font-size:17px;">' + escapeHtml((u.name[0]||'?').toUpperCase()) + '</div>'
+                + '<div class="contact-info"><div class="contact-name">' + escapeHtml(u.name) + '</div>'
+                + '<div class="contact-phone">' + escapeHtml(u.phone||'') + '</div></div>'
+                + '<div class="contact-action has-app" data-uid="' + escapeHtml(u.uid) + '" data-name="' + escapeHtml(u.name) + '">Написать</div></div>';
+        }).join('');
+        resBox.querySelectorAll('.contact-action[data-uid]').forEach(function(btn){
+            btn.addEventListener('click', async function(){
+                const open = await window.fbOpenChat(btn.dataset.uid, btn.dataset.name);
                 if (open.ok) {
                     phoneModal.classList.remove('show');
-                    location.href = 'fokus_chat.html?chatId=' + open.chatId + '&name=' + encodeURIComponent(u.name);
+                    location.href = 'fokus_chat.html?chatId=' + open.chatId + '&name=' + encodeURIComponent(btn.dataset.name);
                 } else {
                     resBox.innerHTML += '<div class="empty-chats">' + (open.error||'Ошибка') + '</div>';
                 }
             });
-        } else {
-            resBox.innerHTML = '<div class="empty-chats">' + (res.error||'Не найден') + '</div>';
-        }
+        });
     });
 
     // загрузка реальных чатов из облака — ОСНОВНОЙ источник
