@@ -780,24 +780,28 @@
             }
         } catch(e){}
 
-        // облако — в фоне, не блокирует переход
-        try {
-            if (window.fbSaveUserData && window.fbCurrentUser && window.fbCurrentUser()) {
-                const fullUser = FocusStorage.getUser();
-                window.fbSaveUserData({
-                    email: fullUser.email || '',
-                    name: fullUser.name || '', age: fullUser.age || '',
-                    birthDate: fullUser.birthDate || '', city: fullUser.city || '',
-                    phone: fullUser.phone || '', assistantName: fullUser.assistantName || '',
-                    assistantVoice: fullUser.assistantVoice || '', lifeGoal: fullUser.lifeGoal || null,
-                    coins: fullUser.coins || 0, profileCompleted: true,
-                    updatedAt: new Date().toISOString()
-                }).catch(() => {});
-            }
-        } catch(e){}
-
-        // ПЕРЕХОД сразу и надёжно (что бы ни упало выше)
-        window.location.href = 'index.html';
+        // облако — ЖДЁМ сохранения (с таймаутом), чтобы при новом входе данные были в облаке
+        (async function(){
+            try {
+                if (window.fbSaveUserData && window.fbCurrentUser && window.fbCurrentUser()) {
+                    const fullUser = FocusStorage.getUser();
+                    const savePromise = window.fbSaveUserData({
+                        email: fullUser.email || '',
+                        name: fullUser.name || '', age: fullUser.age || '',
+                        birthDate: fullUser.birthDate || '', city: fullUser.city || '',
+                        phone: fullUser.phone || '', assistantName: fullUser.assistantName || '',
+                        assistantVoice: fullUser.assistantVoice || '', lifeGoal: fullUser.lifeGoal || null,
+                        coins: fullUser.coins || 0, profileCompleted: true,
+                        flags: Object.assign({}, fullUser.flags || {}, { profileCompleted: true }),
+                        updatedAt: new Date().toISOString()
+                    }).catch(function(){});
+                    // ждём не дольше 2.5с — чтобы не подвесить переход при слабом интернете
+                    await Promise.race([savePromise, new Promise(function(r){ setTimeout(r, 2500); })]);
+                }
+            } catch(e){}
+            // ПЕРЕХОД (что бы ни случилось выше)
+            window.location.href = 'index.html';
+        })();
     });
 
     try {

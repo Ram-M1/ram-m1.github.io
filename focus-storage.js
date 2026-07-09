@@ -134,6 +134,13 @@ const FocusStorage = {
             referral: { ...current.referral, ...(partial.referral || {}) },
             flags: { ...current.flags, ...(partial.flags || {}) }
         };
+        // ЕДИНЫЙ ИСТОЧНИК ПРАВДЫ: если анкета фактически заполнена (имя+ассистент+дата),
+        // флаг profileCompleted ставится автоматически. Так гард НИКОГДА не выкинет
+        // в анкету юзера, у которого данные есть — где бы что ни сохранялось.
+        if (merged.name && merged.assistantName && merged.birthDate) {
+            merged.flags.profileCompleted = true;
+            merged.profileCompleted = true;
+        }
         localStorage.setItem(FOCUS_STORAGE_KEY, JSON.stringify(merged));
         // Автосинхронизация в облако (если Firebase подключён и юзер вошёл).
         // Дебаунс, чтобы не слать на каждый чих — раз в 2 сек после последнего изменения.
@@ -206,6 +213,12 @@ const FocusStorage = {
                 if (!isEmpty || local[k] == null || local[k] === '') merged[k] = v;
             });
             this.saveUser(merged);
+            // анкета пройдена, если облако говорит profileCompleted (верхним уровнем ИЛИ в flags)
+            // ИЛИ есть ключевые поля — фиксируем флаг локально, чтобы гард не выкидывал в анкету.
+            var done = data.profileCompleted === true || (data.flags && data.flags.profileCompleted === true)
+                       || (merged.name && merged.assistantName && merged.birthDate)
+                       || (local.name && local.assistantName && local.birthDate);
+            if (done) { try { this.saveUser({ flags: { profileCompleted: true } }); } catch(e){} }
             // все пользовательские ключи (тренировки, программы, дневники и т.п.) — пишем обратно
             if (data.extraData && typeof data.extraData === 'object') {
                 Object.keys(data.extraData).forEach(function(k){
