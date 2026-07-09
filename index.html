@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v115 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v116 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -943,8 +943,11 @@
         try {
             var _raw = localStorage.getItem('focus_user');
             var _u = _raw ? (JSON.parse(_raw) || {}) : null;
-            var ok = _u && _u.name && _u.assistantName && _u.birthDate;
-            var logged = _u && ((_u.flags && (_u.flags.loggedIn || _u.flags.demoMode)) || _u.email);
+            // анкета считается заполненной если стоит флаг profileCompleted ИЛИ есть ключевые поля
+            var completed = _u && _u.flags && _u.flags.profileCompleted;
+            var hasFields = _u && _u.name && _u.assistantName && _u.birthDate;
+            var ok = completed || hasFields;
+            var logged = _u && ((_u.flags && (_u.flags.loggedIn || _u.flags.demoMode || _u.flags.profileCompleted)) || _u.email || _u.name);
             // совсем новый (нет ни аккаунта, ни имени, ни признака входа) → на регистрацию
             if (!_u || (!logged && !_u.email && !_u.name)) {
                 location.replace('landing.html');
