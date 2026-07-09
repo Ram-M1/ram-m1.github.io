@@ -54,11 +54,11 @@ function ruError(code) {
 window.fbRegister = async function(email, password) {
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
-    // отправляем письмо подтверждения
+    // отправляем и Firebase-письмо (на всякий), но основное подтверждение — по КОДУ (Resend)
     try { await sendEmailVerification(cred.user); } catch(e){}
-    // выходим — пускаем только после подтверждения почты
-    await signOut(auth);
-    return { ok: true, needVerify: true, email: email };
+    // НЕ выходим из аккаунта: юзер остаётся авторизован, чтобы ввод кода записал
+    // флаг emailVerified прямо в Firestore (иначе флаг некому сохранить → вход не пустит).
+    return { ok: true, needVerify: true, email: email, uid: cred.user.uid };
   } catch (e) {
     return { ok: false, error: ruError(e.code) };
   }
@@ -68,16 +68,28 @@ window.fbRegister = async function(email, password) {
 window.fbLogin = async function(email, password) {
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
-    // ОБНОВЛЯЕМ статус подтверждения с сервера — иначе кэш показывает старое (false),
-    // и уже подтверждённого юзера ошибочно не пускает при повторном входе.
+    // ОБНОВЛЯЕМ статус с сервера (Firebase-верификация по ссылке)
     try { await cred.user.reload(); } catch(e){}
-    const verified = (auth.currentUser && auth.currentUser.emailVerified) || cred.user.emailVerified;
+    let verified = (auth.currentUser && auth.currentUser.emailVerified) || cred.user.emailVerified;
+    // ТАКЖЕ принимаем подтверждение ПО КОДУ (Resend) — оно ставит флаг emailVerified в Firestore.
+    // Без этого юзер, подтвердивший кодом, не сможет войти (Firebase-флаг остаётся false).
+    if (!verified) {
+      try {
+        const s = await getDoc(doc(db, 'users', cred.user.uid));
+        if (s.exists() && (s.data().emailVerified === true || s.data().verified === true)) verified = true;
+      } catch(e){}
+    }
+    // владелец-админ по email — всегда пускаем
+    if (!verified && email && email.toLowerCase() === 'moorsalimov@mail.ru') verified = true;
+    // локальный флаг подтверждения (юзер подтвердил кодом на этом устройстве)
+    if (!verified) {
+      try { var lu = window.FocusStorage && FocusStorage.getUser(); if (lu && lu.emailVerified && (lu.email||'').toLowerCase() === email.toLowerCase()) verified = true; } catch(e){}
+    }
     if (!verified) {
       try { await sendEmailVerification(cred.user); } catch(e){}
       await signOut(auth);
       return { ok: false, needVerify: true, email: email, error: 'Подтвердите почту — письмо отправлено на ' + email };
     }
-    // почта подтверждена — сессия СОХРАНЯЕТСЯ (Firebase помнит, повторный вход не нужен)
     return { ok: true, uid: cred.user.uid };
   } catch (e) {
     return { ok: false, error: ruError(e.code) };
