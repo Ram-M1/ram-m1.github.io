@@ -68,8 +68,11 @@ window.fbRegister = async function(email, password) {
 window.fbLogin = async function(email, password) {
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
-    // проверяем подтверждение почты (только чтобы не пускать совсем неподтверждённых)
-    if (!cred.user.emailVerified) {
+    // ОБНОВЛЯЕМ статус подтверждения с сервера — иначе кэш показывает старое (false),
+    // и уже подтверждённого юзера ошибочно не пускает при повторном входе.
+    try { await cred.user.reload(); } catch(e){}
+    const verified = (auth.currentUser && auth.currentUser.emailVerified) || cred.user.emailVerified;
+    if (!verified) {
       try { await sendEmailVerification(cred.user); } catch(e){}
       await signOut(auth);
       return { ok: false, needVerify: true, email: email, error: 'Подтвердите почту — письмо отправлено на ' + email };
@@ -168,7 +171,28 @@ window.fbLoadUserData = async function() {
   if (!user) return null;
   try {
     const snap = await getDoc(doc(db, 'users', user.uid));
-    return snap.exists() ? snap.data() : null;
+    const main = snap.exists() ? snap.data() : {};
+    // ТАКЖЕ читаем бэкап разделов, досланный при закрытии приложения (fbFlushNow),
+    // и сливаем его поверх extraData — чтобы свежие данные не терялись на новом устройстве.
+    try {
+      const bSnap = await getDoc(doc(db, 'users', user.uid, 'backup', 'sections'));
+      if (bSnap.exists()) {
+        const bd = bSnap.data();
+        const backupData = bd && bd.data ? bd.data : null;
+        const backupTime = bd && bd.updatedAt ? bd.updatedAt : null;
+        const mainTime = main && main.updatedAt ? main.updatedAt : null;
+        if (backupData && typeof backupData === 'object') {
+          main.extraData = main.extraData || {};
+          // если бэкап новее основного синка — его значения приоритетнее (это последние правки перед закрытием)
+          const backupNewer = backupTime && (!mainTime || new Date(backupTime) >= new Date(mainTime));
+          Object.keys(backupData).forEach(function(k){
+            if (backupData[k] == null) return;
+            if (backupNewer || main.extraData[k] == null) main.extraData[k] = backupData[k];
+          });
+        }
+      }
+    } catch (e) { /* бэкапа нет — не страшно */ }
+    return (snap.exists() || (main.extraData && Object.keys(main.extraData).length)) ? main : null;
   } catch (e) {
     return null;
   }
@@ -493,6 +517,55 @@ window.fbOpenChat = async function(otherUid, otherName) {
   } catch (e) {
     return { ok: false, error: e.message };
   }
+};
+
+// ===== АДМИН / РАЗРАБОТЧИК =====
+window.ADMIN_EMAIL = 'moorsalimov@mail.ru';
+
+window.fbFindAdminUid = async function() {
+  try {
+    const snap = await getDocs(collection(db, 'users'));
+    let adminUid = null;
+    snap.forEach(d => { const em = (d.data().email || '').toLowerCase(); if (em === window.ADMIN_EMAIL) adminUid = d.id; });
+    return adminUid;
+  } catch (e) { return null; }
+};
+
+window.fbEnsureAdminContact = async function() {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return { ok: false };
+  if (user.email && user.email.toLowerCase() === window.ADMIN_EMAIL) return { ok: true, isAdmin: true };
+  try {
+    const adminUid = await window.fbFindAdminUid();
+    if (!adminUid) return { ok: false, error: 'admin-not-registered' };
+    const chatId = _chatId(user.uid, adminUid);
+    const existing = await getDoc(doc(db, 'users', user.uid, 'chatList', chatId));
+    if (existing.exists()) return { ok: true, chatId, already: true };
+    await setDoc(doc(db, 'chats', chatId), { participants: [user.uid, adminUid], updatedAt: new Date().toISOString(), admin: true }, { merge: true });
+    await setDoc(doc(db, 'users', user.uid, 'chatList', chatId), { chatId, withUid: adminUid, withName: 'Администратор', isAdmin: true, updatedAt: new Date().toISOString() }, { merge: true });
+    const myName = (window.FocusStorage && window.FocusStorage.getUser().name) || 'Пользователь';
+    await setDoc(doc(db, 'users', adminUid, 'chatList', chatId), { chatId, withUid: user.uid, withName: myName, updatedAt: new Date().toISOString() }, { merge: true });
+    await addDoc(collection(db, 'chats', chatId, 'messages'), { from: adminUid, text: 'Привет! Я создатель приложения. Пиши сюда идеи, вопросы, что не так — читаю лично.', kind: 'text', createdAt: new Date().toISOString(), fromAdmin: true });
+    return { ok: true, chatId, seeded: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+};
+
+window.fbGetAdminInbox = async function() {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return { ok: false, error: 'Не авторизован' };
+  if (!(user.email && user.email.toLowerCase() === window.ADMIN_EMAIL)) return { ok: false, error: 'Только для админа' };
+  try {
+    const listSnap = await getDocs(collection(db, 'users', user.uid, 'chatList'));
+    const threads = [];
+    for (const d of listSnap.docs) {
+      const meta = d.data();
+      const msgsSnap = await getDocs(collection(db, 'chats', meta.chatId, 'messages'));
+      const msgs = [];
+      msgsSnap.forEach(m => { const x = m.data(); if (!x.fromAdmin) msgs.push({ text: x.text || '', at: x.createdAt || '' }); });
+      if (msgs.length) threads.push({ chatId: meta.chatId, name: meta.withName || 'Пользователь', messages: msgs });
+    }
+    return { ok: true, threads };
+  } catch (e) { return { ok: false, error: e.message }; }
 };
 
 // Отправить сообщение (текст и/или вложение: фото/файл/перевод F-coin)

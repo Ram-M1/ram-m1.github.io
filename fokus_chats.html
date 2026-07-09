@@ -437,7 +437,7 @@ initAtmosphere(canvasId) {
                 <div class="chat-avatar${isGroup?' group':''}">${avInner}</div>
                 <div class="chat-body">
                     <div class="chat-row1">
-                        <div class="chat-name">${isPinned?'📌 ':''}${isGroup?'👥 ':''}${escapeHtml(c.name)}</div>
+                        <div class="chat-name"${c.isAdmin?' style="color:#FFD966;"':''}>${isPinned?'📌 ':''}${isGroup?'👥 ':''}${c.isAdmin?'★ ':''}${escapeHtml(c.name)}</div>
                         <div class="chat-time">${escapeHtml(c.time||'')}</div>
                     </div>
                     <div class="chat-row2">
@@ -595,6 +595,8 @@ initAtmosphere(canvasId) {
     async function loadRealChats(){
         if (!window.fbGetChatList) return;
         try {
+            // гарантируем контакт «Администратор» у юзера (один раз)
+            try { if (window.fbEnsureAdminContact) await window.fbEnsureAdminContact(); } catch(e){}
             const list = await window.fbGetChatList();
             realChats = (list || []).map(c => ({
                 id: c.chatId,
@@ -605,11 +607,11 @@ initAtmosphere(canvasId) {
                 unread: c.unread || 0,
                 type: 'user',
                 real: true,
+                isAdmin: !!c.isAdmin || (c.withName === 'Администратор'),
                 lastAt: c.updatedAt || ''
             }));
-            // сортируем по свежести
-            realChats.sort((a,b) => (b.lastAt||'').localeCompare(a.lastAt||''));
-            // кэшируем для мгновенного показа при следующем входе
+            // админский контакт — наверх
+            realChats.sort((a,b) => (b.isAdmin?1:0)-(a.isAdmin?1:0) || (b.lastAt||'').localeCompare(a.lastAt||''));
             try { localStorage.setItem('focus_realchats_cache', JSON.stringify(realChats)); } catch(e){}
             renderChats();
         } catch(e){}

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v95 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v108 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -646,7 +646,7 @@
 <script src="focus-analytics.js"></script>
 </head>
 <body>
-<div id="verBadge" style="position:fixed;left:6px;bottom:6px;z-index:2147483647;background:#7fd0ff;color:#000;font:700 12px/1 sans-serif;padding:4px 8px;border-radius:6px;pointer-events:none;">v95</div>
+<div id="verBadge" style="position:fixed;left:6px;bottom:6px;z-index:2147483647;background:#7fd0ff;color:#000;font:700 12px/1 sans-serif;padding:4px 8px;border-radius:6px;pointer-events:none;">v108</div>
 <div id="preGreetCover" style="position:fixed;inset:0;background:#000;z-index:2147483647;transition:opacity .5s;"></div>
 <script>
   // мгновенно решаем: если это новый юзер (не приветствовали) — держим чёрный экран, чтобы главная не мелькнула до приветствия
@@ -685,11 +685,7 @@
                         </defs>
                         <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent-2)" stroke-width="1.5" opacity="0.4"/>
                         <circle cx="50" cy="50" r="32" fill="none" stroke="url(#logoRing)" stroke-width="5"/>
-                        <g fill="url(#logoGrad)">
-                            <rect x="38" y="34" width="26" height="9" rx="4.5"/>
-                            <rect x="38" y="34" width="9" height="33" rx="4.5"/>
-                            <rect x="38" y="47" width="19" height="8" rx="4"/>
-                        </g>
+                        <text x="50" y="50" font-family="Georgia, 'Times New Roman', serif" font-size="46" font-weight="700" fill="url(#logoGrad)" text-anchor="middle" dominant-baseline="central" transform="rotate(90 50 50)">F</text>
                     </svg>
                 </div>
                 </div>
@@ -933,15 +929,18 @@
 <script src="focus-core.js"></script>
 <script src="focus-orb.js"></script>
 <script>
-    // ГАРД: если анкета не заполнена (нет имени ассистента или даты рождения) — на анкету
+    // ГАРД входа: совсем новый посетитель → landing (регистрация/вход);
+    //            вошёл, но анкета не заполнена → анкета.
     (function(){
         try {
-            var _u = JSON.parse(localStorage.getItem('focus_user')) || {};
-            // пускаем на главную только если заполнены новые поля анкеты
+            var _raw = localStorage.getItem('focus_user');
+            var _u = _raw ? (JSON.parse(_raw) || {}) : null;
             var ok = _u && _u.name && _u.assistantName && _u.birthDate;
-            // но не редиректим если юзер вообще не залогинен (его landing разрулит)
             var logged = _u && ((_u.flags && (_u.flags.loggedIn || _u.flags.demoMode)) || _u.email);
-            if (logged && !ok) {
+            // совсем новый (нет ни аккаунта, ни имени, ни признака входа) → на регистрацию
+            if (!_u || (!logged && !_u.email && !_u.name)) {
+                location.replace('landing.html');
+            } else if (logged && !ok) {
                 location.replace('profile-form.html');
             }
         } catch(e){}
@@ -1842,21 +1841,58 @@
                                 result.innerHTML = '<span class="check">✓</span> ' + (fillMsg || reply || 'Записал!').replace(/</g,'&lt;');
                             }
                         } else {
-                            // ИИ решил уточнить или ответить вместо заполнения
-                            result.innerHTML = '🧠 ' + reply.replace(/</g,'&lt;').replace(/\n/g,'<br>');
+                            // ИИ ответил без тега [FILL], но юзер явно хотел заполнить → заполняем НАПРЯМУЮ
+                            var directMsgs = [];
+                            matched.forEach(function(m){
+                                try {
+                                    var secId = SEC_MAP[m.action] || m.action;
+                                    var content = extractContent(text, m);
+                                    if (window.FocusRewards) FocusRewards.mark(m.sphere, m.action);
+                                    markSectionDone(m.action);
+                                    if (content && window.FocusSections && FocusSections.SECTIONS[secId]) {
+                                        var dm = FocusSections.fill(secId, content);
+                                        if (dm && dm.indexOf('__NEEDCREATE__') !== 0) directMsgs.push(dm);
+                                    }
+                                } catch(e){}
+                            });
+                            if (directMsgs.length) {
+                                result.innerHTML = '<span class="check">✓</span> ' + directMsgs.join('; ').replace(/</g,'&lt;');
+                            } else {
+                                result.innerHTML = '🧠 ' + reply.replace(/</g,'&lt;').replace(/\n/g,'<br>');
+                            }
                         }
                         try { if (FocusStorage.useAI) FocusStorage.useAI('mentor','text'); } catch(e){}
                         input.value = '';
                     } else {
-                        result.className = 'ai-result show unknown';
-                        result.innerHTML = '⚠️ ИИ не ответил. ' + (res.error || '');
+                        // ИИ не ответил (воркер недоступен/ошибка) — ЗАПОЛНЯЕМ НАПРЯМУЮ по распознанным словам
+                        const fbMsgs = [];
+                        matched.forEach(m => {
+                            try {
+                                const secId = SEC_MAP[m.action] || m.action;
+                                const content = extractContent(text, m);
+                                if (window.FocusRewards) FocusRewards.mark(m.sphere, m.action);
+                                markSectionDone(m.action);
+                                if (content && window.FocusSections && FocusSections.SECTIONS[secId]) {
+                                    const msg = FocusSections.fill(secId, content);
+                                    if (msg && msg.indexOf('__NEEDCREATE__') !== 0) fbMsgs.push(msg);
+                                }
+                            } catch(e){}
+                        });
+                        if (fbMsgs.length) {
+                            result.className = 'ai-result show';
+                            result.innerHTML = '<span class="check">✓</span> ' + fbMsgs.join('; ').replace(/</g,'&lt;');
+                            input.value = '';
+                        } else {
+                            result.className = 'ai-result show unknown';
+                            result.innerHTML = '⚠️ Не удалось связаться с ИИ. Попробуй ещё раз или зайди в раздел вручную.';
+                        }
                     }
                     clearTimeout(window._aiTimer);
                     window._aiTimer = setTimeout(() => { result.className = 'ai-result'; }, 8000);
                     return;
                 }
 
-                // нет ИИ — фолбэк на быстрое заполнение (грубое, но лучше чем ничего)
+                // нет ИИ вообще (fbAskAI отсутствует) — фолбэк на прямое заполнение
                 const filledMsgs = [];
                 matched.forEach(m => {
                     try {

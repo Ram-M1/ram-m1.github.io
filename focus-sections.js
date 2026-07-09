@@ -34,6 +34,19 @@
       fill: function (data) {
         var d = today();
         try { localStorage.setItem('focus_workout_note_' + d, cap(data) || 'Зарядка выполнена'); } catch (e) {}
+        // ПОСТАВИТЬ ГАЛОЧКИ: свои упражнения, а если их нет — дефолтные id 1-6 (как в разделе Зарядка)
+        try {
+          var ex = readJSON('focus_workout_exercises', []);
+          var ids = (ex && ex.length) ? ex.map(function (e) { return e.id; }) : [1, 2, 3, 4, 5, 6];
+          var checks = readJSON('focus_workout_checks_' + d, {});
+          ids.forEach(function (id) { checks[id] = Date.now(); });
+          writeJSON('focus_workout_checks_' + d, checks);
+          // завершённый день зарядки (для прогресса)
+          try {
+            var days = readJSON('focus_workout_days', []);
+            if (days.indexOf(d) === -1) { days.push(d); writeJSON('focus_workout_days', days); }
+          } catch (e) {}
+        } catch (e) {}
         markDone(this);
         return 'Отметил зарядку: ' + (cap(data) || 'выполнена');
       },
@@ -63,7 +76,16 @@
           var names = programs.map(function (p) { return p.name; }).filter(Boolean).join(', ');
           return '__NEEDCREATE__Не нашёл такую тренировку. У тебя есть: ' + names + '. Какую отметить? Если нужна новая — создай в разделе «Тренировки».';
         }
-        prog.lastDate = new Date().toLocaleDateString('ru-RU'); writeJSON('focus_trainings', programs);
+        prog.lastDate = new Date().toLocaleDateString('ru-RU');
+        // ОТМЕЧАЕМ упражнения программы выполненными (план/факт) — ИИ как слуга закрывает всю тренировку
+        if (Array.isArray(prog.exercises)) {
+          prog.exercises.forEach(function (ex) {
+            ex.checked = true;
+            // если факт по подходам не заполнен — переносим план в факт
+            if (Array.isArray(ex.sets)) ex.sets.forEach(function (s) { if (s.reps != null && s.factReps == null) s.factReps = s.reps; if (s.weight != null && s.factWeight == null) s.factWeight = s.weight; });
+          });
+        }
+        writeJSON('focus_trainings', programs);
         var arch = readJSON('focus_training_archive', []);
         arch.push({ date: today(), note: prog.name, done: true });
         writeJSON('focus_training_archive', arch);

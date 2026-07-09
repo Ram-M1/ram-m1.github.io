@@ -239,7 +239,7 @@ const FocusStorage = {
         if (sub === 'Про') return 10;
         if (sub === 'Плюс') return 5;
         if (sub === 'Лайт') return 3;
-        return 3; // пробный период / без подписки — как Лайт
+        return 3; // фолбэк (для без-подписки триал считается отдельно — 15 общих)
     },
 
     /** Цена ИИ-запроса сверх лимита (в купленных F-coin) по типу */
@@ -279,12 +279,28 @@ const FocusStorage = {
      *  Возвращает { ok, reason, withinLimit, needCoins, price, boughtCoins }
      */
     canUseAI(feature, type = 'text') {
+        const sub = this.getUser().subscription;
+        // БЕЗ подписки: 15 бесплатных запросов ВСЕГО (общий счётчик) — чтобы юзер распробовал ИИ.
+        // Кончились → за F-coins (привык → закинет монеты).
+        if (!sub) {
+            const freeUsed = this.aiFreeUsed();
+            if (freeUsed < 15) {
+                return { ok: true, withinLimit: true, free: true, remaining: 15 - freeUsed };
+            }
+            const price0 = this.aiPrice(type);
+            const bought0 = this.getBoughtCoins();
+            if (bought0 >= price0) {
+                return { ok: true, withinLimit: false, needCoins: true, price: price0, boughtCoins: bought0 };
+            }
+            return { ok: false, withinLimit: false, needCoins: true, price: price0, boughtCoins: bought0,
+                     reason: '15 бесплатных запросов использованы. Пополни F-coin, чтобы продолжить общаться с ассистентом.' };
+        }
+        // С подпиской — помесячные лимиты на раздел (как задумано)
         const used = this.aiUsedThisMonth(feature);
         const limit = this.aiMonthlyLimit();
         if (used < limit) {
             return { ok: true, withinLimit: true, remaining: limit - used };
         }
-        // лимит исчерпан — нужны КУПЛЕННЫЕ монеты
         const price = this.aiPrice(type);
         const bought = this.getBoughtCoins();
         if (bought >= price) {
@@ -294,15 +310,23 @@ const FocusStorage = {
                  reason: 'Лимит исчерпан. Купи F-coin в магазине для запросов сверх лимита.' };
     },
 
-    /** Зафиксировать использование ИИ-запроса (списать лимит или купленные монеты).
-     *  Возвращает { ok, charged } — charged: сколько монет списано (0 если в лимите)
-     */
+    /** Сколько бесплатных ИИ-запросов использовано (общий счётчик для юзеров без подписки, лимит 15) */
+    aiFreeUsed() {
+        try { return parseInt(localStorage.getItem('focus_ai_free_used')) || 0; } catch(e){ return 0; }
+    },
+
+    /** Зафиксировать использование ИИ-запроса (бесплатный / помесячный / купленные монеты). */
     useAI(feature, type = 'text') {
         const check = this.canUseAI(feature, type);
         if (!check.ok) return { ok: false, charged: 0 };
 
-        if (check.withinLimit) {
-            // в пределах лимита — увеличиваем счётчик использования
+        if (check.free) {
+            // бесплатный (общий счётчик 15)
+            try { localStorage.setItem('focus_ai_free_used', String(this.aiFreeUsed() + 1)); } catch(e){}
+            if (this._cloudSync) this._cloudSync();
+            return { ok: true, charged: 0 };
+        } else if (check.withinLimit) {
+            // в пределах помесячного лимита подписки
             const all = (() => { try { return JSON.parse(localStorage.getItem('focus_ai_usage')) || {}; } catch(e){ return {}; } })();
             const month = this._aiMonthKey();
             if (!all[month]) all[month] = {};
@@ -313,7 +337,7 @@ const FocusStorage = {
             // сверх лимита — списываем КУПЛЕННЫЕ монеты
             const price = this.aiPrice(type);
             this.setBoughtCoins(this.getBoughtCoins() - price);
-            this.spendCoins(price); // и из общего баланса тоже
+            this.spendCoins(price);
             return { ok: true, charged: price };
         }
     },
