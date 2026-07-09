@@ -646,9 +646,9 @@
             if (user && user.emailVerified) {
                 // проверяем заполнена ли анкета — решаем куда вести
                 const u = FocusStorage.getUser();
-                const hasBasics = u && ((u.flags && u.flags.profileCompleted) || u.profileCompleted);
-                const hasNewFields = u && u.assistantName && u.birthDate;
-                if (hasBasics && hasNewFields) {
+                const completed = u && ((u.flags && u.flags.profileCompleted) || u.profileCompleted);
+                const hasFields = u && u.name && u.assistantName && u.birthDate;
+                if (completed || hasFields) {
                     location.replace('index.html');
                 } else {
                     location.replace('profile-form.html');

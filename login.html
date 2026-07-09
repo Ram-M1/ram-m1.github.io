@@ -433,9 +433,10 @@
     // после входа: если анкета не заполнена (нет имени, ассистента или даты рождения) — на анкету
     function goAfterLogin(){
         var u = FocusStorage.getUser();
-        var hasBasics = u && ((u.flags && u.flags.profileCompleted) || u.profileCompleted);
-        var hasNewFields = u && u.assistantName && u.birthDate;
-        if (hasBasics && hasNewFields) window.location.href = 'index.html';
+        // ТА ЖЕ логика что и гард на главной: анкета пройдена если стоит флаг ИЛИ есть поля.
+        var completed = u && ((u.flags && u.flags.profileCompleted) || u.profileCompleted);
+        var hasFields = u && u.name && u.assistantName && u.birthDate;
+        if (completed || hasFields) window.location.href = 'index.html';
         else window.location.href = 'profile-form.html';
     }
 
