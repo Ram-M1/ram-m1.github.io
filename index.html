@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v119 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v125 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -769,6 +769,9 @@
                 <div class="ai-chat-header">
                     <canvas class="focus-orb-canvas ai-chat-orb" width="34" height="34"></canvas>
                     <div class="ai-chat-title" id="aiChatTitle">Ассистент</div>
+                    <div class="ai-chat-history-btn" id="aiChatHistoryBtn" title="История переписки" style="cursor:pointer;padding:6px;opacity:0.7;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+                    </div>
                     <div class="ai-chat-collapse" id="aiChatCollapse" title="Свернуть">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
                     </div>
@@ -1833,7 +1836,7 @@
                     const meUser0 = (function(){ try { return JSON.parse(localStorage.getItem('focus_user'))||{}; } catch(e){ return {}; } })();
                     const asstName0 = meUser0.assistantName || 'ассистент';
                     const sysPrompt = window._focusChatSystemPrompt ? window._focusChatSystemPrompt() : ('Тебя зовут ' + asstName0 + '. Ты ассистент FOCUS. Заполняй разделы грамотно через [FILL:раздел|пункт1|пункт2], исправляя орфографию.');
-                    const _ctx = (window.FocusChatMemory ? (window._focusChatHistory || []) : []).slice(-8);
+                    const _ctx = (window.FocusChatMemory ? FocusChatMemory.recent(16) : (window._focusChatHistory || [])).slice(-16);
                     const prompt = [{ role: 'system', content: sysPrompt }, ..._ctx.map(m=>({role:m.role,content:m.content}))];
                     let res = await window.fbAskAI(prompt, 500);
                     if (res.ok && res.reply && res.reply.trim()) {
@@ -1842,7 +1845,7 @@
                         let reply = full.replace(/\[REMIND:[^\]]+\]/gi, '').trim();
                         const fillMatch = reply.match(/\[FILL:([a-z_]+)\|([^\]]+)\]/i);
                         if (fillMatch) {
-                            reply = reply.replace(/\[FILL:[^\]]+\]/gi, '').trim();
+                            reply = reply.replace(/\[FILL[^\]]*\]/gi, '').trim();
                             let fillMsg = '';
                             try { if (window.FocusSections) fillMsg = FocusSections.fill(fillMatch[1].toLowerCase(), fillMatch[2].trim()) || ''; } catch(e){}
                             if (fillMsg && fillMsg.indexOf('__NEEDCREATE__') === 0) {
@@ -1943,7 +1946,7 @@
                     const asstNameC = meUserC.assistantName || 'ассистент';
                     const sysPromptC = window._focusChatSystemPrompt ? window._focusChatSystemPrompt() :
                         ('Тебя зовут ' + asstNameC + '. Ты умный ассистент FOCUS. Отвечай коротко, по делу, живым русским.');
-                    const _ctxC = (window.FocusChatMemory ? (window._focusChatHistory || []) : []).slice(-10);
+                    const _ctxC = (window.FocusChatMemory ? FocusChatMemory.recent(16) : (window._focusChatHistory || [])).slice(-16);
                     const promptC = [{ role: 'system', content: sysPromptC }, ..._ctxC.map(m=>({role:m.role,content:m.content}))];
                     let res = await window.fbAskAI(promptC, 500);
                     if (res.ok && res.reply && res.reply.trim()) {
@@ -1956,7 +1959,7 @@
                         try { if (FocusStorage.useAI) FocusStorage.useAI('mentor', 'text'); } catch(e){}
                         input.value = '';
                         if (fillMatch) {
-                            reply = reply.replace(/\[FILL:[^\]]+\]/gi,'').trim();
+                            reply = reply.replace(/\[FILL[^\]]*\]/gi,'').trim();
                             let fillMsg = '';
                             try { if (window.FocusSections) fillMsg = FocusSections.fill(fillMatch[1].toLowerCase(), fillMatch[2].trim()) || ''; } catch(e){}
                             if (fillMsg && fillMsg.indexOf('__NEEDCREATE__') === 0) { result.className = 'ai-result show unknown'; result.innerHTML = fillMsg.replace('__NEEDCREATE__','').replace(/</g,'&lt;'); }
@@ -2043,7 +2046,7 @@
                 } else {
                     _h.forEach(function(m){
                         if (m.role === 'user') addMsg('user', m.content);
-                        else if (m.role === 'assistant') addMsg('bot', m.content.replace(/\[FILL:[^\]]+\]/gi,'').replace(/\[REMIND:[^\]]+\]/gi,'').trim());
+                        else if (m.role === 'assistant') addMsg('bot', m.content.replace(/\[FILL[^\]]*\]/gi,'').replace(/\[REMIND:[^\]]+\]/gi,'').trim());
                     });
                 }
                 setTimeout(()=> chatInput.focus(), 300);
@@ -2052,6 +2055,25 @@
 
             expandBtn.addEventListener('click', openChat);
             collapseBtn.addEventListener('click', closeChat);
+            // История переписки — показать архив (сообщения старше 7 дней)
+            var histBtn = document.getElementById('aiChatHistoryBtn');
+            if (histBtn) histBtn.addEventListener('click', function(){
+                var arch = [];
+                try { if (window.FocusChatMemory && FocusChatMemory.archive) arch = FocusChatMemory.archive(); } catch(e){}
+                var box = document.getElementById('aiChatMessages');
+                if (!arch.length) { addMsg('bot', 'Архив пуст — вся переписка за последние 7 дней здесь, в чате. Старше 7 дней появится тут позже.'); return; }
+                // рисуем архив сверху с разделителем
+                var html = '<div style="text-align:center;color:#8e8e9e;font-size:11px;margin:8px 0;">— Архив переписки (старше 7 дней) —</div>';
+                arch.forEach(function(m){
+                    var who = m.role === 'user' ? 'me' : 'bot';
+                    var txt = (m.content||'').replace(/\[FILL[^\]]*\]/gi,'').replace(/\[REMIND[^\]]*\]/gi,'').trim();
+                    if (!txt) return;
+                    var d = m.ts ? new Date(m.ts).toLocaleDateString('ru-RU') : '';
+                    html += '<div class="ai-msg '+who+'" style="opacity:0.75;"><div class="ai-bubble">'+txt.replace(/</g,'&lt;')+(d?'<div style="font-size:10px;color:#6e6e7e;margin-top:3px;">'+d+'</div>':'')+'</div></div>';
+                });
+                html += '<div style="text-align:center;color:#8e8e9e;font-size:11px;margin:8px 0;">— Текущая переписка —</div>';
+                box.insertAdjacentHTML('afterbegin', html);
+            });
             overlay.addEventListener('click', (e)=>{ if (e.target === overlay) closeChat(); });
 
             // системный промпт с инструкцией заполнения разделов
@@ -2084,7 +2106,9 @@
                     'НАПОМИНАНИЯ: если просят напомнить о чём-либо — добавь строку [REMIND:текст напоминания|когда].\n' +
                     'Примеры: [REMIND:Тренировка|в 18:00]  [REMIND:Прочитать молитву|вечером]  [REMIND:Сходить в храм|завтра в 9:00]  [REMIND:Обед|через 2 часа]\n' +
                     'Можно ставить напоминание на ЛЮБУЮ задачу из любого раздела и плана.\n\n' +
-                    'ФОРМАТ ОТВЕТА: один короткий тёплый ответ + [FILL:...] и/или [REMIND:...] если нужно. Служебные строки пользователь не видит. Пиши живым русским, коротко.' +
+                    'ФОРМАТ ОТВЕТА: один короткий тёплый ответ + [FILL:...] и/или [REMIND:...] если нужно. Служебные строки пользователь не видит. Пиши живым русским, коротко.\n' +
+                    'КРИТИЧНО: НИКОГДА не пиши слово [FILL] или [REMIND] в обычном тексте ответа и не объясняй пользователю как ты работаешь с тегами — он их не видит и не должен видеть. Тег ставится ТОЛЬКО отдельной служебной строкой в конце.\n' +
+                    'СТАТУС РАЗДЕЛОВ: ты ВИДИШЬ актуальное состояние всех разделов в СПРАВКЕ выше (что выполнено сегодня, что нет). Когда юзер спрашивает «зарядка отмечена?», «что я сегодня сделал?» — отвечай ПРАВДИВО по справке, не говори что не знаешь. Ты отслеживаешь изменения — данные в справке всегда свежие.' +
                     (astroCtx ? ('\nТип личности: ' + astroCtx + '. Учитывай, но не упоминай астрологию без нужды.') : '');
             }
             window._focusChatSystemPrompt = systemPrompt;
@@ -2140,12 +2164,12 @@
                     // ищем команду заполнения [FILL:тип|данные]
                     const fillMatch = reply.match(/\[FILL:([a-z_]+)\|([^\]]+)\]/i);
                     if (fillMatch) {
-                        reply = reply.replace(/\[FILL:[^\]]+\]/gi, '').trim();
-                        if (reply) addMsg('bot', reply);
+                        reply = reply.replace(/\[FILL[^\]]*\]/gi, '').trim();
                         applyFill(fillMatch[1].toLowerCase(), fillMatch[2].trim());
-                    } else if (reply) {
-                        addMsg('bot', reply);
                     }
+                    // ФИНАЛЬНАЯ ЧИСТКА: убрать ЛЮБЫЕ остатки служебных тегов (даже без двоеточия), чтоб не торчали в чате
+                    reply = reply.replace(/\[(FILL|REMIND)[^\]]*\]/gi, '').replace(/\s{2,}/g,' ').trim();
+                    if (reply) addMsg('bot', reply);
                     if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: res.reply.trim() }); else history.push({ role:'assistant', content: res.reply.trim() });
                     try { if (FocusStorage.useAI) FocusStorage.useAI('mentor','text'); } catch(e){}
                 } else {
@@ -2415,7 +2439,7 @@
             location.reload();
         });
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=125').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // проверяем обновление воркера сразу
             }).catch(() => {});
         });

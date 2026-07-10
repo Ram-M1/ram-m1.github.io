@@ -101,10 +101,14 @@
         if (!window.fbAskAI) { area.innerHTML = '<div class="forecast-card">ИИ недоступен.</div>'; return; }
         try { if (window.FocusStorage && FocusStorage.canUseAI && !FocusStorage.canUseAI('astro','text').ok) { area.innerHTML = '<div class="forecast-card">🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.</div>'; return; } } catch(e){}
         let res = await window.fbAskAI(messages, 400);
-        if (res && res.ok) { try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('astro','text'); } catch(e){} }
+        if (!(res && res.ok && res.reply && res.reply.trim())) {
+            await new Promise(function(r){ setTimeout(r, 900); });   // пауза и ретрай (два запроса разом могли захлебнуться)
+            res = await window.fbAskAI(messages, 400);
+        }
+        if (res && res.ok && res.reply && res.reply.trim()) { try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('astro','text'); } catch(e){} }
         area.innerHTML = (res.ok && res.reply && res.reply.trim())
             ? '<div class="forecast-card">' + res.reply.trim().replace(/</g,'&lt;') + '</div>'
-            : '<div class="forecast-card">⚠️ ' + (res.error || 'Ошибка') + '</div>';
+            : '<div class="forecast-card">Звёзды сегодня молчат — загляни чуть позже, прогноз обновится.</div>';
     }
 
     async function getForecast(){
@@ -119,10 +123,14 @@
         if (!window.fbAskAI) { area.innerHTML = '<div class="forecast-card">ИИ недоступен, обнови страницу.</div>'; return; }
         try { if (window.FocusStorage && FocusStorage.canUseAI && !FocusStorage.canUseAI('astro','text').ok) { area.innerHTML = '<div class="forecast-card">🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.</div>'; return; } } catch(e){}
         let res = await window.fbAskAI(messages, 600);
-        if (res && res.ok) { try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('astro','text'); } catch(e){} }
+        if (!(res && res.ok && res.reply && res.reply.trim())) {
+            await new Promise(function(r){ setTimeout(r, 900); });
+            res = await window.fbAskAI(messages, 600);
+        }
+        if (res && res.ok && res.reply && res.reply.trim()) { try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('astro','text'); } catch(e){} }
         area.innerHTML = (res.ok && res.reply && res.reply.trim())
             ? '<div class="forecast-card">' + res.reply.trim().replace(/</g,'&lt;') + '</div>'
-            : '<div class="forecast-card">⚠️ Не удалось получить прогноз. ' + (res.error || '') + '</div>';
+            : '<div class="forecast-card">Прогноз готовится — попробуй обновить через минуту.</div>';
     }
 
     function getAboutText(){

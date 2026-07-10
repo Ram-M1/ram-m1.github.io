@@ -51,9 +51,14 @@
         return 'Отметил зарядку: ' + (cap(data) || 'выполнена');
       },
       summary: function () {
+        var d = today();
         var ex = readJSON('focus_workout_exercises', []);
-        if (!ex.length) return null;
-        return 'Зарядка юзера (упражнения): ' + ex.map(function (e) { return e.name + (e.sets ? ' ' + e.sets + '×' + (e.reps || '') : ''); }).join(', ');
+        var ids = (ex && ex.length) ? ex.map(function (e) { return e.id; }) : [1, 2, 3, 4, 5, 6];
+        var checks = readJSON('focus_workout_checks_' + d, {});
+        var doneCount = ids.filter(function (id) { return checks[id]; }).length;
+        var status = doneCount >= ids.length ? 'СЕГОДНЯ ВЫПОЛНЕНА (все отмечены)' : (doneCount > 0 ? ('сегодня частично: ' + doneCount + '/' + ids.length) : 'СЕГОДНЯ НЕ отмечена');
+        var list = (ex && ex.length) ? (' Упражнения: ' + ex.map(function (e) { return e.name; }).join(', ') + '.') : '';
+        return 'Зарядка — ' + status + '.' + list;
       }
     },
     training: {

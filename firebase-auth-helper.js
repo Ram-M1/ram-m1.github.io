@@ -582,6 +582,33 @@ window.fbEnsureAdminContact = async function() {
   } catch (e) { return { ok: false, error: e.message }; }
 };
 
+// АДМИН: получить полные данные любого юзера (для просмотра/восстановления)
+window.fbGetUserFullData = async function(uid) {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return { ok: false, error: 'Не авторизован' };
+  if (!(user.email && user.email.toLowerCase() === window.ADMIN_EMAIL)) return { ok: false, error: 'Только для админа' };
+  if (!uid) return { ok: false, error: 'Не указан пользователь' };
+  try {
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (!snap.exists()) return { ok: false, error: 'Пользователь не найден' };
+    const data = snap.data();
+    let backup = null;
+    try { const b = await getDoc(doc(db, 'users', uid, 'backup', 'sections')); if (b.exists()) backup = b.data(); } catch(e){}
+    return { ok: true, uid: uid, profile: data, backup: backup };
+  } catch (e) { return { ok: false, error: e.message }; }
+};
+
+// АДМИН: восстановить данные юзеру на ТЕКУЩЕМ устройстве (записать в localStorage)
+// использовать осторожно — только когда сам админ хочет посмотреть/перенести
+window.fbRestoreUserToLocal = function(fullData) {
+  try {
+    if (!fullData || !fullData.profile) return { ok: false };
+    var p = fullData.profile;
+    if (window.FocusStorage) window.FocusStorage.applyCloudData(p);
+    return { ok: true };
+  } catch(e) { return { ok: false, error: e.message }; }
+};
+
 window.fbGetAdminInbox = async function() {
   const user = _currentUser || auth.currentUser;
   if (!user) return { ok: false, error: 'Не авторизован' };
@@ -775,7 +802,15 @@ if (!window.fbAskAI) window.fbAskAI = async function(messages, maxTokens) {
       return { ok: false, error: 'Воркер вернул ' + res.status + (detail ? ': ' + detail : '') };
     }
     const data = await res.json();
-    if (data.ok && data.reply) return { ok: true, reply: data.reply };
+    if (data.ok && data.reply && data.reply.trim()) return { ok: true, reply: data.reply };
+    // пустой ответ модели — ОДИН авто-повтор (DeepSeek иногда отдаёт пусто)
+    try {
+      const res2 = await fetch(window.FOCUS_AI_PROXY, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages, max_tokens: maxTokens || 600 })
+      });
+      if (res2.ok) { const d2 = await res2.json(); if (d2.ok && d2.reply && d2.reply.trim()) return { ok: true, reply: d2.reply }; }
+    } catch(e){}
     return { ok: false, error: data.error || data.detail || 'Пустой ответ ИИ' };
   } catch (e) {
     return { ok: false, error: 'Нет связи с воркером: ' + e.message + ' (проверь адрес воркера и что он развёрнут)' };

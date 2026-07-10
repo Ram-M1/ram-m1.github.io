@@ -312,6 +312,12 @@
             <!-- СООБЩЕНИЯ ОТ ЮЗЕРОВ -->
             <div class="admin-tab-content" id="tab-messages">
                 <div class="panel">
+                    <div class="panel-title">🔎 Данные пользователя (просмотр / восстановление)</div>
+                    <input id="udSearch" placeholder="Имя пользователя" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 12px;color:#fff;font-size:13px;margin-bottom:8px;" />
+                    <button id="udSearchBtn" style="width:100%;background:rgba(200,170,255,0.15);color:#C8AAFF;font-weight:700;font-size:12.5px;padding:10px;border:1px solid rgba(200,170,255,0.3);border-radius:10px;cursor:pointer;">Найти</button>
+                    <div id="udResult" style="margin-top:10px;font-size:12px;color:#c8c8d0;"></div>
+                </div>
+                <div class="panel">
                     <div class="panel-title">🧠 ИИ-сводка сообщений</div>
                     <div id="aiDigest" style="font-size:12px;color:#c8c8d0;line-height:1.6;">Нажми кнопку — ИИ прочитает все сообщения от юзеров, выделит «вау»-идеи и даст краткий дайджест, чтобы ты ничего не пропустил.</div>
                     <button id="digestBtn" style="margin-top:10px;width:100%;background:linear-gradient(135deg,#FFD966,#7C8CFF);color:#0a0a0f;font-weight:700;font-size:12.5px;padding:11px;border:none;border-radius:11px;cursor:pointer;">Сделать сводку</button>
@@ -444,6 +450,43 @@ initAtmosphere(canvasId) {
         }).join('');
     }
     function esc(s){ return String(s||'').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+    // ===== ДАННЫЕ ПОЛЬЗОВАТЕЛЯ (просмотр/восстановление) =====
+    var udBtn = document.getElementById('udSearchBtn');
+    if (udBtn) udBtn.addEventListener('click', async function(){
+        var q = (document.getElementById('udSearch').value || '').trim();
+        var out = document.getElementById('udResult');
+        if (q.length < 2) { out.innerHTML = 'Введи имя (мин. 2 буквы).'; return; }
+        if (!window.fbFindUsersByName) { out.innerHTML = 'Firebase не готов.'; return; }
+        out.innerHTML = 'Ищу…';
+        var r = await window.fbFindUsersByName(q);
+        if (!r.ok) { out.innerHTML = esc(r.error || 'Не найдено'); return; }
+        out.innerHTML = r.users.map(function(u){
+            return '<div style="padding:8px 10px;background:rgba(255,255,255,0.04);border-radius:9px;margin-bottom:6px;">'
+                + '<div style="font-weight:700;color:#fff;">'+esc(u.name)+' <span style="color:#6e6e7e;font-weight:400;">'+esc(u.phone||'')+'</span></div>'
+                + '<button class="ud-view" data-uid="'+esc(u.uid)+'" data-name="'+esc(u.name)+'" style="margin-top:5px;background:rgba(200,170,255,0.15);color:#C8AAFF;border:none;border-radius:8px;padding:6px 12px;font-size:11.5px;cursor:pointer;">Показать данные</button></div>';
+        }).join('');
+        out.querySelectorAll('.ud-view').forEach(function(b){
+            b.addEventListener('click', async function(){
+                out.innerHTML = 'Загружаю данные…';
+                var d = await window.fbGetUserFullData(b.dataset.uid);
+                if (!d.ok) { out.innerHTML = esc(d.error||'Ошибка'); return; }
+                var p = d.profile || {};
+                var rows = [
+                    ['Имя', p.name], ['Email', p.email], ['Телефон', p.phone],
+                    ['Дата рожд.', p.birthDate], ['Город', p.city],
+                    ['Ассистент', p.assistantName], ['Монеты', p.coins],
+                    ['Подписка', p.subscription || 'нет'], ['Анкета', (p.profileCompleted||(p.flags&&p.flags.profileCompleted))?'заполнена':'нет']
+                ];
+                var extra = p.extraData ? Object.keys(p.extraData).length : 0;
+                out.innerHTML = '<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;">'
+                    + rows.map(function(r){ return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="color:#8e8e9e;">'+r[0]+'</span><span style="color:#fff;">'+esc(String(r[1]||'—'))+'</span></div>'; }).join('')
+                    + '<div style="margin-top:6px;color:#8e8e9e;">Разделов с данными в облаке: <b style="color:#FFD966;">'+extra+'</b>'+(d.backup?' · есть резервная копия':'')+'</div>'
+                    + '<div style="margin-top:8px;color:#6e6e7e;font-size:11px;">Данные в облаке целы — юзер восстановит их автоматически при входе. Полный JSON — в Firebase Console.</div>'
+                    + '</div>';
+            });
+        });
+    });
 
     var digestBtn = document.getElementById('digestBtn');
     if (digestBtn) digestBtn.addEventListener('click', async function(){

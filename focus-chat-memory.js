@@ -55,8 +55,8 @@
       });
       if (old.length) {
         const arch = read(ARCH_KEY).concat(old);
-        // архив не бесконечный — держим последние 500 сообщений
-        write(ARCH_KEY, arch.slice(-500));
+        // архив держим большим — до 2000 сообщений (≈ история за долгий срок), синкается в облако
+        write(ARCH_KEY, arch.slice(-2000));
         write(LIVE_KEY, fresh);
         window._focusChatHistory = fresh;
       }
