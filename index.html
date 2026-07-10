@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v125 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v128 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -341,7 +341,7 @@
     .focus-tile {
         background: linear-gradient(135deg, rgba(35,35,46,0.42), rgba(22,22,30,0.42));
         border-radius: 14px;
-        padding: 15px 16px;
+        padding: 17px 16px;
         border: 0.5px solid rgba(var(--accent-rgb),0.12);
         cursor: pointer;
         display: flex;
@@ -379,7 +379,7 @@
         display: flex;
         justify-content: center;
         gap: 7px;
-        margin: 2px 0 14px;
+        margin: 2px 0 8px;
     }
     .dot-divider span {
         width: 4px; height: 4px;
@@ -426,8 +426,8 @@
     .focus-tile:nth-child(5) { animation-delay: 0.33s; }
     .focus-tile:nth-child(6) { animation-delay: 0.40s; }
     .tile-icon {
-        width: 46px;
-        height: 46px;
+        width: 48px;
+        height: 48px;
         flex-shrink: 0;
         display: flex;
         align-items: center;
@@ -443,7 +443,7 @@
     }
     .tile-icon svg { width: 24px; height: 24px; }
     .tile-info { flex: 1; min-width: 0; }
-    .tile-title { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 2px; letter-spacing: 0.1px; }
+    .tile-title { font-size: 15.5px; font-weight: 600; color: #fff; margin-bottom: 2px; letter-spacing: 0.1px; }
     .tile-subtitle { font-size: 10px; color: #8e8e9e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tile-arrow { color: var(--accent); opacity: 0.45; transition: 0.3s ease; flex-shrink: 0; }
     .tile-arrow svg { width: 16px; height: 16px; }
@@ -1843,6 +1843,8 @@
                         let full = res.reply.trim();
                         if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: full });
                         let reply = full.replace(/\[REMIND:[^\]]+\]/gi, '').trim();
+                        var doneM1 = reply.match(/\[DONE:([a-z_]+)\|([^\]]+)\]/i);
+                        if (doneM1) { reply = reply.replace(/\[DONE[^\]]*\]/gi,'').trim(); try { if (window.FocusSections && FocusSections.complete) FocusSections.complete(doneM1[1].toLowerCase(), doneM1[2].trim()); } catch(e){} }
                         const fillMatch = reply.match(/\[FILL:([a-z_]+)\|([^\]]+)\]/i);
                         if (fillMatch) {
                             reply = reply.replace(/\[FILL[^\]]*\]/gi, '').trim();
@@ -1955,6 +1957,8 @@
                         let reply = full;
                         const remindMatch = reply.match(/\[REMIND:([^|\]]+)\|([^\]]+)\]/i);
                         if (remindMatch && window.FocusReminders) { reply = reply.replace(/\[REMIND:[^\]]+\]/gi,'').trim(); FocusReminders.schedule(remindMatch[1].trim(), remindMatch[2].trim()); }
+                        var doneM2 = reply.match(/\[DONE:([a-z_]+)\|([^\]]+)\]/i);
+                        if (doneM2) { reply = reply.replace(/\[DONE[^\]]*\]/gi,'').trim(); try { if (window.FocusSections && FocusSections.complete) FocusSections.complete(doneM2[1].toLowerCase(), doneM2[2].trim()); } catch(e){} }
                         const fillMatch = reply.match(/\[FILL:([a-z_]+)\|([^\]]+)\]/i);
                         try { if (FocusStorage.useAI) FocusStorage.useAI('mentor', 'text'); } catch(e){}
                         input.value = '';
@@ -2108,7 +2112,10 @@
                     'Можно ставить напоминание на ЛЮБУЮ задачу из любого раздела и плана.\n\n' +
                     'ФОРМАТ ОТВЕТА: один короткий тёплый ответ + [FILL:...] и/или [REMIND:...] если нужно. Служебные строки пользователь не видит. Пиши живым русским, коротко.\n' +
                     'КРИТИЧНО: НИКОГДА не пиши слово [FILL] или [REMIND] в обычном тексте ответа и не объясняй пользователю как ты работаешь с тегами — он их не видит и не должен видеть. Тег ставится ТОЛЬКО отдельной служебной строкой в конце.\n' +
-                    'СТАТУС РАЗДЕЛОВ: ты ВИДИШЬ актуальное состояние всех разделов в СПРАВКЕ выше (что выполнено сегодня, что нет). Когда юзер спрашивает «зарядка отмечена?», «что я сегодня сделал?» — отвечай ПРАВДИВО по справке, не говори что не знаешь. Ты отслеживаешь изменения — данные в справке всегда свежие.' +
+                    'СТАТУС РАЗДЕЛОВ: ты ВИДИШЬ актуальное состояние всех разделов в СПРАВКЕ выше (что выполнено сегодня, что нет). Когда юзер спрашивает «зарядка отмечена?», «что я сегодня сделал?» — отвечай ПРАВДИВО по справке, не говори что не знаешь. Ты отслеживаешь изменения — данные в справке всегда свежие.\n' +
+                    'РАСКЛАД ДЕЛ (важно!): ты — личный ассистент как «Пятница». Когда юзер спрашивает «что у меня осталось?», «какие дела?», «что по плану?», «напомни что я хотел сделать» — посмотри в СПРАВКУ (особенно разгрузку мозга: входящие, «сделать сейчас», запланированное с дедлайнами) и дай короткий понятный расклад по пунктам. Затем предложи: отметить выполненное, добавить новое или поставить напоминание.\n' +
+                    'ОТМЕТИТЬ ВЫПОЛНЕННОЕ: если юзер говорит «сделал X», «выполнил X», «закрыл X» про дело из разгрузки мозга — добавь служебную строку [DONE:braindump|текст дела] (текст — как в справке, можно часть). Это уберёт дело из активных. Пример: юзер «позвонил маме сделал» → [DONE:braindump|позвонил маме].\n' +
+                    'Если юзер надиктовывает новые дела — заполняй через [FILL:braindump|Дело1|Дело2] грамотно.' +
                     (astroCtx ? ('\nТип личности: ' + astroCtx + '. Учитывай, но не упоминай астрологию без нужды.') : '');
             }
             window._focusChatSystemPrompt = systemPrompt;
@@ -2167,8 +2174,14 @@
                         reply = reply.replace(/\[FILL[^\]]*\]/gi, '').trim();
                         applyFill(fillMatch[1].toLowerCase(), fillMatch[2].trim());
                     }
+                    // отметка выполненного [DONE:раздел|текст] — ассистент закрывает дело за юзера
+                    const doneMatch = reply.match(/\[DONE:([a-z_]+)\|([^\]]+)\]/i);
+                    if (doneMatch) {
+                        reply = reply.replace(/\[DONE[^\]]*\]/gi, '').trim();
+                        try { if (window.FocusSections && FocusSections.complete) { var dm = FocusSections.complete(doneMatch[1].toLowerCase(), doneMatch[2].trim()); if (dm) addFilled(dm); } } catch(e){}
+                    }
                     // ФИНАЛЬНАЯ ЧИСТКА: убрать ЛЮБЫЕ остатки служебных тегов (даже без двоеточия), чтоб не торчали в чате
-                    reply = reply.replace(/\[(FILL|REMIND)[^\]]*\]/gi, '').replace(/\s{2,}/g,' ').trim();
+                    reply = reply.replace(/\[(FILL|REMIND|DONE)[^\]]*\]/gi, '').replace(/\s{2,}/g,' ').trim();
                     if (reply) addMsg('bot', reply);
                     if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: res.reply.trim() }); else history.push({ role:'assistant', content: res.reply.trim() });
                     try { if (FocusStorage.useAI) FocusStorage.useAI('mentor','text'); } catch(e){}
@@ -2431,16 +2444,12 @@
     if ('serviceWorker' in navigator) {
         // авто-обновление: когда новый воркер берёт контроль — один раз перезагружаем страницу,
         // чтобы не грузилась старая версия под новой (устраняет мелькание/лаги старого кода)
-        var _hadController = !!navigator.serviceWorker.controller;
-        var _refreshing = false;
-        navigator.serviceWorker.addEventListener('controllerchange', function(){
-            if (_refreshing || !_hadController) return;   // не перезагружаем при самой первой установке
-            _refreshing = true;
-            location.reload();
-        });
+        // Обновление БЕЗ перезагрузки — новый воркер тихо ставится в фоне,
+        // свежая версия подхватывается при следующем естественном переходе (клик в раздел
+        // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=125').then(function(reg){
-                if (reg && reg.update) { try { reg.update(); } catch(e){} }   // проверяем обновление воркера сразу
+            navigator.serviceWorker.register('sw.js?v=128').then(function(reg){
+                if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
     }

@@ -252,8 +252,34 @@
       },
       summary: function () {
         var bd = readJSON('focus_braindump', null);
-        if (!bd || !bd.inbox || !bd.inbox.length) return null;
-        return 'В разгрузке мозга (входящие): ' + bd.inbox.slice(0, 6).map(function (x) { return x.text; }).join(', ');
+        if (!bd) return null;
+        var parts = [];
+        if (bd.inbox && bd.inbox.length) parts.push('входящие (не разобрано): ' + bd.inbox.slice(0,10).map(function(x){return x.text;}).join(', '));
+        if (bd.now && bd.now.length) parts.push('СДЕЛАТЬ СЕЙЧАС: ' + bd.now.slice(0,10).map(function(x){return x.text + (x.deadline ? ' (дедлайн ' + x.deadline + ')' : '');}).join(', '));
+        if (bd.plan && bd.plan.length) parts.push('запланировано: ' + bd.plan.slice(0,10).map(function(x){return x.text + (x.deadline ? ' (к ' + x.deadline + ')' : '');}).join(', '));
+        if (!parts.length) return null;
+        return 'Разгрузка мозга юзера — ' + parts.join('; ') + '.';
+      },
+      /** Отметить задачу выполненной по тексту (ИИ-ассистент закрывает дело за юзера). */
+      complete: function (data) {
+        var bd = readJSON('focus_braindump', null);
+        if (!bd) return 'В разгрузке мозга пусто.';
+        var q = (data || '').toLowerCase().trim();
+        var done = null;
+        ['now','plan','inbox'].forEach(function(col){
+          if (!bd[col]) return;
+          for (var i = bd[col].length - 1; i >= 0; i--) {
+            if (!done && bd[col][i].text && bd[col][i].text.toLowerCase().indexOf(q) !== -1) {
+              done = bd[col][i].text;
+              bd[col].splice(i, 1);   // убираем из активных
+            }
+          }
+        });
+        if (!done) return 'Не нашёл такую задачу в разгрузке мозга.';
+        bd.doneLog = bd.doneLog || [];
+        bd.doneLog.push({ text: done, at: Date.now() });
+        writeJSON('focus_braindump', bd);
+        return 'Отметил выполненным: ' + done;
       }
     },
     mood: {
@@ -392,5 +418,12 @@
     try { return s.fill(data, ctx || {}); } catch (e) { return null; }
   }
 
-  window.FocusSections = { SECTIONS: SECTIONS, detect: detect, listForPrompt: listForPrompt, userContext: userContext, fill: fill, today: today };
+  /** Отметить дело выполненным в разделе (если раздел это поддерживает). */
+  function complete(id, data) {
+    var s = SECTIONS[id];
+    if (!s || !s.complete) return null;
+    try { return s.complete(data); } catch (e) { return null; }
+  }
+
+  window.FocusSections = { SECTIONS: SECTIONS, detect: detect, listForPrompt: listForPrompt, userContext: userContext, fill: fill, complete: complete, today: today };
 })();
