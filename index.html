@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v138 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v139 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -2504,7 +2504,7 @@
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=138').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=139').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -2566,31 +2566,65 @@
         '\n\nФОРМАТ ОТВЕТА — СТРОГО JSON (без markdown, без пояснений вокруг):\n' +
         '{"reply":"короткий тёплый текст пользователю","actions":[...]}\n' +
         'actions — массив ВСЕХ действий, которые нужно выполнить. Виды:\n' +
-        '  {"type":"fill","section":"<id раздела>","data":"<что записать>"} — заполнить раздел\n' +
-        '  {"type":"done","section":"braindump","data":"<текст дела>"} — отметить дело выполненным\n' +
+        '  {"type":"fill","section":"<id раздела>","data":"<что записать>"} — заполнить раздел НОВЫМИ данными\n' +
+        '  {"type":"done","section":"braindump","id":<НОМЕР дела из справки>} — отметить СУЩЕСТВУЮЩЕЕ дело выполненным\n' +
         '  {"type":"remind","data":"<о чём>","when":"<когда, напр. завтра в 10:00>"} — поставить напоминание\n' +
+        'ПРАВИЛО ОТМЕТКИ (важно!): в СПРАВКЕ у каждого дела есть номер вида [#1752...]. Когда юзер говорит\n' +
+        '«отметь что купил уголки» / «сделал X» — НАЙДИ это дело в справке по смыслу и верни его НОМЕР в "id".\n' +
+        'НИКОГДА не создавай новое дело через fill, чтобы потом его закрыть — это дублирует задачи.\n' +
+        'Если подходящего дела в справке НЕТ — так и скажи в reply, ничего не выдумывай.\n' +
         'КРИТИЧНО: если пользователь попросил НЕСКОЛЬКО вещей — положи в actions КАЖДУЮ (три просьбы = три действия).\n' +
         'Если действий нет — "actions":[]. В "reply" НИКОГДА не пиши JSON, теги или служебные слова.';
 
     /** Выполнить действия из JSON-ответа. Возвращает список сообщений о сделанном. */
     window.focusRunActions = function(actions, addFilled){
         var msgs = [];
-        (actions || []).forEach(function(a){
-            if (!a || !a.type) return;
-            var t = String(a.type).toLowerCase();
+        var list = (actions || []).filter(function(a){ return a && a.type; });
+
+        // ВАЖЕН ПОРЯДОК: сначала ОТМЕЧАЕМ выполненное, потом создаём новое.
+        // Иначе модель могла сперва создать дубль дела, а потом «закрыть» его —
+        // и получалось «создал новую задачу и сразу отправил в архив».
+        var dones = list.filter(function(a){ return String(a.type).toLowerCase() === 'done'; });
+        var fills = list.filter(function(a){ return String(a.type).toLowerCase() === 'fill'; });
+        var rems  = list.filter(function(a){ return String(a.type).toLowerCase() === 'remind'; });
+
+        var closedTexts = [];
+        dones.forEach(function(a){
             try {
-                if (t === 'fill' && a.section && window.FocusSections) {
-                    var m = FocusSections.fill(String(a.section).toLowerCase(), String(a.data || ''));
-                    if (m && m.indexOf('__NEEDCREATE__') !== 0 && m) msgs.push(m);
-                } else if (t === 'done' && window.FocusSections && FocusSections.complete) {
-                    var d = FocusSections.complete(String(a.section || 'braindump').toLowerCase(), String(a.data || ''));
-                    if (d) { msgs.push(d); if (typeof addFilled === 'function') addFilled(d); }
-                } else if (t === 'remind' && window.FocusReminders) {
-                    FocusReminders.schedule(String(a.data || ''), String(a.when || ''));
-                    msgs.push('Напомню: ' + (a.data || '') + ' — ' + (a.when || ''));
+                if (window.FocusSections && FocusSections.complete) {
+                    var d = FocusSections.complete(String(a.section || 'braindump').toLowerCase(), String(a.id || a.data || ''));
+                    if (d) {
+                        msgs.push(d);
+                        closedTexts.push(String(a.data || '').toLowerCase());
+                        if (typeof addFilled === 'function') addFilled(d);
+                    }
                 }
             } catch(e){}
         });
+
+        fills.forEach(function(a){
+            try {
+                if (!a.section || !window.FocusSections) return;
+                // не создаём заново то, что только что отметили выполненным
+                var d = String(a.data || '').toLowerCase();
+                var dup = closedTexts.some(function(c){
+                    if (!c || !d) return false;
+                    return d.indexOf(c) !== -1 || c.indexOf(d) !== -1;
+                });
+                if (dup) return;
+                var m = FocusSections.fill(String(a.section).toLowerCase(), String(a.data || ''));
+                if (m && m.indexOf('__NEEDCREATE__') !== 0) msgs.push(m);
+            } catch(e){}
+        });
+
+        rems.forEach(function(a){
+            try {
+                if (!window.FocusReminders) return;
+                FocusReminders.schedule(String(a.data || ''), String(a.when || ''));
+                msgs.push('Напомню: ' + (a.data || '') + ' — ' + (a.when || ''));
+            } catch(e){}
+        });
+
         return msgs;
     };
 

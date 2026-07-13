@@ -264,35 +264,66 @@ fill: function (data) {
       summary: function () {
         var bd = readJSON('focus_braindump', null);
         if (!bd) return null;
-        var parts = [];
-        if (bd.inbox && bd.inbox.length) parts.push('входящие (не разобрано): ' + bd.inbox.slice(0,10).map(function(x){return x.text;}).join(', '));
-        if (bd.now && bd.now.length) parts.push('СДЕЛАТЬ СЕЙЧАС: ' + bd.now.slice(0,10).map(function(x){return x.text + (x.deadline ? ' (дедлайн ' + x.deadline + ')' : '');}).join(', '));
-        if (bd.plan && bd.plan.length) parts.push('запланировано: ' + bd.plan.slice(0,10).map(function(x){return x.text + (x.deadline ? ' (к ' + x.deadline + ')' : '');}).join(', '));
+        function line(arr, label) {
+          var act = (arr || []).filter(function(x){ return !x.done; });
+          if (!act.length) return null;
+          // ВАЖНО: отдаём ИИ НОМЕРА дел — чтобы он отмечал существующее по номеру,
+          // а не создавал новое «на всякий случай».
+          return label + ': ' + act.slice(0, 12).map(function (x) {
+            return '[#' + x.id + '] ' + x.text + (x.deadline ? ' (срок ' + x.deadline + ')' : '');
+          }).join('; ');
+        }
+        var parts = [
+          line(bd.inbox, 'ВХОДЯЩИЕ (не разобрано)'),
+          line(bd.now, 'СДЕЛАТЬ СЕЙЧАС'),
+          line(bd.plan, 'ЗАПЛАНИРОВАНО')
+        ].filter(Boolean);
         if (!parts.length) return null;
-        return 'Разгрузка мозга юзера — ' + parts.join('; ') + '.';
+        return 'Разгрузка мозга (АКТИВНЫЕ ДЕЛА С НОМЕРАМИ) — ' + parts.join('. ') + '.';
       },
-      /** Отметить задачу выполненной по тексту (ИИ-ассистент закрывает дело за юзера). */
+      /** Отметить дело выполненным. Принимает НОМЕР (#id) или текст (ищем по словам).
+          НИКОГДА не создаёт новое дело — если не нашли, честно говорим. */
       complete: function (data) {
         var bd = readJSON('focus_braindump', null);
         if (!bd) return 'В разгрузке мозга пусто.';
-        var q = (data || '').toLowerCase().trim();
-        var done = null;
-        ['now','plan','inbox'].forEach(function(col){
-          if (!bd[col] || done) return;
-          for (var i = 0; i < bd[col].length; i++) {
-            var it = bd[col][i];
-            if (!done && it.text && it.text.toLowerCase().indexOf(q) !== -1 && !it.done) {
-              it.done = true;                    // отмечаем как в интерфейсе (не удаляем)
-              it.doneAt = Date.now();
-              done = it.text;
-              bd.doneLog = bd.doneLog || [];
-              bd.doneLog.push({ id: it.id, text: it.text, at: it.doneAt, from: col });
-            }
-          }
-        });
-        if (!done) return 'Не нашёл такую задачу в разгрузке мозга.';
+        var q = String(data == null ? '' : data).trim();
+
+        var target = null, col = null;
+        var cols = ['now', 'plan', 'inbox'];
+
+        // 1) по номеру (#12 или просто 12) — самый точный путь
+        var idm = q.match(/#?(\d{6,})/);
+        var wantId = idm ? parseInt(idm[1], 10) : null;
+        if (wantId) {
+          cols.forEach(function (c) {
+            (bd[c] || []).forEach(function (it) { if (!target && it.id === wantId) { target = it; col = c; } });
+          });
+        }
+
+        // 2) по словам: берём дело с наибольшим совпадением значимых слов
+        if (!target) {
+          var words = q.toLowerCase().replace(/[^\wа-яё\s]/gi, ' ').split(/\s+/)
+                       .filter(function (w) { return w.length > 3; });
+          var best = 0;
+          cols.forEach(function (c) {
+            (bd[c] || []).forEach(function (it) {
+              if (it.done) return;
+              var t = String(it.text || '').toLowerCase();
+              var hits = words.filter(function (w) { return t.indexOf(w) !== -1; }).length;
+              if (hits > best) { best = hits; target = it; col = c; }
+            });
+          });
+          if (best === 0) target = null;
+        }
+
+        if (!target) return 'Не нашёл такое дело в разгрузке мозга — ничего не менял. Уточни, какое именно?';
+
+        target.done = true;
+        target.doneAt = Date.now();
+        bd.doneLog = bd.doneLog || [];
+        bd.doneLog.push({ id: target.id, text: target.text, at: target.doneAt, from: col });
         writeJSON('focus_braindump', bd);
-        return 'Отметил выполненным: ' + done;
+        return 'Отметил выполненным: ' + target.text;
       }
     },
     mood: {
