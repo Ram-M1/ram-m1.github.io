@@ -756,6 +756,14 @@
                         const until = new Date(Date.now() + (pending.planDays || 30)*24*60*60*1000).toISOString();
                         FocusStorage.saveUser({ subscription: pending.plan, subscriptionUntil: until });
                     }
+                    // ПУТЬ B: если меня кто-то пригласил — ему начисляют столько же F-coin
+                    try {
+                        if (window.fbCreditReferrer) {
+                            window.fbCreditReferrer(pending.priceRub || pending.amount || 0, pending.plan)
+                                .then(function(r){ if (r && r.ok) console.log('Пригласившему начислено', r.credited); })
+                                .catch(function(){});
+                        }
+                    } catch(e){}
                     localStorage.removeItem('focus_pending_payment');
                     updateBalanceUI();
                     toast('✓ Подписка «' + pending.plan + '» активирована!');

@@ -328,7 +328,7 @@
             <div class="code-label">ТВОЙ КОД ПРИГЛАШЕНИЯ</div>
             <div class="friend-code" id="friendCode">FOCUS-XXXXX</div>
             <div class="invite-link">
-                <div class="link-text" id="inviteLink">https://focus.app/i/XXXXX</div>
+                <div class="link-text" id="inviteLink">https://focus-one.ru/register.html?ref=XXXXX</div>
             </div>
             <button class="btn-primary" id="copyBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
@@ -421,10 +421,12 @@
     // Friend Code из единого хранилища (метод сам создаёт код один раз)
     const code = FocusStorage.getOrCreateReferralCode();
     const shortCode = code.replace('FOCUS-', '');
-    const inviteLink = `https://focus.app/i/${shortCode}`;
+    // Ссылка ведёт на РЕАЛЬНЫЙ домен и несёт код приглашения.
+    // Раньше стоял несуществующий focus.app/i/... — ссылка была битая, рефералы не работали.
+    const inviteLink = `https://focus-one.ru/landing.html?ref=${encodeURIComponent(code)}`;
 
     document.getElementById('friendCode').innerText = code;
-    document.getElementById('inviteLink').innerText = inviteLink;
+    document.getElementById('inviteLink').innerText = 'https://focus-one.ru/register.html?ref=' + code;
 
     // Статистика приглашений
     const user = FocusStorage.getUser();

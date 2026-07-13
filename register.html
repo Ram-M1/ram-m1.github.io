@@ -383,6 +383,16 @@
 
     // РЕГИСТРАЦИЯ БЕЗ ПАРОЛЯ: почта → код на почту → анкета.
     // Код генерит и проверяет СЕРВЕР, он же выдаёт ключ входа.
+
+    /* КОД ПРИГЛАШЕНИЯ: ловим ?ref= из ссылки друга и запоминаем.
+       Без этого приглашения не работали вообще — система не знала, кто кого привёл. */
+    var REF_CODE = null;
+    try {
+        var _p = new URLSearchParams(location.search);
+        REF_CODE = _p.get('ref') || localStorage.getItem('focus_pending_ref') || null;
+        if (REF_CODE) localStorage.setItem('focus_pending_ref', REF_CODE);
+    } catch(e){}
+
     let regCodeSent = false;
 
     async function regSendCode(email, btn){
@@ -436,6 +446,13 @@
             try {
                 FocusStorage.saveUser({ email: email, emailVerified: true, flags: { loggedIn: true, emailConfirmed: true } });
                 if (window.fbSaveUserData) fbSaveUserData({ email: email, emailVerified: true, createdAt: Date.now() });
+            } catch(e){}
+            // привязываем пригласившего (если пришли по ссылке друга)
+            try {
+                if (REF_CODE && window.fbLinkReferral) {
+                    await window.fbLinkReferral(REF_CODE);
+                    localStorage.removeItem('focus_pending_ref');
+                }
             } catch(e){}
             location.href = 'profile-form.html';
         });

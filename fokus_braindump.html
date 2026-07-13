@@ -378,6 +378,7 @@
           c.el.style.transform = 'translate(' + c.x + 'px,' + c.y + 'px) rotate(' + c.rot + 'deg)';
         });
         // надпись исчезает к концу
+        if (frame === 70) note.style.transition = 'none';   // снимаем переход — иначе он дерётся с покадровой анимацией (мелькание)
         if (frame > 70) {
           var nf = Math.max(0, 1 - (frame - 70) / 30);
           note.style.opacity = nf;
@@ -418,6 +419,24 @@ initAtmosphere(canvasId) {
         if (saved) data = Object.assign({ inbox:[], now:[], plan:[], drop:[] }, saved);
     } catch(e) {}
     function save(){ localStorage.setItem(BD_KEY, JSON.stringify(data)); }
+
+    /* ЛЕЧЕНИЕ СТАРЫХ ДАННЫХ: дела, добавленные ассистентом до исправления, имели ДРОБНЫЙ номер —
+       кнопки их не находили и не работали. Приводим такие номера к целым один раз при загрузке. */
+    (function fixLegacyIds(){
+        try {
+            var changed = false, base = Date.now();
+            ['inbox','now','plan','drop'].forEach(function(k){
+                (data[k] || []).forEach(function(it, i){
+                    if (typeof it.id !== 'number' || !Number.isInteger(it.id)) {
+                        it.id = base + i + Math.floor(Math.random() * 1000);
+                        changed = true;
+                    }
+                    if (it.done === undefined) it.done = false;
+                });
+            });
+            if (changed) save();
+        } catch(e){}
+    })();
 
     // ===== Вкладки =====
     document.querySelectorAll('.bd-tab').forEach(tab => {
@@ -466,7 +485,7 @@ initAtmosphere(canvasId) {
 
     // ===== Сортировка мысли в корзину =====
     function sortThought(id, dest){
-        const idx = data.inbox.findIndex(t => t.id === id);
+        const idx = data.inbox.findIndex(t => String(t.id) === String(id));
         if (idx < 0) return;
         const [item] = data.inbox.splice(idx, 1);
         if (dest === 'now') data.now.push({ ...item, done:false, sortedAt: Date.now() });
@@ -526,7 +545,7 @@ initAtmosphere(canvasId) {
             inbox.querySelectorAll('[data-sort]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const [dest, id] = btn.dataset.sort.split('|');
-                    sortThought(parseInt(id), dest);
+                    sortThought(id, dest);   // по строке — работает и со старыми делами от ИИ
                 });
             });
         }
@@ -561,10 +580,39 @@ initAtmosphere(canvasId) {
                         + '<div style="width:18px;height:18px;border-radius:6px;background:rgba(80,200,140,0.18);color:#5ecf9a;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>'
                         + '<div style="flex:1;font-size:12.5px;color:#c8c8d0;min-width:0;">' + String(x.text||'').replace(/</g,'&lt;') + '</div>'
                         + '<div style="font-size:10px;color:#6e6e7e;flex-shrink:0;">' + t + '</div>'
+                        + '<div data-arch-del="' + x.at + '|' + x.id + '" style="color:#ff6b6b;opacity:0.45;cursor:pointer;flex-shrink:0;padding:3px;" title="Удалить из архива">'
+                        + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></div>'
                         + '</div>';
                 }).join('')
                 + '</div>';
-        }).join('');
+        }).join('')
+        + '<div id="archClear" style="text-align:center;margin-top:10px;padding:11px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:11px;color:#ff8f8f;font-size:12px;font-weight:600;cursor:pointer;">Очистить весь архив</div>';
+
+        // удалить одну запись
+        area.querySelectorAll('[data-arch-del]').forEach(function(b){
+            b.addEventListener('click', function(){
+                const [at, id] = b.dataset.archDel.split('|');
+                data.doneLog = (data.doneLog || []).filter(function(x){
+                    return !(String(x.at) === String(at) && String(x.id) === String(id));
+                });
+                save(); renderArchive();
+            });
+        });
+
+        // очистить всё (с подтверждением, чтоб не снести случайно)
+        const clr = document.getElementById('archClear');
+        if (clr) clr.addEventListener('click', function(){
+            if (clr.dataset.sure === '1') {
+                data.doneLog = [];
+                save(); renderArchive();
+                return;
+            }
+            clr.dataset.sure = '1';
+            clr.textContent = 'Точно очистить? Нажми ещё раз';
+            setTimeout(function(){
+                if (clr && clr.dataset.sure === '1') { clr.dataset.sure = ''; clr.textContent = 'Очистить весь архив'; }
+            }, 3500);
+        });
     }
 
     function renderBaskets(){
@@ -637,7 +685,7 @@ initAtmosphere(canvasId) {
         area.querySelectorAll('[data-check]').forEach(c => {
             c.addEventListener('click', () => {
                 const [key, id] = c.dataset.check.split('|');
-                const it = (data[key]||[]).find(x => x.id === parseInt(id));
+                const it = (data[key]||[]).find(x => String(x.id) === String(id));
                 if (!it) return;
                 it.done = !it.done;
                 data.doneLog = data.doneLog || [];
@@ -656,7 +704,7 @@ initAtmosphere(canvasId) {
         area.querySelectorAll('[data-del]').forEach(d => {
             d.addEventListener('click', () => {
                 const [key, id] = d.dataset.del.split('|');
-                data[key] = (data[key]||[]).filter(x => x.id !== parseInt(id));
+                data[key] = (data[key]||[]).filter(x => String(x.id) !== String(id));
                 save(); renderBaskets();
             });
         });
@@ -679,13 +727,13 @@ initAtmosphere(canvasId) {
     let dlTarget = null;
     function openDeadline(key, id){
         dlTarget = { key, id };
-        const it = (data[key]||[]).find(x => x.id === id);
+        const it = (data[key]||[]).find(x => String(x.id) === String(id));
         document.getElementById('deadlineInput').value = (it && it.deadline) ? it.deadline : '';
         document.getElementById('deadlineModal').style.display = 'flex';
     }
     document.getElementById('deadlineSave').addEventListener('click', () => {
         if (!dlTarget) return;
-        const it = (data[dlTarget.key]||[]).find(x => x.id === dlTarget.id);
+        const it = (data[dlTarget.key]||[]).find(x => String(x.id) === String(dlTarget.id));
         const v = document.getElementById('deadlineInput').value;
         if (it) { it.deadline = v || null; save(); renderBaskets(); }
         document.getElementById('deadlineModal').style.display = 'none';
@@ -693,7 +741,7 @@ initAtmosphere(canvasId) {
     });
     document.getElementById('deadlineClear').addEventListener('click', () => {
         if (dlTarget) {
-            const it = (data[dlTarget.key]||[]).find(x => x.id === dlTarget.id);
+            const it = (data[dlTarget.key]||[]).find(x => String(x.id) === String(dlTarget.id));
             if (it) { it.deadline = null; save(); renderBaskets(); }
         }
         document.getElementById('deadlineModal').style.display = 'none';

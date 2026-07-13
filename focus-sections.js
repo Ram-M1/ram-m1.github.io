@@ -257,7 +257,13 @@ fill: function (data) {
         if (!bd || typeof bd !== 'object') bd = { inbox: [], now: [], plan: [], drop: [] };
         bd.inbox = bd.inbox || [];
         var items = splitItems(data);
-        (items.length ? items : ['Задача']).forEach(function (txt) { bd.inbox.push({ id: Date.now() + Math.random(), text: cap(txt) }); });
+        // номер ДОЛЖЕН быть целым — кнопки на странице ищут дела через parseInt.
+        // Раньше ИИ ставил дробный номер (Date.now() + Math.random()) → дело не находилось,
+        // и кнопки «в план» / «отпустить» на нём не работали.
+        var _n = Date.now();
+        (items.length ? items : ['Задача']).forEach(function (txt, i) {
+          bd.inbox.push({ id: _n + i, text: cap(txt), done: false });
+        });
         writeJSON('focus_braindump', bd);
         return 'Добавил в разгрузку мозга: ' + (items.map(cap).join(', ') || 'задачу');
       },

@@ -330,6 +330,7 @@
           c.el.style.transform = 'translate(' + c.x + 'px,' + c.y + 'px) rotate(' + c.rot + 'deg)';
         });
         // надпись исчезает к концу
+        if (frame === 70) note.style.transition = 'none';   // снимаем переход — иначе он дерётся с покадровой анимацией (мелькание)
         if (frame > 70) {
           var nf = Math.max(0, 1 - (frame - 70) / 30);
           note.style.opacity = nf;

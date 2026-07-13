@@ -681,5 +681,18 @@
         });
     }
 </script>
+
+<script>
+/* ЛОВИМ КОД ПРИГЛАШЕНИЯ из ссылки (?ref=FOCUS-XXXXX) и запоминаем.
+   Раньше код нигде не ловился — реферальная система не работала вообще:
+   друг регистрировался, и никто не знал, что его пригласили. */
+(function(){
+    try {
+        var ref = new URLSearchParams(location.search).get('ref');
+        if (ref) localStorage.setItem('focus_pending_ref', ref.trim());
+    } catch(e){}
+})();
+</script>
+
 </body>
 </html>

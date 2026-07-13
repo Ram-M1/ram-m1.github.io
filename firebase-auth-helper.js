@@ -884,6 +884,101 @@ window.fbAiSuggestReplies = async function(chatId) {
 /* СТРОГИЙ JSON-ОТВЕТ: модель обязана вернуть {reply, actions:[...]}.
    Так команды ассистента (заполнить раздел, отметить выполненным, поставить напоминание)
    перестают зависеть от того, «вспомнит» ли модель написать тег в свободном тексте. */
+
+/* ПУТЬ B: друг купил подписку → пригласившему начисляем СТОЛЬКО ЖЕ F-coin.
+   Начисляем в ОБЛАКЕ (не на телефоне) — иначе можно было бы накрутить локально. */
+
+/* ПРИВЯЗКА ПРИГЛАШЕНИЯ: новый юзер пришёл по ссылке друга (?ref=FOCUS-XXXX).
+   Находим владельца кода и записываем связь: кто кого пригласил.
+   Без этого рефералы не работали вообще. */
+window.fbLinkReferral = async function(refCode) {
+  try {
+    const user = _currentUser || auth.currentUser;
+    if (!user || !refCode) return { ok: false };
+    const code = String(refCode).trim().toUpperCase();
+
+    // ищем владельца кода
+    const q = query(collection(db, 'users'), where('referral.code', '==', code), limit(1));
+    const snap = await getDocs(q);
+    if (snap.empty) return { ok: false, reason: 'код не найден' };
+
+    const inviterDoc = snap.docs[0];
+    const inviterUid = inviterDoc.id;
+    if (inviterUid === user.uid) return { ok: false, reason: 'свой код' };
+
+    // не перепривязываем, если уже есть пригласивший
+    const me = await getDoc(doc(db, 'users', user.uid));
+    const myData = me.exists() ? (me.data() || {}) : {};
+    if (myData.referral && myData.referral.invitedBy) return { ok: false, reason: 'уже привязан' };
+
+    await setDoc(doc(db, 'users', user.uid), {
+      referral: Object.assign({}, myData.referral || {}, { invitedBy: inviterUid, invitedByCode: code })
+    }, { merge: true });
+
+    // добавляем меня в список приглашённых
+    const inv = inviterDoc.data() || {};
+    const invRef = inv.referral || {};
+    const list = Array.isArray(invRef.invited) ? invRef.invited : [];
+    if (list.indexOf(user.uid) === -1) list.push(user.uid);
+    await setDoc(doc(db, 'users', inviterUid), {
+      referral: Object.assign({}, invRef, { invited: list })
+    }, { merge: true });
+
+    return { ok: true, inviter: inviterUid };
+  } catch (e) { return { ok: false, error: e.message }; }
+};
+
+/* Друг стал АКТИВНЫМ (подтвердил почту + заполнил анкету) → засчитываем пригласившему. */
+window.fbMarkReferralActive = async function() {
+  try {
+    const user = _currentUser || auth.currentUser;
+    if (!user) return { ok: false };
+    const me = await getDoc(doc(db, 'users', user.uid));
+    if (!me.exists()) return { ok: false };
+    const d = me.data() || {};
+    const inviterUid = d.referral && d.referral.invitedBy;
+    if (!inviterUid || d.referralCounted) return { ok: false };
+
+    const inv = await getDoc(doc(db, 'users', inviterUid));
+    if (!inv.exists()) return { ok: false };
+    const invD = inv.data() || {};
+    const invRef = invD.referral || {};
+
+    await setDoc(doc(db, 'users', inviterUid), {
+      referral: Object.assign({}, invRef, { activeCount: (invRef.activeCount || 0) + 1 })
+    }, { merge: true });
+    await setDoc(doc(db, 'users', user.uid), { referralCounted: true }, { merge: true });
+    return { ok: true };
+  } catch (e) { return { ok: false }; }
+};
+
+window.fbCreditReferrer = async function(amountRub, planName) {
+  try {
+    const user = _currentUser || auth.currentUser;
+    if (!user) return { ok: false };
+    const me = await getDoc(doc(db, 'users', user.uid));
+    if (!me.exists()) return { ok: false };
+    const data = me.data() || {};
+    const ref = data.referral || {};
+    const inviterUid = ref.invitedBy;              // кто меня пригласил
+    if (!inviterUid) return { ok: false, reason: 'нет пригласившего' };
+    if (data.referralPaidCredited) return { ok: false, reason: 'уже начислено' };  // только за первую покупку
+
+    const inv = await getDoc(doc(db, 'users', inviterUid));
+    if (!inv.exists()) return { ok: false };
+    const invData = inv.data() || {};
+    const add = parseInt(amountRub, 10) || 0;
+    if (add <= 0) return { ok: false };
+
+    await updateDoc(doc(db, 'users', inviterUid), {
+      coins: (invData.coins || 0) + add,          // столько же монет, сколько друг потратил
+      referral: Object.assign({}, invData.referral || {}, { hasPaidInvite: true })
+    });
+    await updateDoc(doc(db, 'users', user.uid), { referralPaidCredited: true });
+    return { ok: true, credited: add, plan: planName || '' };
+  } catch (e) { return { ok: false, error: e.message }; }
+};
+
 window.fbAskAIJson = async function(messages, maxTokens) {
   try {
     const res = await fetch(window.FOCUS_AI_PROXY, {
