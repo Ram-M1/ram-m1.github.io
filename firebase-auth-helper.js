@@ -546,35 +546,60 @@ function _chatId(uid1, uid2) {
 
 // Открыть/создать чат с пользователем. Возвращает { ok, chatId }
 window.fbOpenChat = async function(otherUid, otherName) {
-  // Открытие чата делает СЕРВЕР: он прописывает чат обоим участникам.
-  // Раньше клиент пытался писать в чужой документ — правила это (справедливо) запрещали.
+  // БЫСТРО: то, что можно, пишем сами (правила это разрешают) и сразу открываем чат.
+  // Запись собеседнику делает сервер — в ФОНЕ, интерфейс её не ждёт.
   const user = _currentUser || auth.currentUser;
   if (!user) return { ok: false, error: 'Не авторизован' };
+  const chatId = _chatId(user.uid, otherUid);
   try {
-    const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
-    const r = await fetch(base + '/chat/open', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid: user.uid, otherUid: otherUid })
-    });
-    const d = await r.json();
-    if (!d.ok) return { ok: false, error: d.error || 'Не удалось открыть чат' };
-    return { ok: true, chatId: d.chatId };
+    await Promise.all([
+      // сам чат (я в участниках — правила разрешают)
+      setDoc(doc(db, 'chats', chatId), {
+        participants: [user.uid, otherUid],
+        updatedAt: new Date().toISOString()
+      }, { merge: true }),
+      // мой список чатов
+      setDoc(doc(db, 'users', user.uid, 'chatList', chatId), {
+        chatId, withUid: otherUid, withName: otherName || 'Пользователь',
+        updatedAt: new Date().toISOString()
+      }, { merge: true })
+    ]);
+
+    // собеседнику — на сервере, в фоне (не задерживаем открытие чата)
+    try {
+      const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+      fetch(base + '/chat/open', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: user.uid, otherUid: otherUid })
+      }).catch(function(){});
+    } catch(e){}
+
+    return { ok: true, chatId };
   } catch (e) { return { ok: false, error: e.message }; }
 };
 
 /* ДОБАВИТЬ В КОНТАКТЫ — человек остаётся в списке, даже без переписки */
-window.fbAddContact = async function(otherUid) {
+window.fbAddContact = async function(otherUid, otherName) {
   const user = _currentUser || auth.currentUser;
   if (!user) return { ok: false };
   try {
-    const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
-    const r = await fetch(base + '/contacts/add', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid: user.uid, otherUid: otherUid })
-    });
-    return await r.json();
+    // мгновенно добавляем СЕБЕ (это разрешено правилами) — кнопка отвечает сразу
+    await setDoc(doc(db, 'users', user.uid, 'contacts', otherUid), {
+      uid: otherUid, name: otherName || 'Пользователь', addedAt: new Date().toISOString()
+    }, { merge: true });
+
+    // взаимное добавление — на сервере, в фоне
+    try {
+      const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+      fetch(base + '/contacts/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: user.uid, otherUid: otherUid })
+      }).catch(function(){});
+    } catch(e){}
+
+    return { ok: true };
   } catch (e) { return { ok: false, error: e.message }; }
 };
 
@@ -741,15 +766,24 @@ window.fbSendMessage = async function(chatId, opts) {
     if (kind === 'photo') preview = '📷 Фото';
     if (kind === 'file') preview = '📎 ' + (opts.fileName || 'Файл');
     if (kind === 'coins') preview = '💰 Перевод ' + (opts.amount||0) + ' F-coin';
-    const chatSnap = await getDoc(doc(db, 'chats', chatId));
-    if (chatSnap.exists()) {
-      const parts = chatSnap.data().participants || [];
-      for (const uid of parts) {
-        await setDoc(doc(db, 'users', uid, 'chatList', chatId), {
-          lastText: preview.slice(0, 60), updatedAt: new Date().toISOString()
-        }, { merge: true });
-      }
-    }
+    // Превью в СВОЁМ списке чатов обновляем сами...
+    try {
+      await setDoc(doc(db, 'users', user.uid, 'chatList', chatId), {
+        lastText: preview.slice(0, 60), updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } catch(e){}
+
+    // ...а собеседнику — через СЕРВЕР (в чужой документ клиенту писать нельзя,
+    // раньше именно это роняло отправку целиком: «сообщение не отправилось»).
+    try {
+      const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+      fetch(base + '/chat/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: user.uid, chatId: chatId, preview: preview.slice(0, 60) })
+      }).catch(function(){});
+    } catch(e){}
+
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e.message };

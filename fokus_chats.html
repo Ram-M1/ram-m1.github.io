@@ -227,11 +227,13 @@
     .sheet-handle { width:40px; height:4px; border-radius:3px; background:rgba(255,255,255,0.2); margin:0 auto 14px; }
     .sheet-title { font-size:16px; font-weight:700; color:#fff; margin-bottom:4px; }
     .sheet-sub { font-size:11px; color:#9a9aab; margin-bottom:14px; line-height:1.4; }
-    .contact-item { display:flex; align-items:center; gap:12px; padding:10px 4px; }
+    .contact-item { display:flex; align-items:center; gap:10px; padding:10px 4px; min-width:0; }
     .contact-info { flex:1; min-width:0; }
-    .contact-name { font-size:13.5px; font-weight:600; color:#fff; }
+    .contact-name { font-size:13.5px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    /* блок с именем занимает всё свободное место и УСЫХАЕТ, а не налезает на кнопки */
+    .contact-info, .contact-item > div:not(.contact-action):not(.contact-avatar) { min-width:0; flex:1; }
     .contact-phone { font-size:11px; color:#8e8e9e; }
-    .contact-action { flex-shrink:0; font-size:11.5px; font-weight:700; padding:7px 14px; border-radius:10px; cursor:pointer; }
+    .contact-action { flex-shrink:0; font-size:11px; font-weight:700; padding:7px 11px; border-radius:10px; cursor:pointer; white-space:nowrap; }
     .contact-action.has-app { background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; }
     .contact-action.invite { background:rgba(255,255,255,0.07); color:#9a9aab; border:1px solid rgba(255,255,255,0.12); }
     .contact-action:active { transform:scale(0.95); }
@@ -490,7 +492,7 @@ initAtmosphere(canvasId) {
             b.addEventListener('click', async function(e){
                 e.stopPropagation();
                 b.textContent = 'Добавляю...';
-                var r = window.fbAddContact ? await window.fbAddContact(b.dataset.addc) : { ok:false };
+                var r = window.fbAddContact ? await window.fbAddContact(b.dataset.addc, b.dataset.addname || '') : { ok:false };
                 b.textContent = r && r.ok ? '✓ В контактах' : 'Не вышло';
                 if (r && r.ok) { b.style.background = 'rgba(80,200,140,0.15)'; b.style.color = '#5ecf9a'; }
             });
@@ -594,7 +596,7 @@ initAtmosphere(canvasId) {
                 + '<div class="contact-info"><div class="contact-name">' + escapeHtml(u.name) + '</div>'
                 + '<div class="contact-phone">' + escapeHtml(u.phone||'') + '</div></div>'
                 + '<div style="display:flex;gap:6px;align-items:center;">'
-                + '<div class="contact-action" data-addc="' + escapeHtml(u.uid) + '" style="background:rgba(var(--accent-rgb),0.14);color:var(--accent);border:1px solid rgba(var(--accent-rgb),0.3);">+ В контакты</div>'
+                + '<div class="contact-action" data-addc="' + escapeHtml(u.uid) + '" data-addname="' + escapeHtml(u.name) + '" style="background:rgba(var(--accent-rgb),0.14);color:var(--accent);border:1px solid rgba(var(--accent-rgb),0.3);">+ В контакты</div>'
                 + '<div class="contact-action has-app" data-uid="' + escapeHtml(u.uid) + '" data-name="' + escapeHtml(u.name) + '">Написать</div>'
                 + '</div></div>';
         }).join('');
