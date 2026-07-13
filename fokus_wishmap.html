@@ -94,7 +94,14 @@
     /* фон — размытая увеличенная версия фото, заполняет экран */
     .slide-bg { position:absolute; inset:0; background-size:cover; background-position:center; filter:blur(28px) brightness(0.4); transform:scale(1.25); z-index:0; }
     .slide-frame { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; width:100%; height:100%; }
-    .slide img { max-width:82%; max-height:56%; border-radius:20px; object-fit:cover; box-shadow:0 20px 60px rgba(0,0,0,0.7); }
+    .slide img { width:100%; height:100%; max-width:100%; max-height:100%; border-radius:0; object-fit:contain; box-shadow:none; }
+    .slide-frame { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+    /* технологичный переход: плавное растворение + лёгкий зум и подсветка */
+    .slide { opacity:0; transform:scale(1.04); filter:blur(6px) brightness(0.7);
+             transition:opacity 1.1s cubic-bezier(.22,.61,.36,1), transform 1.4s cubic-bezier(.22,.61,.36,1), filter 1.1s ease; }
+    .slide.active { opacity:1; transform:scale(1); filter:blur(0) brightness(1); }
+    /* холст для перехода частицами (фото рассыпается и пересобирается в новое) */
+    .slide-morph { position:absolute; inset:0; z-index:6; pointer-events:none; display:none; }
     /* Ken Burns — медленный зум+пан на активном слайде */
     .slide.active img { animation:kenBurns 7s ease-out forwards; }
     @keyframes kenBurns {
@@ -191,7 +198,7 @@
         position: absolute !important; inset: 0 !important; border-radius: 0 !important;
     }
     /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
-    .screen, .session-area, .slideshow, .scroll-area {
+    .screen, .session-area, .slideshow {
         padding-top: calc(env(safe-area-inset-top) + 8px) !important;
     }
     .modal, .slideshow, .session-area { border-radius: 0 !important; }
@@ -286,10 +293,112 @@
     </div>
 
     <input type="file" id="musicInput" accept="audio/*" style="display:none;">
+    <script>
+    /* ПЕРЕХОД ЧАСТИЦАМИ между фото.
+       Старое фото распадается на светящиеся частицы, они разлетаются,
+       а затем собираются заново — уже в новое фото. Без вспышек и «фотошопа 2005-го». */
+    window.slideMorph = function(canvas, imgA, imgB, done){
+        try {
+            const box = canvas.parentNode;
+            const W = box.clientWidth, H = box.clientHeight;
+            if (!W || !H) { done(); return; }
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            canvas.width = W * dpr; canvas.height = H * dpr;
+            canvas.style.display = 'block';
+            const ctx = canvas.getContext('2d');
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            // рисуем оба кадра «по размеру экрана» на невидимые холсты и читаем пиксели
+            function sample(img){
+                const c = document.createElement('canvas');
+                c.width = W; c.height = H;
+                const x = c.getContext('2d');
+                x.fillStyle = '#000'; x.fillRect(0, 0, W, H);
+                const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+                if (iw && ih) {
+                    const s = Math.min(W / iw, H / ih);
+                    const w = iw * s, h = ih * s;
+                    x.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+                }
+                return x.getImageData(0, 0, W, H).data;
+            }
+            const A = sample(imgA), B = sample(imgB);
+
+            // сетка частиц (подстраиваем шаг, чтобы телефон не лагал)
+            let step = 7;
+            while ((W / step) * (H / step) > 4200) step++;
+            const P = [];
+            for (let y = 0; y < H; y += step) {
+                for (let x = 0; x < W; x += step) {
+                    const i = (y * W + x) * 4;
+                    const ang = Math.random() * Math.PI * 2;
+                    const dist = 40 + Math.random() * 90;      // насколько разлетается
+                    P.push({
+                        x: x, y: y,
+                        ox: Math.cos(ang) * dist, oy: Math.sin(ang) * dist,
+                        ar: A[i], ag: A[i+1], ab: A[i+2],
+                        br: B[i], bg: B[i+1], bb: B[i+2],
+                        d: Math.random() * 0.25                 // своя задержка — «волна»
+                    });
+                }
+            }
+
+            const DUR = 1500;
+            const t0 = performance.now();
+            const ease = t => t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+
+            function frame(now){
+                const p = Math.min(1, (now - t0) / DUR);
+                ctx.clearRect(0, 0, W, H);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, W, H);
+
+                for (let k = 0; k < P.length; k++) {
+                    const q = P[k];
+                    // фаза 1: старые частицы разлетаются и гаснут
+                    let p1 = (p - q.d) / 0.5;
+                    p1 = p1 < 0 ? 0 : (p1 > 1 ? 1 : p1);
+                    // фаза 2: новые частицы слетаются из разлёта и проявляются
+                    let p2 = (p - 0.35 - q.d) / 0.55;
+                    p2 = p2 < 0 ? 0 : (p2 > 1 ? 1 : p2);
+
+                    if (p1 < 1) {
+                        const e = ease(p1);
+                        ctx.globalAlpha = 1 - e;
+                        ctx.fillStyle = 'rgb(' + q.ar + ',' + q.ag + ',' + q.ab + ')';
+                        ctx.fillRect(q.x + q.ox * e, q.y + q.oy * e, step, step);
+                    }
+                    if (p2 > 0) {
+                        const e = ease(p2), r = 1 - e;
+                        ctx.globalAlpha = e;
+                        ctx.fillStyle = 'rgb(' + q.br + ',' + q.bg + ',' + q.bb + ')';
+                        ctx.fillRect(q.x - q.ox * r, q.y - q.oy * r, step, step);
+                    }
+                }
+                ctx.globalAlpha = 1;
+
+                if (p < 1) requestAnimationFrame(frame);
+                else { done(); canvas.style.display = 'none'; }
+            }
+            requestAnimationFrame(frame);
+        } catch(e) { canvas.style.display = 'none'; done && done(); }
+    };
+    </script>
     <audio id="audioPlayer"></audio>
+    <script>
+    /* Достаём трек: новые песни лежат в IndexedDB (mediaKey), старые — в самом объекте (dataUrl).
+       Так уже добавленные раньше песни продолжат играть. */
+    window.getSongSrc = async function(song){
+        if (!song) return null;
+        if (song.dataUrl) return song.dataUrl;
+        if (song.mediaKey && window.FocusMedia) { try { return await FocusMedia.get(song.mediaKey); } catch(e){ return null; } }
+        return null;
+    };
+    </script>
 
     <div class="toast" id="toast"></div>
 </div>
+<script src="focus-media.js"></script>
 <script src="focus-storage.js"></script>
 <script src="focus-rewards.js"></script>
 <script type="module" src="firebase-auth-helper.js"></script>
@@ -519,11 +628,12 @@ initAtmosphere(canvasId) {
     }
 
     // Модалка желания
-    let editingWish = null, pickedEmoji = '🌟', pickedPhoto = null;
+    let editingWish = null, pickedEmoji = '🌟', pickedPhoto = null, pickedPhotoFull = null;
     function openWishModal(wish){
         editingWish = wish;
         pickedEmoji = wish ? (wish.icon||'🌟') : '🌟';
         pickedPhoto = wish ? (wish.imageData||null) : null;
+        pickedPhotoFull = wish ? (wish.mediaKey||null) : null;
         document.getElementById('wishModalTitle').innerText = wish ? '✏️ Желание' : '➕ Новое желание';
         document.getElementById('wishLabelInput').value = wish ? wish.label : '';
         // эмодзи
@@ -547,15 +657,32 @@ initAtmosphere(canvasId) {
         const file = e.target.files[0]; if (!file) return;
         const reader = new FileReader();
         reader.onload = (ev) => {
-            // сжатие до 600px
             const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let w = img.width, h = img.height; const max = 600;
-                if (w > h && w > max) { h = h*max/w; w = max; } else if (h > max) { w = w*max/h; h = max; }
-                canvas.width = w; canvas.height = h;
-                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                pickedPhoto = canvas.toDataURL('image/jpeg', 0.75);
+            img.onload = async () => {
+                // КАЧЕСТВО: раньше фото жалось до 600px/0.75 → мыло на весь экран.
+                // Теперь: полноразмерное (до 1600px, качество 0.92) кладём в IndexedDB,
+                // а в localStorage — только лёгкую превьюшку для карточек (не забиваем память).
+                function draw(max, q) {
+                    const cv = document.createElement('canvas');
+                    let w = img.width, h = img.height;
+                    if (w > h && w > max) { h = h * max / w; w = max; } else if (h > max) { w = w * max / h; h = max; }
+                    cv.width = w; cv.height = h;
+                    const ctx = cv.getContext('2d');
+                    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, w, h);
+                    return cv.toDataURL('image/jpeg', q);
+                }
+                const full = draw(1600, 0.92);     // для полного экрана / слайдшоу
+                const thumb = draw(420, 0.72);     // для карточек
+                pickedPhoto = thumb;
+                pickedPhotoFull = null;
+                try {
+                    if (window.FocusMedia && FocusMedia.supported()) {
+                        const key = FocusMedia.newKey('wish');
+                        await FocusMedia.put(key, full);
+                        pickedPhotoFull = key;     // ссылка на крупное фото
+                    }
+                } catch(e){}
                 const prev = document.getElementById('photoPreview');
                 prev.src = pickedPhoto; prev.style.display = 'block';
             };
@@ -569,9 +696,9 @@ initAtmosphere(canvasId) {
         if (!label) { toast('Введите название желания'); return; }
         const card = curCard();
         if (editingWish) {
-            editingWish.label = label; editingWish.icon = pickedEmoji; editingWish.imageData = pickedPhoto;
+            editingWish.label = label; editingWish.icon = pickedEmoji; editingWish.imageData = pickedPhoto; editingWish.mediaKey = pickedPhotoFull;
         } else {
-            card.wishes.push({ id: Date.now(), label, icon: pickedEmoji, imageData: pickedPhoto });
+            card.wishes.push({ id: Date.now(), label, icon: pickedEmoji, imageData: pickedPhoto, mediaKey: pickedPhotoFull });
             // награда за первое желание дня
             const today = new Date().toISOString().slice(0,10);
             let rd = []; try { rd = JSON.parse(localStorage.getItem('focus_wish_reward')) || []; } catch(e){}
@@ -601,9 +728,19 @@ initAtmosphere(canvasId) {
                 slide.innerHTML = `
                     <div class="slide-bg" style="background-image:url('${w.imageData}')"></div>
                     <div class="slide-frame">
-                        <img src="${w.imageData}">
+                        <img src="${w.imageData}" data-full="${w.mediaKey||''}">
                         <div class="slide-label">${escapeHtml(w.label)}</div>
                     </div>`;
+                // подгружаем КРУПНОЕ фото из хранилища (чтобы на весь экран было чётко, а не мыло)
+                if (w.mediaKey && window.FocusMedia) {
+                    FocusMedia.get(w.mediaKey).then(function(full){
+                        if (!full) return;
+                        const im = slide.querySelector('img');
+                        const bg = slide.querySelector('.slide-bg');
+                        if (im) im.src = full;
+                        if (bg) bg.style.backgroundImage = "url('" + full + "')";
+                    }).catch(function(){});
+                }
             } else {
                 slide.innerHTML = `
                     <div class="slide-frame">
@@ -630,25 +767,47 @@ initAtmosphere(canvasId) {
         const musicInfo = document.getElementById('slideshowMusic');
         if (songs.length > 0) {
             const audio = document.getElementById('audioPlayer');
-            audio.src = songs[0].dataUrl; audio.loop = true;
-            audio.play().catch(()=>{});
+            getSongSrc(songs[0]).then(function(src){ if(!src) return; audio.src = src; audio.loop = true; audio.play().catch(()=>{}); });
             document.getElementById('slideshowMusicName').innerText = songs[0].name || 'Моя песня';
             musicInfo.style.display = 'flex';
         } else {
             musicInfo.style.display = 'none';
         }
 
-        const SLIDE_MS = 5000;
+        const SLIDE_MS = 7000;   // 7 секунд на фото — успеть прочувствовать
+        // ХОЛСТ ПЕРЕХОДА ЧАСТИЦАМИ
+        var morphCv = document.getElementById('slideMorph');
+        if (!morphCv) { morphCv = document.createElement('canvas'); morphCv.id = 'slideMorph'; morphCv.className = 'slide-morph'; cont.parentNode.appendChild(morphCv); }
+
         slideTimer = setInterval(() => {
             const slides = cont.querySelectorAll('.slide');
             const dots = prog.querySelectorAll('.slide-dot');
-            slides[slideIdx].classList.remove('active');
-            if (dots[slideIdx]) { dots[slideIdx].classList.remove('active'); dots[slideIdx].classList.add('done'); }
-            slideIdx = (slideIdx + 1) % slides.length;
-            // если прошли круг — сбрасываем точки
-            if (slideIdx === 0) dots.forEach(d => d.classList.remove('done','active'));
-            slides[slideIdx].classList.add('active');
-            if (dots[slideIdx]) dots[slideIdx].classList.add('active');
+            const prevIdx = slideIdx;
+            const nextIdx = (slideIdx + 1) % slides.length;
+            const imgA = slides[prevIdx].querySelector('img');
+            const imgB = slides[nextIdx].querySelector('img');
+
+            function commit(instant){
+                slides[prevIdx].classList.remove('active');
+                if (dots[prevIdx]) { dots[prevIdx].classList.remove('active'); dots[prevIdx].classList.add('done'); }
+                slideIdx = nextIdx;
+                if (slideIdx === 0) dots.forEach(d => d.classList.remove('done','active'));
+                var nx = slides[slideIdx];
+                if (instant) {
+                    // частицы уже собрали новое фото — показываем его МГНОВЕННО, без повторного проявления
+                    nx.style.transition = 'none';
+                    nx.classList.add('active');
+                    void nx.offsetWidth;
+                    setTimeout(function(){ nx.style.transition = ''; }, 50);
+                } else {
+                    nx.classList.add('active');
+                }
+                if (dots[slideIdx]) dots[slideIdx].classList.add('active');
+            }
+
+            // если у обоих кадров есть фото — переход ЧАСТИЦАМИ, иначе обычное растворение
+            if (imgA && imgB && window.slideMorph) window.slideMorph(morphCv, imgA, imgB, function(){ commit(true); });
+            else commit(false);
         }, SLIDE_MS);
 
         // награда за просмотр (раз в день)
@@ -689,8 +848,11 @@ initAtmosphere(canvasId) {
             el.addEventListener('click', () => {
                 const s = songs.find(x => String(x.id) === String(el.dataset.play));
                 const audio = document.getElementById('audioPlayer');
-                if (audio.src === s.dataUrl && !audio.paused) { audio.pause(); toast('⏸ Пауза'); }
-                else { audio.src = s.dataUrl; audio.loop = false; audio.play().catch(()=>{}); toast('▶ ' + s.name); }
+                getSongSrc(s).then(function(src){
+                    if (!src) { toast('Трек не найден'); return; }
+                    if (audio.src === src && !audio.paused) { audio.pause(); toast('⏸ Пауза'); }
+                    else { audio.src = src; audio.loop = false; audio.play().catch(()=>{}); toast('▶ ' + s.name); }
+                });
             });
         });
         list.querySelectorAll('[data-del]').forEach(el => {
@@ -703,22 +865,26 @@ initAtmosphere(canvasId) {
     document.getElementById('addMusicBtn').addEventListener('click', () => document.getElementById('musicInput').click());
     document.getElementById('musicInput').addEventListener('change', (e) => {
         const file = e.target.files[0]; if (!file) return;
-        // localStorage вмещает мало; полноценное хранение музыки — через облако (Firebase Storage), на следующем этапе
-        if (file.size > 4*1024*1024) {
-            toast('Пока лимит ~4 МБ (храним локально). Облачная музыка будет позже. Выбери короткий трек');
-            return;
-        }
+        // Музыка теперь хранится в IndexedDB (сотни МБ), а не в localStorage (~5 МБ).
+        // Именно из-за лимита localStorage трек не добавлялся на айфоне. Работает на всех телефонах.
+        if (file.size > 25 * 1024 * 1024) { toast('Трек больше 25 МБ — выбери покороче'); return; }
         const reader = new FileReader();
-        reader.onload = (ev) => {
-            songs.push({ id: Date.now(), name: file.name.replace(/\.[^.]+$/, ''), dataUrl: ev.target.result });
+        reader.onload = async (ev) => {
+            const name = file.name.replace(/\.[^.]+$/, '');
             try {
+                if (window.FocusMedia && FocusMedia.supported()) {
+                    const key = FocusMedia.newKey('song');
+                    await FocusMedia.put(key, ev.target.result);      // байты — в IndexedDB
+                    songs.push({ id: Date.now(), name: name, mediaKey: key });  // в localStorage только ссылка
+                } else {
+                    songs.push({ id: Date.now(), name: name, dataUrl: ev.target.result }); // запасной путь
+                }
                 saveSongs();
                 renderMusic();
                 toast('🎵 Песня добавлена');
             } catch(err) {
-                // переполнение localStorage
                 songs.pop();
-                toast('Не хватает места в памяти. Удали старую песню или выбери короче');
+                toast('Не удалось сохранить трек. Попробуй файл поменьше');
             }
         };
         reader.onerror = () => toast('Не удалось прочитать файл');

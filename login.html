@@ -229,7 +229,7 @@
         position: absolute !important; inset: 0 !important; border-radius: 0 !important;
     }
     /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
-    .screen, .session-area, .slideshow, .scroll-area {
+    .screen, .session-area, .slideshow {
         padding-top: calc(env(safe-area-inset-top) + 8px) !important;
     }
     .modal, .slideshow, .session-area { border-radius: 0 !important; }
@@ -294,26 +294,22 @@
             <div class="error-message" id="emailError"></div>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="codeGroup" style="display:none;">
             <div class="label">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
-                Пароль
+                Код из письма
             </div>
             <div class="input-wrap">
-                <input type="password" class="input" id="password" placeholder="Ваш пароль">
-                <div class="toggle-pass" data-target="password">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                </div>
+                <input type="tel" inputmode="numeric" maxlength="6" class="input" id="codeInput" placeholder="6 цифр" autocomplete="one-time-code">
             </div>
-            <div class="error-message" id="passwordError"></div>
+            <div class="error-message" id="codeError"></div>
+            <div class="forgot"><span id="resendCode">Отправить код снова</span></div>
         </div>
-
-        <div class="forgot"><span id="forgotBtn">Забыли пароль?</span></div>
 
         <div class="buttons">
             <button class="btn-primary" id="loginBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
-                Войти
+                <span id="loginBtnText">Получить код</span>
             </button>
             <div class="signup-hint">Нет аккаунта? <span id="signupLink">Зарегистрироваться</span></div>
         </div>
@@ -440,85 +436,79 @@
         else window.location.href = 'profile-form.html';
     }
 
-    document.getElementById('loginBtn').addEventListener('click', function() {
-        document.getElementById('emailError').style.display = 'none';
-        document.getElementById('passwordError').style.display = 'none';
+    // ВХОД БЕЗ ПАРОЛЯ: почта → код из письма → внутрь.
+    // Код проверяет СЕРВЕР и выдаёт ключ входа — на телефоне код не хранится.
+    let codeSent = false;
 
+    async function sendLoginCode(email, btn){
+        const err = document.getElementById('emailError');
+        btn.disabled = true;
+        document.getElementById('loginBtnText').innerText = 'Отправляем код...';
+        const r = await window.fbSendCode(email);
+        btn.disabled = false;
+        if (!r.ok) {
+            document.getElementById('loginBtnText').innerText = 'Получить код';
+            err.innerText = r.error || 'Не удалось отправить код';
+            err.style.display = 'block';
+            return false;
+        }
+        codeSent = true;
+        document.getElementById('codeGroup').style.display = 'block';
+        document.getElementById('loginBtnText').innerText = 'Войти';
+        const ce = document.getElementById('codeError');
+        ce.style.color = '#8e8e9e';
+        ce.innerText = 'Код отправлен на ' + email + '. Проверь почту (и «Спам»).';
+        ce.style.display = 'block';
+        document.getElementById('codeInput').focus();
+        return true;
+    }
+
+    document.getElementById('loginBtn').addEventListener('click', async function() {
+        const btn = this;
+        const emailErr = document.getElementById('emailError');
+        emailErr.style.display = 'none';
         const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value;
 
-        if (!email) {
-            document.getElementById('emailError').innerText = 'Введите email';
-            document.getElementById('emailError').style.display = 'block';
+        if (!email || email.indexOf('@') === -1) {
+            emailErr.innerText = 'Введите почту';
+            emailErr.style.display = 'block';
             return;
         }
-        if (!password) {
-            document.getElementById('passwordError').innerText = 'Введите пароль';
-            document.getElementById('passwordError').style.display = 'block';
+        if (!window.fbSendCode) { emailErr.innerText = 'Сервис недоступен, обнови страницу'; emailErr.style.display = 'block'; return; }
+
+        // ШАГ 1 — отправить код
+        if (!codeSent) { await sendLoginCode(email, btn); return; }
+
+        // ШАГ 2 — проверить код и войти
+        const code = document.getElementById('codeInput').value.trim();
+        const ce = document.getElementById('codeError');
+        if (!code) { ce.style.color = '#ff6b6b'; ce.innerText = 'Введи код из письма'; ce.style.display = 'block'; return; }
+
+        btn.disabled = true;
+        document.getElementById('loginBtnText').innerText = 'Входим...';
+        const res = await window.fbVerifyCode(email, code);
+        if (!res.ok) {
+            btn.disabled = false;
+            document.getElementById('loginBtnText').innerText = 'Войти';
+            ce.style.color = '#ff6b6b';
+            ce.innerText = res.error || 'Неверный код';
+            ce.style.display = 'block';
             return;
         }
-
-        const loginBtn = document.getElementById('loginBtn');
-        loginBtn.disabled = true;
-        const origText = loginBtn.innerText;
-        loginBtn.innerText = 'Входим...';
-
-        if (window.fbLogin) {
-            window.fbLogin(email, password).then(function(res) {
-                if (res.ok) {
-                    FocusStorage.saveUser({ email: email, flags: { loggedIn: true } });
-                    // подтянуть профиль из облака (с обработкой ошибки, чтобы вход не завис)
-                    if (window.fbLoadUserData) {
-                        window.fbLoadUserData().then(function(data) {
-                            if (data) FocusStorage.applyCloudData(data);
-                            goAfterLogin();
-                        }).catch(function() {
-                            goAfterLogin();
-                        });
-                    } else {
-                        goAfterLogin();
-                    }
-                } else if (res.needVerify) {
-                    // почта не подтверждена — не пускаем
-                    loginBtn.disabled = false;
-                    loginBtn.innerText = origText;
-                    const errEl = document.getElementById('passwordError');
-                    errEl.innerHTML = '📬 Подтвердите почту. Письмо отправлено на ' + email + '. <span style="text-decoration:underline;cursor:pointer;" id="resendLink">Отправить снова</span>';
-                    errEl.style.display = 'block';
-                    errEl.style.color = '#FFD966';
-                    const rl = document.getElementById('resendLink');
-                    if (rl) rl.addEventListener('click', async () => {
-                        rl.innerText = 'Отправляем...';
-                        if (window.fbResendVerification) {
-                            const r = await window.fbResendVerification(email, password);
-                            rl.innerText = r.ok ? '✓ Отправлено, проверь почту' : 'Ошибка';
-                        }
-                    });
-                } else {
-                    loginBtn.disabled = false;
-                    loginBtn.innerText = origText;
-                    document.getElementById('passwordError').innerText = res.error;
-                    document.getElementById('passwordError').style.display = 'block';
-                }
-            });
-        } else {
-            // запасной вариант
-            const user = FocusStorage.getUser();
-            if (email === user.email && password === user.password) {
-                FocusStorage.saveUser({ flags: { loggedIn: true } });
+        try { FocusStorage.saveUser({ email: email, emailVerified: true, flags: { loggedIn: true } }); } catch(e){}
+        if (window.fbLoadUserData) {
+            window.fbLoadUserData().then(function(data){
+                if (data) FocusStorage.applyCloudData(data);
                 goAfterLogin();
-            } else {
-                loginBtn.disabled = false;
-                loginBtn.innerText = origText;
-                document.getElementById('passwordError').innerText = 'Неверный email или пароль';
-                document.getElementById('passwordError').style.display = 'block';
-            }
-        }
+            }).catch(goAfterLogin);
+        } else goAfterLogin();
     });
 
-    document.getElementById('forgotBtn').addEventListener('click', function() {
-        showToast('Восстановление пароля будет доступно после подключения почты.');
+    document.getElementById('resendCode').addEventListener('click', function(){
+        const email = document.getElementById('email').value.trim();
+        if (email) sendLoginCode(email, document.getElementById('loginBtn'));
     });
+
 
     document.getElementById('signupLink').addEventListener('click', function() {
         window.location.href = 'register.html';
@@ -527,9 +517,10 @@
 
     function showToast(msg){ var t=document.getElementById('toast'); if(!t) return; t.innerText=msg; t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)'; clearTimeout(window._tt); window._tt=setTimeout(function(){ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(20px)'; }, 2800); }
     // Enter для входа
-    document.getElementById('password').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') document.getElementById('loginBtn').click();
-    });
+    var _ci = document.getElementById('codeInput');
+    if (_ci) _ci.addEventListener('keydown', function(e){ if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+    var _em = document.getElementById('email');
+    if (_em) _em.addEventListener('keydown', function(e){ if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
 </script>
 <script>
     if ('serviceWorker' in navigator) {

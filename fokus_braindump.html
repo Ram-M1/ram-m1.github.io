@@ -165,7 +165,7 @@
         position: absolute !important; inset: 0 !important; border-radius: 0 !important;
     }
     /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
-    .screen, .session-area, .slideshow, .scroll-area {
+    .screen, .session-area, .slideshow {
         padding-top: calc(env(safe-area-inset-top) + 8px) !important;
     }
     .modal, .slideshow, .session-area { border-radius: 0 !important; }
@@ -188,6 +188,7 @@
         <div class="bd-tabs">
             <div class="bd-tab active" data-pane="inbox">Входящие <span class="tab-badge" id="tabBadge" style="display:none;">0</span></div>
             <div class="bd-tab" data-pane="sorted">Разобрано</div>
+            <div class="bd-tab" data-pane="archive">Архив</div>
         </div>
 
         <div class="scroll-area">
@@ -206,6 +207,9 @@
 
             <div class="bd-pane" id="pane-sorted">
                 <div id="basketsArea"></div>
+            </div>
+            <div class="bd-pane" id="pane-archive">
+                <div id="archiveArea"></div>
             </div>
         </div>
     </div>
@@ -529,6 +533,38 @@ initAtmosphere(canvasId) {
 
         // корзины
         renderBaskets();
+        renderArchive();
+    }
+
+    /* АРХИВ выполненных задач — что и когда сделал (не пропадает, копится) */
+    function renderArchive(){
+        const area = document.getElementById('archiveArea');
+        if (!area) return;
+        const log = (data.doneLog || []).slice().sort((a,b) => (b.at||0) - (a.at||0));
+        if (!log.length) {
+            area.innerHTML = '<div style="text-align:center;color:#6e6e7e;font-size:12px;padding:26px 12px;line-height:1.6;">Здесь появятся выполненные задачи.<br>Отмечай дела галочкой — они сохранятся тут с датой.</div>';
+            return;
+        }
+        // группируем по дню
+        const groups = {};
+        log.forEach(function(x){
+            const d = new Date(x.at || Date.now());
+            const key = d.toLocaleDateString('ru-RU', { day:'numeric', month:'long' });
+            (groups[key] = groups[key] || []).push(x);
+        });
+        area.innerHTML = Object.keys(groups).map(function(day){
+            return '<div style="margin-bottom:14px;">'
+                + '<div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:7px;">' + day + '</div>'
+                + groups[day].map(function(x){
+                    const t = new Date(x.at || Date.now()).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+                    return '<div style="display:flex;align-items:center;gap:9px;background:rgba(35,35,46,0.5);border:0.5px solid rgba(var(--accent-rgb),0.1);border-radius:11px;padding:9px 12px;margin-bottom:6px;">'
+                        + '<div style="width:18px;height:18px;border-radius:6px;background:rgba(80,200,140,0.18);color:#5ecf9a;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>'
+                        + '<div style="flex:1;font-size:12.5px;color:#c8c8d0;min-width:0;">' + String(x.text||'').replace(/</g,'&lt;') + '</div>'
+                        + '<div style="font-size:10px;color:#6e6e7e;flex-shrink:0;">' + t + '</div>'
+                        + '</div>';
+                }).join('')
+                + '</div>';
+        }).join('');
     }
 
     function renderBaskets(){
@@ -597,12 +633,23 @@ initAtmosphere(canvasId) {
                 renderBaskets();
             });
         });
-        // check (выполнено)
+        // check (выполнено) — отмечаем И пишем в архив с датой (чтобы можно было посмотреть что сделал)
         area.querySelectorAll('[data-check]').forEach(c => {
             c.addEventListener('click', () => {
                 const [key, id] = c.dataset.check.split('|');
                 const it = (data[key]||[]).find(x => x.id === parseInt(id));
-                if (it) { it.done = !it.done; save(); renderBaskets(); }
+                if (!it) return;
+                it.done = !it.done;
+                data.doneLog = data.doneLog || [];
+                if (it.done) {
+                    it.doneAt = Date.now();
+                    data.doneLog.push({ id: it.id, text: it.text, at: it.doneAt, from: key });
+                } else {
+                    // сняли галочку — убираем из архива
+                    data.doneLog = data.doneLog.filter(x => x.id !== it.id);
+                    delete it.doneAt;
+                }
+                save(); renderBaskets(); renderArchive();
             });
         });
         // удалить

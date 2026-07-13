@@ -390,7 +390,7 @@
         position: absolute !important; inset: 0 !important; border-radius: 0 !important;
     }
     /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
-    .screen, .session-area, .slideshow, .scroll-area {
+    .screen, .session-area, .slideshow {
         padding-top: calc(env(safe-area-inset-top) + 8px) !important;
     }
     .modal, .slideshow, .session-area { border-radius: 0 !important; }
@@ -414,13 +414,25 @@
                                 <stop offset="0%" style="stop-color:var(--accent)"/><stop offset="100%" style="stop-color:var(--accent-2)"/>
                             </linearGradient>
                         </defs>
-                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent-2)" stroke-width="1.5" opacity="0.4"/>
-                        <circle cx="50" cy="50" r="32" fill="none" stroke="url(#lring)" stroke-width="5"/>
-                        <g fill="url(#lg1)">
-                            <rect x="38" y="34" width="26" height="9" rx="4.5"/>
-                            <rect x="38" y="34" width="9" height="33" rx="4.5"/>
-                            <rect x="38" y="47" width="19" height="8" rx="4"/>
+                        <radialGradient id="lc1" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#FFFFFF"/><stop offset="40%" style="stop-color:var(--accent-light)"/><stop offset="100%" style="stop-color:var(--accent)"/>
+                        </radialGradient>
+                        <circle cx="50" cy="50" r="47" stroke="url(#lg1)" stroke-width="1" opacity="0.35"/>
+                        <g stroke="url(#lg1)" stroke-width="1.1" stroke-linecap="round" opacity="0.55">
+                            <line x1="50" y1="4" x2="50" y2="14"/><line x1="50" y1="86" x2="50" y2="96"/>
+                            <line x1="4" y1="50" x2="14" y2="50"/><line x1="86" y1="50" x2="96" y2="50"/>
+                            <line x1="17.5" y1="17.5" x2="24.7" y2="24.7"/><line x1="75.3" y1="75.3" x2="82.5" y2="82.5"/>
+                            <line x1="17.5" y1="82.5" x2="24.7" y2="75.3"/><line x1="75.3" y1="24.7" x2="82.5" y2="17.5"/>
                         </g>
+                        <g fill="url(#lg1)" opacity="0.85">
+                            <path d="M76 14 L78.3 19.4 L84 19.7 L79.6 23.5 L81.1 29 L76 25.9 L70.9 29 L72.4 23.5 L68 19.7 L73.7 19.4 Z"/>
+                            <path d="M19 18 L20.4 21.3 L24 21.5 L21.3 23.8 L22.1 27.3 L19 25.4 L15.9 27.3 L16.7 23.8 L14 21.5 L17.6 21.3 Z"/>
+                        </g>
+                        <circle cx="50" cy="50" r="34" stroke="url(#lg1)" stroke-width="1.4" fill="none" opacity="0.8"/>
+                        <path d="M34 50 Q41 38 50 38 Q59 38 66 50 Q59 62 50 62 Q41 62 34 50 Z" fill="url(#lc1)" fill-opacity="0.22" stroke="url(#lg1)" stroke-width="1.3"/>
+                        <circle cx="50" cy="50" r="7" fill="url(#lc1)"/>
+                        <circle cx="50" cy="50" r="2.4" fill="#3a2a08"/>
+                        <circle cx="47.3" cy="47.3" r="1.6" fill="#FFFFFF" opacity="0.9"/>
                     </svg>
                 </div>
             </div>

@@ -150,7 +150,7 @@
         position: absolute !important; inset: 0 !important; border-radius: 0 !important;
     }
     /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
-    .screen, .session-area, .slideshow, .scroll-area {
+    .screen, .session-area, .slideshow {
         padding-top: calc(env(safe-area-inset-top) + 8px) !important;
     }
     .modal, .slideshow, .session-area { border-radius: 0 !important; }
@@ -177,6 +177,13 @@
             </div>
             <div class="toggle-switch active" id="masterToggle"></div>
         </div>
+
+        <!-- Активные напоминания (то, что реально поставлено — в т.ч. ассистентом) -->
+        <div class="section-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            АКТИВНЫЕ НАПОМИНАНИЯ
+        </div>
+        <div id="activeReminders" style="margin-bottom:16px;"></div>
 
         <!-- Тихие часы -->
         <div class="section-label">
@@ -296,6 +303,7 @@
     </div>
     <div class="toast" id="toast"></div>
 </div>
+<script src="focus-reminders.js"></script>
 <script src="focus-storage.js"></script>
 <script type="module" src="firebase-auth-helper.js"></script>
 <script src="focus-core.js"></script>
@@ -415,5 +423,53 @@ initAtmosphere(canvasId) {
     }
 </script>
     <script src="focus-chat-fab.js"></script>
+
+<script>
+/* СПИСОК АКТИВНЫХ НАПОМИНАНИЙ — раньше их нигде не было видно.
+   Показываем всё что поставлено (в т.ч. ассистентом), с датой и возможностью удалить. */
+(function(){
+    function fmt(iso){
+        try {
+            var d = new Date(iso), now = new Date();
+            var t = d.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+            var sameDay = d.toDateString() === now.toDateString();
+            var tomorrow = new Date(now); tomorrow.setDate(now.getDate()+1);
+            if (sameDay) return 'сегодня в ' + t;
+            if (d.toDateString() === tomorrow.toDateString()) return 'завтра в ' + t;
+            return d.toLocaleDateString('ru-RU', { day:'numeric', month:'long' }) + ' в ' + t;
+        } catch(e){ return ''; }
+    }
+    function render(){
+        var box = document.getElementById('activeReminders');
+        if (!box) return;
+        var list = [];
+        try { if (window.FocusReminders && FocusReminders.active) list = FocusReminders.active() || []; } catch(e){}
+        if (!list.length) {
+            box.innerHTML = '<div style="background:rgba(35,35,46,0.5);border:0.5px solid rgba(var(--accent-rgb),0.1);border-radius:14px;padding:16px;text-align:center;color:#6e6e7e;font-size:12px;line-height:1.6;">Пока нет напоминаний.<br>Скажи ассистенту «напомни завтра в 10 купить уголки» — появится здесь.</div>';
+            return;
+        }
+        box.innerHTML = list.map(function(r){
+            return '<div style="display:flex;align-items:center;gap:10px;background:rgba(35,35,46,0.5);border:0.5px solid rgba(var(--accent-rgb),0.12);border-radius:13px;padding:11px 13px;margin-bottom:7px;">'
+                + '<div style="width:30px;height:30px;border-radius:9px;background:rgba(var(--accent-rgb),0.14);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>'
+                + '<div style="flex:1;min-width:0;">'
+                + '<div style="font-size:13px;color:#fff;font-weight:600;">' + String(r.text||'').replace(/</g,'&lt;') + '</div>'
+                + '<div style="font-size:11px;color:var(--accent);margin-top:2px;">' + fmt(r.at) + '</div>'
+                + '</div>'
+                + '<div data-rem-del="' + r.id + '" style="color:#ff6b6b;opacity:0.5;cursor:pointer;flex-shrink:0;padding:4px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></div>'
+                + '</div>';
+        }).join('');
+        box.querySelectorAll('[data-rem-del]').forEach(function(b){
+            b.addEventListener('click', function(){
+                try { if (window.FocusReminders && FocusReminders.remove) FocusReminders.remove(parseInt(b.dataset.remDel)); } catch(e){}
+                render();
+            });
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render);
+    else render();
+    setInterval(render, 30000);   // обновляем, чтоб сработавшие уходили
+})();
+</script>
+
 </body>
 </html>

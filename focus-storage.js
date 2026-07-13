@@ -151,7 +151,7 @@ const FocusStorage = {
     /** Собрать ВСЕ пользовательские данные из localStorage (все ключи focus_*, кроме служебных). */
     _collectAllUserData() {
         var extra = {};
-        var SKIP = ['focus_user_password']; // не синкаем пароль в открытом виде
+        var SKIP = ['focus_user_password', 'focus_sync_meta']; // пароль и служебные метки не синкаем
         // префиксы всех пользовательских данных (focus_ + faith_ и др. без focus_)
         var PREFIXES = ['focus_', 'faith_'];
         try {
@@ -219,11 +219,27 @@ const FocusStorage = {
                        || (merged.name && merged.assistantName && merged.birthDate)
                        || (local.name && local.assistantName && local.birthDate);
             if (done) { try { this.saveUser({ flags: { profileCompleted: true } }); } catch(e){} }
-            // все пользовательские ключи (тренировки, программы, дневники и т.п.) — пишем обратно
+            // все пользовательские ключи (тренировки, программы, дневники и т.п.) — пишем обратно,
+            // НО только если локальная версия не новее облачной (иначе затрём свежие отметки юзера)
             if (data.extraData && typeof data.extraData === 'object') {
+                var cloudTs = 0;
+                try { cloudTs = data.updatedAt ? Date.parse(data.updatedAt) : 0; } catch(e){}
+                var meta = {};
+                try { meta = JSON.parse(localStorage.getItem('focus_sync_meta')) || {}; } catch(e){}
+                var rawSet = window.__focusRawSet || function(k,v){ localStorage.setItem(k,v); };
                 Object.keys(data.extraData).forEach(function(k){
-                    try { if (data.extraData[k] != null) localStorage.setItem(k, data.extraData[k]); } catch(e){}
+                    try {
+                        var v = data.extraData[k];
+                        if (v == null) return;
+                        var localTs = meta[k] || 0;
+                        var hasLocal = localStorage.getItem(k) != null;
+                        // локальные данные СВЕЖЕЕ облачных → оставляем локальные (их допушит автосинк)
+                        if (hasLocal && cloudTs && localTs > cloudTs) return;
+                        rawSet(k, v);              // пишем в обход перехвата (это не изменение юзера)
+                        meta[k] = cloudTs || Date.now();
+                    } catch(e){}
                 });
+                try { rawSet('focus_sync_meta', JSON.stringify(meta)); } catch(e){}
             }
         } catch(e) {}
     },
@@ -451,3 +467,47 @@ const FocusStorage = {
 if (typeof window !== 'undefined') {
     window.FocusStorage = FocusStorage;
 }
+
+/* ============================================================================
+   АВТОСИНХРОНИЗАЦИЯ ВСЕХ РАЗДЕЛОВ (критичный фикс потери данных)
+
+   Проблема была: разделы (разгрузка мозга, тренировки, питание, карта желаний...)
+   пишут свои данные НАПРЯМУЮ в localStorage, минуя FocusStorage.saveUser().
+   Значит облачный синк не срабатывал, а при следующем входе applyCloudData
+   затирал свежие локальные данные СТАРОЙ копией из облака → отметки пропадали.
+
+   Решение (в одном месте, без правки 50 страниц): перехватываем запись в
+   localStorage. Любая запись ключа с префиксом focus_ или faith_:
+     1) запоминает ВРЕМЯ изменения (focus_sync_meta),
+     2) запускает облачный синк (с дебаунсом).
+   Плюс applyCloudData теперь не затирает локальное, если оно новее облачного.
+   ============================================================================ */
+(function(){
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    if (window.__focusLsHooked) return;
+    window.__focusLsHooked = true;
+
+    var META_KEY = 'focus_sync_meta';
+    var rawSet = localStorage.setItem.bind(localStorage);
+    window.__focusRawSet = rawSet;   // «сырая» запись в обход перехвата (для восстановления из облака)
+
+    function isTracked(key){
+        if (!key || key === META_KEY) return false;
+        return key.indexOf('focus_') === 0 || key.indexOf('faith_') === 0;
+    }
+
+    localStorage.setItem = function(key, value){
+        rawSet(key, value);                       // сначала сама запись
+        try {
+            if (!isTracked(key)) return;
+            var meta = {};
+            try { meta = JSON.parse(localStorage.getItem(META_KEY)) || {}; } catch(e){}
+            meta[key] = Date.now();               // помечаем: локально изменено сейчас
+            rawSet(META_KEY, JSON.stringify(meta));
+            // пушим в облако (дебаунс внутри _cloudSync — 2 сек после последнего изменения)
+            if (window.FocusStorage && window.FocusStorage._cloudSync) {
+                window.FocusStorage._cloudSync(window.FocusStorage.getUser());
+            }
+        } catch(e){}
+    };
+})();

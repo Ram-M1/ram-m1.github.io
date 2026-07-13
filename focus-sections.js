@@ -267,17 +267,19 @@
         var q = (data || '').toLowerCase().trim();
         var done = null;
         ['now','plan','inbox'].forEach(function(col){
-          if (!bd[col]) return;
-          for (var i = bd[col].length - 1; i >= 0; i--) {
-            if (!done && bd[col][i].text && bd[col][i].text.toLowerCase().indexOf(q) !== -1) {
-              done = bd[col][i].text;
-              bd[col].splice(i, 1);   // убираем из активных
+          if (!bd[col] || done) return;
+          for (var i = 0; i < bd[col].length; i++) {
+            var it = bd[col][i];
+            if (!done && it.text && it.text.toLowerCase().indexOf(q) !== -1 && !it.done) {
+              it.done = true;                    // отмечаем как в интерфейсе (не удаляем)
+              it.doneAt = Date.now();
+              done = it.text;
+              bd.doneLog = bd.doneLog || [];
+              bd.doneLog.push({ id: it.id, text: it.text, at: it.doneAt, from: col });
             }
           }
         });
         if (!done) return 'Не нашёл такую задачу в разгрузке мозга.';
-        bd.doneLog = bd.doneLog || [];
-        bd.doneLog.push({ text: done, at: Date.now() });
         writeJSON('focus_braindump', bd);
         return 'Отметил выполненным: ' + done;
       }

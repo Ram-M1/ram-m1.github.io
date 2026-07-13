@@ -238,7 +238,7 @@
         position: absolute !important; inset: 0 !important; border-radius: 0 !important;
     }
     /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
-    .screen, .session-area, .slideshow, .scroll-area {
+    .screen, .session-area, .slideshow {
         padding-top: calc(env(safe-area-inset-top) + 8px) !important;
     }
     .modal, .slideshow, .session-area { border-radius: 0 !important; }
@@ -294,27 +294,11 @@
             <div class="error-message" id="emailError"></div>
         </div>
 
-        <div class="form-group">
-            <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Пароль</div>
-            <div class="input-wrap">
-                <input type="password" class="input" id="password" placeholder="Не менее 6 символов">
-                <span class="toggle-pass" data-target="password">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                </span>
+        <div class="form-group" style="background:rgba(255,217,102,0.06);border:1px solid rgba(255,217,102,0.18);border-radius:12px;padding:12px 13px;margin-bottom:14px;">
+            <div style="font-size:12px;color:#c8c8d0;line-height:1.6;">
+                🔐 Пароль не нужен. Мы пришлём <b style="color:#FFD966;">код на почту</b> — им и подтвердишь вход.
+                Один раз вошёл — остаёшься в аккаунте.
             </div>
-            <div class="error-message" id="passwordError"></div>
-        </div>
-
-        <div class="form-group">
-            <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 2.6 6.4M3 12V6m0 6h6"/></svg>Повторите пароль</div>
-            <div class="input-wrap">
-                <input type="password" class="input" id="confirmPassword" placeholder="Введите пароль ещё раз">
-                <span class="toggle-pass" data-target="confirmPassword">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                </span>
-            </div>
-            <div class="error-message" id="confirmError"></div>
-            <div class="match-hint" id="matchHint"></div>
         </div>
 
         <label id="consentRow" style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;cursor:pointer;padding:0 2px;">
@@ -397,155 +381,93 @@
         });
     });
 
-    const passwordEl = document.getElementById('password');
-    const confirmEl = document.getElementById('confirmPassword');
-    const matchHint = document.getElementById('matchHint');
+    // РЕГИСТРАЦИЯ БЕЗ ПАРОЛЯ: почта → код на почту → анкета.
+    // Код генерит и проверяет СЕРВЕР, он же выдаёт ключ входа.
+    let regCodeSent = false;
 
-    function checkMatch() {
-        if (!confirmEl.value) { matchHint.style.display = 'none'; return; }
-        if (passwordEl.value === confirmEl.value) {
-            matchHint.className = 'match-hint ok';
-            matchHint.textContent = '✓ Пароли совпадают';
-        } else {
-            matchHint.className = 'match-hint bad';
-            matchHint.textContent = '✗ Пароли не совпадают';
-        }
-    }
-    passwordEl.addEventListener('input', checkMatch);
-    confirmEl.addEventListener('input', checkMatch);
-
-    document.getElementById('registerBtn').addEventListener('click', function() {
-        document.getElementById('emailError').style.display = 'none';
-        document.getElementById('passwordError').style.display = 'none';
-        document.getElementById('confirmError').style.display = 'none';
-        document.getElementById('email').classList.remove('error');
-        document.getElementById('password').classList.remove('error');
-        document.getElementById('confirmPassword').classList.remove('error');
-
-        // проверка согласия на обработку данных (152-ФЗ)
-        if (!document.getElementById('consentCheck').checked) {
-            const row = document.getElementById('consentRow');
-            row.style.animation = 'shake 0.4s';
-            setTimeout(function(){ row.style.animation = ''; }, 400);
-            const hint = document.getElementById('emailError');
-            hint.innerText = 'Нужно принять Политику конфиденциальности';
-            hint.style.display = 'block';
+    async function regSendCode(email, btn){
+        const err = document.getElementById('emailError');
+        err.style.display = 'none';
+        btn.disabled = true; btn.innerText = 'Отправляем код...';
+        const r = await window.fbSendCode(email);
+        btn.disabled = false;
+        if (!r.ok) {
+            btn.innerText = 'Зарегистрироваться';
+            err.innerText = r.error || 'Не удалось отправить код';
+            err.style.display = 'block';
             return;
         }
+        regCodeSent = true;
+        showCodeStep(email);
+    }
 
-        let hasError = false;
-        const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value;
-        const confirm = document.getElementById('confirmPassword').value;
-
-        if (!email) {
-            document.getElementById('emailError').innerText = 'Введите email';
-            document.getElementById('emailError').style.display = 'block';
-            document.getElementById('email').classList.add('error');
-            hasError = true;
-        } else if (!email.includes('@') || !email.includes('.')) {
-            document.getElementById('emailError').innerText = 'Некорректный email';
-            document.getElementById('emailError').style.display = 'block';
-            document.getElementById('email').classList.add('error');
-            hasError = true;
-        }
-
-        if (!password) {
-            document.getElementById('passwordError').innerText = 'Введите пароль';
-            document.getElementById('passwordError').style.display = 'block';
-            document.getElementById('password').classList.add('error');
-            hasError = true;
-        } else if (password.length < 6) {
-            document.getElementById('passwordError').innerText = 'Пароль должен быть не менее 6 символов';
-            document.getElementById('passwordError').style.display = 'block';
-            document.getElementById('password').classList.add('error');
-            hasError = true;
-        }
-
-        if (password !== confirm) {
-            document.getElementById('confirmError').innerText = 'Пароли не совпадают';
-            document.getElementById('confirmError').style.display = 'block';
-            document.getElementById('confirmPassword').classList.add('error');
-            hasError = true;
-        }
-
-        if (!hasError) {
-            const btn = document.getElementById('registerBtn');
-            btn.disabled = true;
-            const originalText = btn.innerText;
-            btn.innerText = 'Регистрируем...';
-
-            // реальная регистрация через Firebase
-            if (window.fbRegister) {
-                // фиксируем согласие на обработку ПД (для 152-ФЗ)
-                try { FocusStorage.saveUser({ consentPD: true, consentDate: new Date().toISOString() }); } catch(e){}
-                window.fbRegister(email, password).then(function(res) {
-                    if (res.ok && res.needVerify) {
-                        // сохраняем email локально, показываем экран подтверждения
-                        FocusStorage.saveUser({ email });
-                        showVerifyScreen(email);
-                    } else if (res.ok) {
-                        FocusStorage.saveUser({ email });
-                        if (window.fbSaveUserData) window.fbSaveUserData({ email: email, createdAt: Date.now(), consentPD: true, consentDate: new Date().toISOString() });
-                        window.location.href = 'profile-form.html';
-                    } else {
-                        btn.disabled = false;
-                        btn.innerText = originalText;
-                        document.getElementById('emailError').innerText = res.error;
-                        document.getElementById('emailError').style.display = 'block';
-                        document.getElementById('email').classList.add('error');
-                    }
-                });
-            } else {
-                FocusStorage.saveUser({ email, password });
-                window.location.href = 'profile-form.html';
-            }
-        }
-    });
-
-    // экран "подтвердите почту"
-    function showVerifyScreen(email){
-        const card = document.querySelector('.screen') || document.body;
-        card.innerHTML = `
-            <div style="display:flex;flex-direction:column;justify-content:center;height:100%;text-align:center;padding:30px 26px;">
-                <div style="width:64px;height:64px;margin:0 auto 18px;border-radius:18px;background:radial-gradient(circle at 35% 30%,rgba(255,217,102,0.3),rgba(124,140,255,0.08));border:1px solid rgba(255,217,102,0.3);display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--accent);">✦</div>
-                <div style="font-size:20px;font-weight:700;color:var(--accent);margin-bottom:14px;">Подтверди почту</div>
-                <div style="font-size:13.5px;color:#c8c8d0;line-height:1.6;margin-bottom:18px;">
-                    Отправили код на<br><b style="color:#fff;">${email}</b>
+    function showCodeStep(email){
+        const box = document.querySelector('.screen') || document.body;
+        box.innerHTML = `
+            <div style="padding:26px 20px;text-align:center;">
+                <div style="font-size:40px;margin-bottom:10px;">📬</div>
+                <div style="font-size:19px;font-weight:700;color:#fff;margin-bottom:6px;">Проверь почту</div>
+                <div style="font-size:13px;color:#9a9aab;line-height:1.6;margin-bottom:18px;">
+                    Код отправлен на <b style="color:#FFD966;">${email}</b><br>Загляни и в папку «Спам».
                 </div>
-                <input type="text" id="codeInput" maxlength="6" placeholder="· · · · · ·" style="width:100%;box-sizing:border-box;background:rgba(30,30,42,0.6);border:1px solid rgba(255,217,102,0.3);border-radius:12px;padding:15px;color:#fff;font-size:26px;text-align:center;letter-spacing:8px;font-weight:700;font-family:inherit;margin-bottom:8px;">
-                <div id="codeError" style="font-size:12px;color:#ff6b6b;min-height:16px;margin-bottom:10px;"></div>
-                <div id="verifyGo" style="background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#0a0a0f;font-weight:700;padding:15px;border-radius:14px;cursor:pointer;font-size:15px;margin-bottom:12px;">Подтвердить</div>
-                <div id="resendCode" style="font-size:13px;color:#8e8e9e;cursor:pointer;">Не пришло? Отправить снова</div>
-                <div style="font-size:11px;color:#6e6e7e;margin-top:8px;">Проверь папку «Спам»</div>
+                <input type="tel" inputmode="numeric" maxlength="6" id="codeInput" placeholder="6 цифр"
+                    style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(255,217,102,0.25);border-radius:12px;padding:14px;color:#fff;font-size:22px;text-align:center;letter-spacing:6px;font-family:inherit;outline:none;margin-bottom:10px;">
+                <div id="codeError" style="font-size:12px;color:#ff6b6b;min-height:16px;margin-bottom:12px;"></div>
+                <button id="verifyGo" style="width:100%;background:linear-gradient(135deg,#FFD966,#C8AAFF);color:#0a0a0f;font-weight:700;font-size:15px;padding:14px;border:none;border-radius:14px;cursor:pointer;">Подтвердить</button>
+                <div id="resendCode" style="font-size:13px;color:#8e8e9e;cursor:pointer;margin-top:14px;">Не пришло? Отправить снова</div>
             </div>`;
 
-        // отправляем код через Resend
-        async function sendCode(){
-            const err = document.getElementById('codeError');
-            err.style.color = '#8e8e9e'; err.innerText = 'Отправляем письмо...';
-            if (window.FocusEmailVerify) {
-                const r = await FocusEmailVerify.send(email);
-                err.innerText = r.ok ? '' : (r.error || 'Ошибка отправки');
-                err.style.color = '#ff6b6b';
-            }
-        }
-        sendCode();
+        const ci = document.getElementById('codeInput');
+        ci.focus();
+        ci.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('verifyGo').click(); });
 
-        document.getElementById('verifyGo').addEventListener('click', function(){
-            const code = document.getElementById('codeInput').value.trim();
+        document.getElementById('verifyGo').addEventListener('click', async function(){
+            const btn = this;
+            const code = ci.value.trim();
             const err = document.getElementById('codeError');
             if (!code) { err.innerText = 'Введи код из письма'; return; }
-            if (window.FocusEmailVerify) {
-                const r = FocusEmailVerify.check(code);
-                if (r.ok) {
-                    try { FocusStorage.saveUser({ email, emailVerified: true }); if (window.fbSaveUserData) fbSaveUserData({ email, emailVerified: true, createdAt: Date.now() }); } catch(e){}
-                    location.href = 'profile-form.html';
-                } else { err.style.color = '#ff6b6b'; err.innerText = r.error; }
+            btn.disabled = true; btn.innerText = 'Проверяем...';
+            const res = await window.fbVerifyCode(email, code);
+            if (!res.ok) {
+                btn.disabled = false; btn.innerText = 'Подтвердить';
+                err.innerText = res.error || 'Неверный код';
+                return;
             }
+            try {
+                FocusStorage.saveUser({ email: email, emailVerified: true, flags: { loggedIn: true, emailConfirmed: true } });
+                if (window.fbSaveUserData) fbSaveUserData({ email: email, emailVerified: true, createdAt: Date.now() });
+            } catch(e){}
+            location.href = 'profile-form.html';
         });
-        document.getElementById('resendCode').addEventListener('click', sendCode);
+
+        document.getElementById('resendCode').addEventListener('click', async function(){
+            this.innerText = 'Отправляем...';
+            const r = await window.fbSendCode(email);
+            this.innerText = r.ok ? '✓ Отправлено — проверь почту' : (r.error || 'Ошибка');
+        });
     }
+
+    document.getElementById('registerBtn').addEventListener('click', async function() {
+        const btn = this;
+        const email = document.getElementById('email').value.trim();
+        const err = document.getElementById('emailError');
+        err.style.display = 'none';
+
+        if (!email || email.indexOf('@') === -1) {
+            err.innerText = 'Введите корректную почту';
+            err.style.display = 'block';
+            return;
+        }
+        const consent = document.getElementById('consentCheck');
+        if (consent && !consent.checked) {
+            err.innerText = 'Нужно согласие на обработку данных';
+            err.style.display = 'block';
+            return;
+        }
+        if (!window.fbSendCode) { err.innerText = 'Сервис недоступен, обнови страницу'; err.style.display = 'block'; return; }
+        await regSendCode(email, btn);
+    });
+
 </script>
 <script>
     if ('serviceWorker' in navigator) {

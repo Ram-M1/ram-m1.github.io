@@ -14,7 +14,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, onAuthStateChanged, sendEmailVerification, reload
+  signOut, onAuthStateChanged, sendEmailVerification, reload,
+  signInWithCustomToken, setPersistence, indexedDBLocalPersistence, browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, arrayUnion,
@@ -33,6 +34,43 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+
+/* ПОСТОЯННАЯ СЕССИЯ: зашёл один раз — остаёшься. Переживает закрытие приложения,
+   перезапуск телефона и т.д. (IndexedDB, с запасным вариантом на localStorage). */
+try {
+  setPersistence(auth, indexedDBLocalPersistence).catch(function(){
+    try { setPersistence(auth, browserLocalPersistence); } catch(e){}
+  });
+} catch(e){}
+
+/* ===== ВХОД ПО ПОЧТЕ И КОДУ (без пароля) =====
+   Код генерит и проверяет СЕРВЕР (воркер). Он же выдаёт ключ входа.
+   На телефоне код не хранится — подобрать или подставить его нельзя. */
+window.fbSendCode = async function(email) {
+  try {
+    const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+    const r = await fetch(base + '/auth/send-code', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: String(email || '').trim().toLowerCase() })
+    });
+    const d = await r.json();
+    return d.ok ? { ok: true } : { ok: false, error: d.error || 'Не удалось отправить код' };
+  } catch (e) { return { ok: false, error: 'Нет связи с сервером' }; }
+};
+
+window.fbVerifyCode = async function(email, code) {
+  try {
+    const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+    const r = await fetch(base + '/auth/verify-code', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: String(email || '').trim().toLowerCase(), code: String(code || '').trim() })
+    });
+    const d = await r.json();
+    if (!d.ok || !d.token) return { ok: false, error: d.error || 'Неверный код' };
+    const cred = await signInWithCustomToken(auth, d.token);   // входим по ключу от сервера
+    return { ok: true, uid: cred.user.uid, email: String(email).trim().toLowerCase() };
+  } catch (e) { return { ok: false, error: 'Ошибка входа: ' + (e.message || '') }; }
+};
 const db = getFirestore(app);
 
 // перевод ошибок Firebase на русский
@@ -850,7 +888,7 @@ window.fbAskAIVision = async function(messages, imageDataUrl, maxTokens) {
       body: JSON.stringify({ messages, image: imageDataUrl, max_tokens: maxTokens || 700 })
     });
     const data = await res.json();
-    if (data.ok && data.reply) return { ok: true, reply: data.reply };
+    if (data.ok && data.reply) return { ok: true, reply: data.reply, visionUnsupported: !!data.visionUnsupported };
     return { ok: false, error: data.error || 'Пустой ответ', detail: data.detail, hint: data.hint };
   } catch (e) {
     return { ok: false, error: 'Нет связи с ИИ: ' + e.message };

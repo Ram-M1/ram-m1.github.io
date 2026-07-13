@@ -264,7 +264,7 @@
         position: absolute !important; inset: 0 !important; border-radius: 0 !important;
     }
     /* safe-area отступ даём контенту, а не фону — чтобы не было чёрной полосы */
-    .screen, .session-area, .slideshow, .scroll-area {
+    .screen, .session-area, .slideshow {
         padding-top: calc(env(safe-area-inset-top) + 8px) !important;
     }
     .modal, .slideshow, .session-area { border-radius: 0 !important; }
@@ -1270,6 +1270,12 @@ initAtmosphere(canvasId) {
                 { role:'user', content: 'Разбери мои анализы с этого фото' }
             ];
             const res = await window.fbAskAIVision(prompt, photoDoc.data, 700);
+            if (res.ok && res.visionUnsupported) {
+                // модель не умеет смотреть картинки — честно говорим и даём рабочий путь
+                resBox.innerHTML = '⚠️ Модель пока не умеет читать фото напрямую.<br>'
+                    + '<span style="font-size:12px;color:#c8c8d0;">Внеси показатели анализа значениями (кнопка «Добавить значение») — и я подробно разберу их текстом: что в норме, что отклонено, на что обратить внимание.</span>';
+                return;
+            }
             if (res.ok) {
                 try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('body','photo'); } catch(e){}
                 resBox.innerHTML = '🧠 ' + res.reply.replace(/</g,'&lt;').replace(/\n/g,'<br>') + '<br><br><span style="font-size:11px;color:#9a9aab;">⚠️ Не заменяет врача. При проблемах обратись к специалисту.</span>';
