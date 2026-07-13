@@ -880,6 +880,23 @@ window.fbAiSuggestReplies = async function(chatId) {
 
 // Вызов ИИ с картинкой (vision) — для разбора фото анализов, еды и т.п.
 // imageDataUrl — base64 data:image/...; prompt — текстовый вопрос
+
+/* СТРОГИЙ JSON-ОТВЕТ: модель обязана вернуть {reply, actions:[...]}.
+   Так команды ассистента (заполнить раздел, отметить выполненным, поставить напоминание)
+   перестают зависеть от того, «вспомнит» ли модель написать тег в свободном тексте. */
+window.fbAskAIJson = async function(messages, maxTokens) {
+  try {
+    const res = await fetch(window.FOCUS_AI_PROXY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, max_tokens: maxTokens || 900, json: true })
+    });
+    const data = await res.json();
+    if (data.ok && data.reply) return { ok: true, reply: data.reply };
+    return { ok: false, error: data.error || 'Пустой ответ' };
+  } catch (e) { return { ok: false, error: 'Нет связи с ИИ: ' + e.message }; }
+};
+
 window.fbAskAIVision = async function(messages, imageDataUrl, maxTokens) {
   try {
     const res = await fetch(window.FOCUS_AI_PROXY, {

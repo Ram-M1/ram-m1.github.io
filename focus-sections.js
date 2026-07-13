@@ -111,6 +111,7 @@
       aliases: ['поел', 'съел', 'питани', 'еда', 'завтрак', 'обед', 'ужин', 'перекус'],
       screen: 'fokus_nutrition.html',
       fill: function (data) {
+        markDone(SECTIONS.nutrition);   // отмечаем в Прогрессе (раньше не отмечалось!)
         var d = today();
         var nt = readJSON('focus_nutrition_today', {});
         if (nt.date !== d) nt = { date: d, meals: { breakfast: [], lunch: [], dinner: [], snack: [] } };
@@ -138,6 +139,7 @@
       aliases: ['лекарств', 'таблетк', 'принял препарат', 'выпил лекарств'],
       screen: 'fokus_medications.html',
       fill: function (data) {
+        markDone(SECTIONS.medications);   // отмечаем в Прогрессе (раньше не отмечалось!)
         var meds = readJSON('focus_medications', []);
         if (!meds.length) return '__NEEDCREATE__У тебя пока нет лекарств в списке. Сначала добавь их в разделе «Лекарства» — потом отмечу приём.';
         if (!data) return null;
@@ -164,6 +166,7 @@
       aliases: ['бад', 'витамин', 'протеин', 'креатин', 'добавк', 'спортпит'],
       screen: 'fokus_supplements.html',
       fill: function (data) {
+        markDone(SECTIONS.supplements);   // отмечаем в Прогрессе (раньше не отмечалось!)
         var supps = readJSON('focus_supplements', []);
         if (!supps.length) return '__NEEDCREATE__У тебя пока нет БАДов/спортпита в списке. Сначала добавь их в разделе «БАДы и спортпит».';
         if (!data) return null;
@@ -191,6 +194,7 @@
       aliases: ['спал', 'сон', 'выспал', 'проснул', 'лёг'],
       screen: 'fokus_sleep.html',
       fill: function (data) {
+        markDone(SECTIONS.sleep);   // отмечаем в Прогрессе (раньше не отмечалось!)
         var d = today();
         var hours = parseFloat(String(data || '').replace(',', '.')) || 8;
         var entries = readJSON('focus_sleep_entries', []);
@@ -228,7 +232,13 @@
       name: 'Отдых и детокс', group: 'energy', reward: 'detox',
       aliases: ['отдых', 'детокс', 'релакс'],
       screen: 'fokus_rest.html',
-      fill: function (data) {
+            summary: function () {
+        var r = readJSON('focus_rest_today', null);
+        if (!r) return null;
+        return 'Отдых сегодня: ' + (r.text || r.type || 'отмечен') + '.';
+      },
+fill: function (data) {
+        markDone(SECTIONS.rest);   // отмечаем в Прогрессе (раньше не отмечалось!)
         var log = readJSON('focus_detox_log', []);
         var mins = parseInt(String(data || '').match(/\d+/)) || 30;
         log.push({ id: Date.now(), date: today(), minutes: mins });
@@ -242,6 +252,7 @@
       aliases: ['разгрузк', 'мысл', 'висяк', 'выгруз', 'braindump', 'дела из головы'],
       screen: 'fokus_braindump.html',
       fill: function (data) {
+        markDone(SECTIONS.braindump);   // отмечаем в Прогрессе (раньше не отмечалось!)
         var bd = readJSON('focus_braindump', null);
         if (!bd || typeof bd !== 'object') bd = { inbox: [], now: [], plan: [], drop: [] };
         bd.inbox = bd.inbox || [];
@@ -289,6 +300,7 @@
       aliases: ['настроени', 'чувству', 'эмоци', 'самочувстви'],
       screen: 'fokus_mood.html',
       fill: function (data) {
+        markDone(SECTIONS.mood);   // отмечаем в Прогрессе (раньше не отмечалось!)
         var entries = readJSON('focus_mood_entries', []);
         entries.push({ id: Date.now(), date: today(), t: Date.now(), mood: cap(data) || 'нормальное', note: '', tags: [], chat: [] });
         writeJSON('focus_mood_entries', entries);
@@ -306,6 +318,7 @@
       aliases: ['отношени', 'друг', 'долг', 'позвонить', 'встретил'],
       screen: 'fokus_relationships.html',
       fill: function (data) {
+        markDone(SECTIONS.relationships);   // отмечаем в Прогрессе (раньше не отмечалось!)
         return 'Для раздела «Отношения» открой его — там удобнее добавить контакт/задачу. Могу поставить напоминание.';
       },
       summary: function () {
@@ -367,6 +380,70 @@
         return 'Духовные привычки юзера: ' + h.map(function (x) { return x.name; }).filter(Boolean).join(', ');
       }
     },
+    /* ФИНАНСЫ — ИИ может записать трату/доход по команде («потратил 500 на еду») */
+    finance: {
+      name: 'Финансы', group: 'reward', reward: 'habit',
+      aliases: ['финанс', 'деньг', 'потратил', 'трата', 'доход', 'заработал', 'купил за', 'расход', 'бюджет'],
+      screen: 'fokus_finance.html',
+      fill: function (data) {
+        markDone(SECTIONS.finance);
+        var txs = readJSON('focus_fin_txs', []);
+        var str = String(data || '');
+        // сумма
+        var am = str.match(/(\d[\d\s]*)\s*(?:р|руб|₽)?/i);
+        var amount = am ? parseInt(am[1].replace(/\s/g, ''), 10) : 0;
+        if (!amount) return 'Не понял сумму — скажи, например: «потратил 500 на продукты».';
+        var isIncome = /доход|заработ|получил|зарплат|пришл/i.test(str);
+        var desc = str.replace(/(\d[\d\s]*)\s*(?:р|руб|₽)?/i, '').replace(/^(на|за|потратил|доход|заработал)\s*/i, '').trim();
+        txs.push({
+          id: Date.now(), type: isIncome ? 'income' : 'expense',
+          amount: amount, cat: desc || 'разное', family: false,
+          desc: desc || '', date: new Date().toISOString().slice(0, 10)
+        });
+        writeJSON('focus_fin_txs', txs);
+        return (isIncome ? 'Записал доход ' : 'Записал трату ') + amount + '₽' + (desc ? ' — ' + desc : '');
+      },
+      summary: function () {
+        var txs = readJSON('focus_fin_txs', []);
+        if (!txs.length) return null;
+        var today = new Date().toISOString().slice(0, 10);
+        var sp = 0, inc = 0;
+        txs.forEach(function (t) {
+          if (t.date === today) { if (t.type === 'income') inc += (t.amount || 0); else sp += (t.amount || 0); }
+        });
+        return 'Финансы сегодня: потрачено ' + sp + '₽, доход ' + inc + '₽ (всего записей: ' + txs.length + ').';
+      }
+    },
+
+    /* ИСТОЧНИКИ ЭНЕРГИИ — что наполняет/забирает силы */
+    energy_sources: {
+      name: 'Источники энергии', group: 'energy', reward: 'habit',
+      aliases: ['энерги', 'источник', 'наполня', 'заряжа', 'выматыва', 'силы', 'ресурс'],
+      screen: 'fokus_energy_sources.html',
+      fill: function (data) {
+        markDone(SECTIONS.energy_sources);
+        var list = readJSON('focus_energy_sources', []);
+        String(data || '').split(/[,;\n]+/).forEach(function (t) {
+          t = t.trim();
+          if (!t) return;
+          var minus = /вымат|забира|минус|устал|тян/i.test(t);
+          list.push({ id: Date.now() + Math.random(), text: t, type: minus ? 'drain' : 'source', at: Date.now() });
+        });
+        writeJSON('focus_energy_sources', list);
+        return 'Записал в источники энергии.';
+      },
+      summary: function () {
+        var list = readJSON('focus_energy_sources', []);
+        if (!list.length) return null;
+        var src = list.filter(function (x) { return x.type !== 'drain'; }).slice(-5).map(function (x) { return x.text; });
+        var dr = list.filter(function (x) { return x.type === 'drain'; }).slice(-5).map(function (x) { return x.text; });
+        var p = [];
+        if (src.length) p.push('наполняет: ' + src.join(', '));
+        if (dr.length) p.push('забирает силы: ' + dr.join(', '));
+        return 'Энергия юзера — ' + p.join('; ') + '.';
+      }
+    },
+
     wishmap: {
       name: 'Карта желаний', group: 'faith', reward: 'wish',
       aliases: ['желани', 'мечт', 'карта желани', 'цел мечт', 'хочу'],

@@ -1194,13 +1194,17 @@ initAtmosphere(canvasId) {
         reader.onload = (ev) => {
             const img = new Image();
             img.onload = () => {
-                const maxW = 800;
+                // Для распознавания текста нужно РАЗРЕШЕНИЕ: раньше фото жалось до 800px/0.7 —
+                // мелкие цифры анализов на таком не читались. Теперь 1800px и качество 0.9.
+                const maxW = 1800;
                 const scale = Math.min(1, maxW / img.width);
                 const cv = document.createElement('canvas');
                 cv.width = img.width * scale; cv.height = img.height * scale;
-                cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+                const cx = cv.getContext('2d');
+                cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high';
+                cx.drawImage(img, 0, 0, cv.width, cv.height);
                 try {
-                    docs.push({ id: Date.now(), type: 'image', name: file.name || 'Фото анализа', data: cv.toDataURL('image/jpeg', 0.7), date: today });
+                    docs.push({ id: Date.now(), type: 'image', name: file.name || 'Фото анализа', data: cv.toDataURL('image/jpeg', 0.9), date: today });
                     saveDocs(); renderDocs();
                     toast('Документ добавлен');
                 } catch(err) { toast('Файл слишком большой'); }
@@ -1262,28 +1266,38 @@ initAtmosphere(canvasId) {
             document.getElementById('aiConsultBtn').after(resBox);
         }
 
-        if (photoDoc && window.fbAskAIVision) {
-            // РАЗБОР ФОТО через vision
-            resBox.innerHTML = '🧠 ИИ распознаёт фото анализов...';
-            const prompt = [
-                { role:'system', content:'Ты — медицинский ИИ-консультант в приложении FOCUS. На фото — результаты лабораторных анализов или медицинские документы. Распознай показатели, разбери простым языком на русском: что в норме, что отклонено, на что обратить внимание. НЕ ставь диагнозы. В конце напомни про консультацию врача. Если на фото не анализы — честно скажи что видишь.' },
-                { role:'user', content: 'Разбери мои анализы с этого фото' }
-            ];
-            const res = await window.fbAskAIVision(prompt, photoDoc.data, 700);
-            if (res.ok && res.visionUnsupported) {
-                // модель не умеет смотреть картинки — честно говорим и даём рабочий путь
-                resBox.innerHTML = '⚠️ Модель пока не умеет читать фото напрямую.<br>'
-                    + '<span style="font-size:12px;color:#c8c8d0;">Внеси показатели анализа значениями (кнопка «Добавить значение») — и я подробно разберу их текстом: что в норме, что отклонено, на что обратить внимание.</span>';
+        // ДОКУМЕНТЫ (фото/PDF): распознаём текст ПРЯМО НА ТЕЛЕФОНЕ и отправляем ИИ готовые показатели.
+        // Так разбор работает всегда — не зависит от того, «видит» ли модель картинки.
+        const anyDoc = docs.find(d => d.data);
+        if (anyDoc) {
+            resBox.innerHTML = '🔍 Читаю документ... <span id="ocrPct" style="color:#9a9aab;"></span>';
+            let text = '';
+            try {
+                text = await window.FocusDocText.extract(anyDoc, function(pct){
+                    const el = document.getElementById('ocrPct');
+                    if (el) el.textContent = pct + '%';
+                });
+            } catch(e){}
+
+            if (!text || text.replace(/\s/g,'').length < 20) {
+                resBox.innerHTML = '⚠️ Не удалось прочитать документ.<br>'
+                    + '<span style="font-size:12px;color:#c8c8d0;">Сфотографируй лист ровно, при хорошем свете, чтобы текст был крупный и чёткий. '
+                    + 'Или внеси ключевые показатели кнопкой «Добавить значение» — разберу их точно.</span>';
                 return;
             }
-            if (res.ok) {
+
+            resBox.innerHTML = '🧠 Разбираю показатели...';
+            const prompt = [
+                { role:'system', content:'Ты — медицинский ИИ-консультант в приложении FOCUS. Тебе дан РАСПОЗНАННЫЙ текст лабораторных анализов (возможны опечатки распознавания — учитывай это). Найди показатели и их значения, разбери простым языком на русском: что в норме, что отклонено, на что обратить внимание. НЕ ставь диагнозы. Если текст не похож на анализы — честно скажи. В конце напомни про консультацию врача.' },
+                { role:'user', content: 'Текст анализа:\n' + text.slice(0, 4000) }
+            ];
+            const res = await window.fbAskAI(prompt, 800);
+            if (res.ok && res.reply) {
                 try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('body','photo'); } catch(e){}
-                resBox.innerHTML = '🧠 ' + res.reply.replace(/</g,'&lt;').replace(/\n/g,'<br>') + '<br><br><span style="font-size:11px;color:#9a9aab;">⚠️ Не заменяет врача. При проблемах обратись к специалисту.</span>';
+                resBox.innerHTML = '🧠 ' + res.reply.replace(/</g,'&lt;').replace(/\n/g,'<br>')
+                    + '<br><br><span style="font-size:11px;color:#9a9aab;">⚠️ Не заменяет врача. При проблемах обратись к специалисту.</span>';
             } else {
-                // vision не сработал — покажем причину + предложим текстовый ввод
-                let msg = '⚠️ Не удалось разобрать фото: ' + (res.error||'ошибка');
-                if (res.hint) msg += '<br><span style="font-size:11px;color:#9a9aab;">' + res.hint + '. Пока введи показатели вручную (кнопка добавить значение) — разберу текстом.</span>';
-                resBox.innerHTML = msg;
+                resBox.innerHTML = '⚠️ ИИ не ответил: ' + (res.error || 'ошибка') + '. Попробуй ещё раз.';
             }
             return;
         }
@@ -1322,5 +1336,59 @@ initAtmosphere(canvasId) {
     }
 </script>
     <script src="focus-chat-fab.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+/* РАСПОЗНАВАНИЕ АНАЛИЗОВ НА ТЕЛЕФОНЕ.
+   Модель ИИ не умеет смотреть картинки через API — поэтому текст с фото и PDF
+   мы вытаскиваем сами, прямо на устройстве, и отправляем ИИ уже готовые показатели.
+   Так разбор анализов работает всегда и не зависит от «зрения» модели. */
+window.FocusDocText = (function(){
+    if (window.pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    /** Текст из PDF (у большинства лабораторий PDF с текстовым слоем — читается точно) */
+    async function fromPdf(dataUrl){
+        if (!window.pdfjsLib) return '';
+        try {
+            const raw = atob(String(dataUrl).split(',')[1] || '');
+            const arr = new Uint8Array(raw.length);
+            for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+            const pdf = await pdfjsLib.getDocument({ data: arr }).promise;
+            let out = '';
+            const pages = Math.min(pdf.numPages, 6);
+            for (let p = 1; p <= pages; p++) {
+                const page = await pdf.getPage(p);
+                const tc = await page.getTextContent();
+                out += tc.items.map(i => i.str).join(' ') + '\n';
+            }
+            return out.trim();
+        } catch(e) { return ''; }
+    }
+
+    /** Текст с фото (OCR, русский + английский) */
+    async function fromImage(dataUrl, onProgress){
+        if (!window.Tesseract) return '';
+        try {
+            const r = await Tesseract.recognize(dataUrl, 'rus+eng', {
+                logger: m => { if (m.status === 'recognizing text' && onProgress) onProgress(Math.round((m.progress || 0) * 100)); }
+            });
+            return (r && r.data && r.data.text ? r.data.text : '').trim();
+        } catch(e) { return ''; }
+    }
+
+    /** Достать текст из любого документа */
+    async function extract(doc, onProgress){
+        if (!doc || !doc.data) return '';
+        if (doc.type === 'pdf' || /^data:application\/pdf/.test(doc.data)) return await fromPdf(doc.data);
+        return await fromImage(doc.data, onProgress);
+    }
+
+    return { extract: extract, fromPdf: fromPdf, fromImage: fromImage };
+})();
+</script>
+
 </body>
 </html>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v132 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v138 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -626,12 +626,11 @@
     .ai-chat-window { width:375px; max-width:100%; height:700px; max-height:calc(100vh - 24px); background:linear-gradient(165deg, var(--bg-1), var(--bg-2)); border-radius:44px; display:flex; flex-direction:column; border:0.5px solid rgba(var(--accent-rgb),0.15); box-shadow:0 40px 80px rgba(0,0,0,0.6), 0 0 0 8px #1c1c24, 0 0 0 9px rgba(var(--accent-rgb),0.08); overflow:hidden; animation:chatUp 0.3s cubic-bezier(0.34,1.2,0.64,1); }
     @keyframes chatUp { from{transform:translateY(30px); opacity:0;} to{transform:translateY(0); opacity:1;} }
     @media (max-width:600px){ .ai-chat-overlay{ padding:0; } .ai-chat-window{ width:100vw; height:100vh; height:100dvh; max-height:100vh; border-radius:0; box-shadow:none; }
-        /* отступ под статус-бар (чёлка iPhone / вырез Android) — иначе орб и «свернуть» уезжают под часы и батарею.
-           env() на телефонах без выреза = 0, поэтому безопасно для всех устройств. */
-        .ai-chat-header{ padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
-        .ai-chat-input-row{ padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
     }
-    .ai-chat-header { display:flex; align-items:center; gap:10px; padding:18px 18px 14px; border-bottom:0.5px solid rgba(255,255,255,0.06); }
+    /* ВАЖНО: отступ под статус-бар вшит прямо сюда. Раньше он стоял в медиа-запросе ВЫШЕ этого правила
+   и перебивался — из-за этого орб и стрелка «свернуть» уезжали под часы и батарею на телефоне. */
+    .ai-chat-header { display:flex; align-items:center; gap:10px; padding:18px 18px 14px; padding-top: calc(18px + env(safe-area-inset-top, 0px)); border-bottom:0.5px solid rgba(255,255,255,0.06); }
+    .ai-chat-input-row, .ai-chat-input-wrap { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
     .ai-chat-orb { width:34px; height:34px; flex-shrink:0; }
     .ai-mini-orb { width:40px; height:40px; flex-shrink:0; }
     @keyframes orbPulse { 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.08);} }
@@ -668,8 +667,10 @@
     var u = JSON.parse(localStorage.getItem('focus_user')||'{}');
     var cover = document.getElementById('preGreetCover');
     if (greeted || !u || !u.name || !u.assistantName) {
-      // приветствие не нужно — убираем заглушку сразу
-      if(cover){ cover.style.opacity='0'; setTimeout(function(){ cover && cover.remove(); }, 400); } document.documentElement.classList.remove('booting');
+      // Приветствие не нужно (юзер уже в приложении) — убираем заглушку МГНОВЕННО, без плавного гашения.
+      // Раньше она гасла 0.4с при каждом возврате на главную — выглядело как «страница грузится дважды».
+      if (cover) { cover.style.transition = 'none'; cover.remove(); }
+      document.documentElement.classList.remove('booting');
     }
     // иначе заглушка остаётся; initGreeting уберёт её когда оверлей появится
     // СТРАХОВКА: если приветствие не стартовало за 5с — убрать заглушку (чтоб не завис чёрный экран)
@@ -973,11 +974,18 @@
                 // Теперь: ждём Firebase. Есть сессия → тихо восстанавливаем данные из облака и остаёмся.
                 document.documentElement.classList.add('booting');
                 var _decided = false;
+                function _stay(){ document.documentElement.classList.remove('booting'); }
                 function _decide(){
                     if (_decided) return; _decided = true;
-                    var fu = window.fbCurrentUser && window.fbCurrentUser();
-                    if (!fu) { location.replace('landing.html'); return; }
-                    // сессия жива — тянем данные из облака и продолжаем
+                    // НЕТ СЕТИ или Firebase не загрузился → НИКОГДА не выкидываем на регистрацию.
+                    // Работаем офлайн с тем, что есть. Юзер не должен логиниться заново из-за пропавшего интернета.
+                    var offline = (navigator.onLine === false) || !window.fbCurrentUser;
+                    if (offline) { _stay(); return; }
+
+                    var fu = window.fbCurrentUser();
+                    if (!fu) { location.replace('landing.html'); return; }   // сети нет проблем, сессии реально нет → регистрация
+
+                    // сессия жива — тянем данные из облака
                     (window.fbLoadUserData ? window.fbLoadUserData() : Promise.resolve(null))
                         .then(function(cloud){
                             try {
@@ -987,14 +995,14 @@
                             var u2 = window.FocusStorage ? FocusStorage.getUser() : {};
                             var done2 = (u2.flags && u2.flags.profileCompleted) || u2.profileCompleted || (u2.name && u2.assistantName && u2.birthDate);
                             if (!done2) location.replace('profile-form.html');
-                            else { document.documentElement.classList.remove('booting'); location.reload(); }
+                            else { _stay(); location.reload(); }
                         })
-                        .catch(function(){ location.replace('landing.html'); });
+                        .catch(function(){ _stay(); });   // облако недоступно — остаёмся в приложении, НЕ выкидываем
                 }
                 if (window.FB_AUTH_READY) _decide();
                 else {
                     window.addEventListener('fb-auth-ready', _decide);
-                    setTimeout(_decide, 4000);   // сеть молчит — не держим юзера вечно
+                    setTimeout(_decide, 4000);   // сеть молчит — решаем сами (и остаёмся, а не выкидываем)
                 }
             } else if (logged && !ok) {
                 location.replace('profile-form.html');
@@ -1880,30 +1888,24 @@
                     const sysPrompt = window._focusChatSystemPrompt ? window._focusChatSystemPrompt() : ('Тебя зовут ' + asstName0 + '. Ты ассистент FOCUS. Заполняй разделы грамотно через [FILL:раздел|пункт1|пункт2], исправляя орфографию.');
                     const _ctx = (window.FocusChatMemory ? FocusChatMemory.recent(16) : (window._focusChatHistory || [])).slice(-16);
                     const prompt = [{ role: 'system', content: sysPrompt }, ..._ctx.map(m=>({role:m.role,content:m.content}))];
-                    let res = await window.fbAskAI(prompt, 500);
+                    let res = await (window.fbAskAIJson ? window.fbAskAIJson(prompt, 700) : window.fbAskAI(prompt, 500));
                     if (res.ok && res.reply && res.reply.trim()) {
                         let full = res.reply.trim();
-                        if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: full });
+                        if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: (window.focusStripTags ? window.focusStripTags(full) : full) });
                         // НАПОМИНАНИЕ: раньше тег просто вырезался — ассистент обещал напомнить, но НИЧЕГО не ставил.
                         let reply = full;
-                        var remM0 = reply.match(/\[REMIND:([^|\]]+)\|([^\]]+)\]/i);
-                        if (remM0 && window.FocusReminders) {
-                            FocusReminders.schedule(remM0[1].trim(), remM0[2].trim());
-                        }
-                        reply = reply.replace(/\[REMIND:[^\]]+\]/gi, '').trim();
-                        var doneM1 = reply.match(/\[DONE:([a-z_]+)\|([^\]]+)\]/i);
-                        if (doneM1) { reply = reply.replace(/\[DONE[^\]]*\]/gi,'').trim(); try { if (window.FocusSections && FocusSections.complete) FocusSections.complete(doneM1[1].toLowerCase(), doneM1[2].trim()); } catch(e){} }
-                        const fillMatch = reply.match(/\[FILL:([a-z_]+)\|([^\]]+)\]/i);
-                        if (fillMatch) {
-                            reply = reply.replace(/\[FILL[^\]]*\]/gi, '').trim();
-                            let fillMsg = '';
-                            try { if (window.FocusSections) fillMsg = FocusSections.fill(fillMatch[1].toLowerCase(), fillMatch[2].trim()) || ''; } catch(e){}
-                            if (fillMsg && fillMsg.indexOf('__NEEDCREATE__') === 0) {
-                                result.className = 'ai-result show unknown';
-                                result.innerHTML = fillMsg.replace('__NEEDCREATE__', '').replace(/</g,'&lt;');
-                            } else {
-                                result.innerHTML = '<span class="check">✓</span> ' + (fillMsg || reply || 'Записал!').replace(/</g,'&lt;');
-                            }
+                        // выполняем ВСЕ команды разом: заполнения + отметки «выполнено» + напоминания.
+                        // Раньше брался только ПЕРВЫЙ тег — если юзер просил три вещи, делалась одна.
+                        var _p1 = window.focusParseAI(reply, null, null);
+                        reply = _p1.reply;
+                        var allMsgs = _p1.msgs || [];
+                        var needCreate = null;
+                        const fillMatch = allMsgs.length ? true : null;
+                        if (needCreate) {
+                            result.className = 'ai-result show unknown';
+                            result.innerHTML = needCreate.replace(/</g,'&lt;');
+                        } else if (fillMatch) {
+                            result.innerHTML = '<span class="check">✓</span> ' + allMsgs.join('; ').replace(/</g,'&lt;');
                         } else {
                             // ИИ ответил без тега [FILL], но юзер явно хотел заполнить → заполняем НАПРЯМУЮ
                             var directMsgs = [];
@@ -1998,24 +2000,24 @@
                         ('Тебя зовут ' + asstNameC + '. Ты умный ассистент FOCUS. Отвечай коротко, по делу, живым русским.');
                     const _ctxC = (window.FocusChatMemory ? FocusChatMemory.recent(16) : (window._focusChatHistory || [])).slice(-16);
                     const promptC = [{ role: 'system', content: sysPromptC }, ..._ctxC.map(m=>({role:m.role,content:m.content}))];
-                    let res = await window.fbAskAI(promptC, 500);
+                    let res = await (window.fbAskAIJson ? window.fbAskAIJson(promptC, 700) : window.fbAskAI(promptC, 500));
                     if (res.ok && res.reply && res.reply.trim()) {
                         let full = res.reply.trim();
-                        if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: full });
+                        if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: (window.focusStripTags ? window.focusStripTags(full) : full) });
                         let reply = full;
-                        const remindMatch = reply.match(/\[REMIND:([^|\]]+)\|([^\]]+)\]/i);
-                        if (remindMatch && window.FocusReminders) { reply = reply.replace(/\[REMIND:[^\]]+\]/gi,'').trim(); FocusReminders.schedule(remindMatch[1].trim(), remindMatch[2].trim()); }
-                        var doneM2 = reply.match(/\[DONE:([a-z_]+)\|([^\]]+)\]/i);
-                        if (doneM2) { reply = reply.replace(/\[DONE[^\]]*\]/gi,'').trim(); try { if (window.FocusSections && FocusSections.complete) FocusSections.complete(doneM2[1].toLowerCase(), doneM2[2].trim()); } catch(e){} }
-                        const fillMatch = reply.match(/\[FILL:([a-z_]+)\|([^\]]+)\]/i);
+                        // ВСЕ команды разом (а не только первая)
+                        var _p2 = window.focusParseAI(reply, null, null);
+                        reply = _p2.reply;
+                        var _all2 = _p2.msgs || [];
+                        var _need2 = null;
+                        const fillMatch = _all2.length ? true : null;
                         try { if (FocusStorage.useAI) FocusStorage.useAI('mentor', 'text'); } catch(e){}
                         input.value = '';
-                        if (fillMatch) {
-                            reply = reply.replace(/\[FILL[^\]]*\]/gi,'').trim();
-                            let fillMsg = '';
-                            try { if (window.FocusSections) fillMsg = FocusSections.fill(fillMatch[1].toLowerCase(), fillMatch[2].trim()) || ''; } catch(e){}
-                            if (fillMsg && fillMsg.indexOf('__NEEDCREATE__') === 0) { result.className = 'ai-result show unknown'; result.innerHTML = fillMsg.replace('__NEEDCREATE__','').replace(/</g,'&lt;'); }
-                            else result.innerHTML = '<span class="check">✓</span> ' + (fillMsg || reply || 'Записал!').replace(/</g,'&lt;');
+                        if (_need2) {
+                            result.className = 'ai-result show unknown';
+                            result.innerHTML = _need2.replace(/</g,'&lt;');
+                        } else if (fillMatch) {
+                            result.innerHTML = '<span class="check">✓</span> ' + _all2.join('; ').replace(/</g,'&lt;');
                         } else {
                             reply = reply.trim();
                             const isLong = reply.length > 200 || (reply.match(/\n/g) || []).length >= 3;
@@ -2101,7 +2103,7 @@
                 } else {
                     _h.forEach(function(m){
                         if (m.role === 'user') addMsg('user', m.content);
-                        else if (m.role === 'assistant') addMsg('bot', m.content.replace(/\[FILL[^\]]*\]/gi,'').replace(/\[REMIND:[^\]]+\]/gi,'').trim());
+                        else if (m.role === 'assistant') { var _t = window.focusStripTags ? window.focusStripTags(m.content) : m.content; if (_t) addMsg('bot', _t); }
                     });
                 }
                 setTimeout(()=> chatInput.focus(), 300);
@@ -2186,6 +2188,9 @@
                     'Если юзер надиктовывает новые дела — заполняй через [FILL:braindump|Дело1|Дело2] грамотно.' +
                     (astroCtx ? ('\nТип личности: ' + astroCtx + '. Учитывай, но не упоминай астрологию без нужды.') : '');
             }
+            // добавляем JSON-контракт (модель обязана вернуть структуру, а не теги в тексте)
+            var _basePrompt = systemPrompt;
+            systemPrompt = function(){ return _basePrompt.apply(null, arguments) + (window.FOCUS_JSON_RULES || ''); };
             window._focusChatSystemPrompt = systemPrompt;
 
             // применяем заполнение раздела — через центральный реестр (любой раздел)
@@ -2223,35 +2228,18 @@
 
                 const _ctx = (window.FocusChatMemory ? (window._focusChatHistory || []) : history).slice(-10);
                 const messages = [{ role:'system', content: systemPrompt() }, ..._ctx];
-                let res = await window.fbAskAI(messages, 500);
+                let res = await (window.fbAskAIJson ? window.fbAskAIJson(messages, 900) : window.fbAskAI(messages, 500));
                 typing.remove();
 
                 if (res.ok && res.reply && res.reply.trim()) {
                     let reply = res.reply.trim();
-                    // напоминание [REMIND:текст|когда]
-                    const remindMatch = reply.match(/\[REMIND:([^|\]]+)\|([^\]]+)\]/i);
-                    if (remindMatch && window.FocusReminders) {
-                        reply = reply.replace(/\[REMIND:[^\]]+\]/gi, '').trim();
-                        FocusReminders.schedule(remindMatch[1].trim(), remindMatch[2].trim()).then(function(r){
-                            if (r && r.ok) addMsg('bot', '⏰ Напомню: ' + r.text + ' — ' + r.when);
-                        });
-                    }
-                    // ищем команду заполнения [FILL:тип|данные]
-                    const fillMatch = reply.match(/\[FILL:([a-z_]+)\|([^\]]+)\]/i);
-                    if (fillMatch) {
-                        reply = reply.replace(/\[FILL[^\]]*\]/gi, '').trim();
-                        applyFill(fillMatch[1].toLowerCase(), fillMatch[2].trim());
-                    }
-                    // отметка выполненного [DONE:раздел|текст] — ассистент закрывает дело за юзера
-                    const doneMatch = reply.match(/\[DONE:([a-z_]+)\|([^\]]+)\]/i);
-                    if (doneMatch) {
-                        reply = reply.replace(/\[DONE[^\]]*\]/gi, '').trim();
-                        try { if (window.FocusSections && FocusSections.complete) { var dm = FocusSections.complete(doneMatch[1].toLowerCase(), doneMatch[2].trim()); if (dm) addFilled(dm); } } catch(e){}
-                    }
-                    // ФИНАЛЬНАЯ ЧИСТКА: убрать ЛЮБЫЕ остатки служебных тегов (даже без двоеточия), чтоб не торчали в чате
-                    reply = reply.replace(/\[(FILL|REMIND|DONE)[^\]]*\]/gi, '').replace(/\s{2,}/g,' ').trim();
+                    // ВЫПОЛНЯЕМ ВСЕ КОМАНДЫ (раньше бралась только первая — из трёх просьб делалась одна)
+                    var parsed = window.focusParseAI(reply, applyFill, addFilled);
+                    reply = parsed.reply;
+                    if (parsed.msgs && parsed.msgs.length) addFilled(parsed.msgs.join('; '));
                     if (reply) addMsg('bot', reply);
-                    if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: res.reply.trim() }); else history.push({ role:'assistant', content: res.reply.trim() });
+                    var _mem = (parsed && parsed.reply) ? parsed.reply : (window.focusStripTags ? window.focusStripTags(res.reply) : res.reply);
+                    if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: _mem }); else history.push({ role:'assistant', content: _mem });
                     try { if (FocusStorage.useAI) FocusStorage.useAI('mentor','text'); } catch(e){}
                 } else {
                     addMsg('bot', '⚠️ ' + (res.error || 'Не ответил, попробуй ещё раз'));
@@ -2516,12 +2504,119 @@
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=132').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=138').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
     }
 </script>
+    <script>
+    /* ЕДИНЫЙ РАЗБОР КОМАНД АССИСТЕНТА.
+       Было: теги искались через .match() — а он берёт ТОЛЬКО ПЕРВОЕ совпадение.
+       Если юзер просил три вещи разом (заполни благодарности + отметь зарядку + отметь уголки),
+       модель выдавала три тега, а выполнялся ОДИН. Отсюда «заполнил только благодарности».
+       Теперь: перебираем ВСЕ теги и выполняем каждый. Плюс начисто вырезаем их из текста. */
+    window.focusRunTags = function(reply, applyFill, addFilled){
+        var text = String(reply || '');
+        var out = [];
+
+        // 1) ВСЕ заполнения разделов
+        var fills = text.match(/\[FILL:([a-z_]+)\|([^\]]+)\]/gi) || [];
+        fills.forEach(function(tag){
+            var m = tag.match(/\[FILL:([a-z_]+)\|([^\]]+)\]/i);
+            if (m && typeof applyFill === 'function') { try { applyFill(m[1].toLowerCase(), m[2].trim()); } catch(e){} }
+        });
+
+        // 2) ВСЕ отметки «выполнено» (уходят в архив раздела)
+        var dones = text.match(/\[DONE:([a-z_]+)\|([^\]]+)\]/gi) || [];
+        dones.forEach(function(tag){
+            var m = tag.match(/\[DONE:([a-z_]+)\|([^\]]+)\]/i);
+            if (!m) return;
+            try {
+                if (window.FocusSections && FocusSections.complete) {
+                    var msg = FocusSections.complete(m[1].toLowerCase(), m[2].trim());
+                    if (msg && typeof addFilled === 'function') addFilled(msg);
+                }
+            } catch(e){}
+        });
+
+        // 3) ВСЕ напоминания
+        var rems = text.match(/\[REMIND:([^|\]]+)\|([^\]]+)\]/gi) || [];
+        rems.forEach(function(tag){
+            var m = tag.match(/\[REMIND:([^|\]]+)\|([^\]]+)\]/i);
+            if (m && window.FocusReminders) { try { FocusReminders.schedule(m[1].trim(), m[2].trim()); } catch(e){} }
+        });
+
+        // 4) чистим текст от ВСЕХ служебных тегов (юзер их видеть не должен)
+        text = text.replace(/\[(FILL|DONE|REMIND)[^\]]*\]/gi, '').replace(/\n{3,}/g, '\n\n').replace(/[ \t]{2,}/g, ' ').trim();
+        return text;
+    };
+    /** Чистка текста от тегов (для показа истории) */
+    window.focusStripTags = function(t){
+        return String(t || '').replace(/\[(FILL|DONE|REMIND)[^\]]*\]/gi, '').replace(/\n{3,}/g, '\n\n').trim();
+    };
+    </script>
+    <script>
+    /* КОНТРАКТ С МОДЕЛЬЮ: она возвращает СТРОГИЙ JSON, а не теги в свободном тексте.
+       Формат: { "reply": "текст юзеру", "actions": [ {"type":"fill","section":"gratitude","data":"..."},
+                                                      {"type":"done","section":"braindump","data":"купить уголки"},
+                                                      {"type":"remind","data":"Купить уголки","when":"завтра в 10:00"} ] }
+       Если юзер попросил ТРИ вещи — в actions ДОЛЖНО быть ТРИ элемента. Ничего не теряется. */
+    window.FOCUS_JSON_RULES =
+        '\n\nФОРМАТ ОТВЕТА — СТРОГО JSON (без markdown, без пояснений вокруг):\n' +
+        '{"reply":"короткий тёплый текст пользователю","actions":[...]}\n' +
+        'actions — массив ВСЕХ действий, которые нужно выполнить. Виды:\n' +
+        '  {"type":"fill","section":"<id раздела>","data":"<что записать>"} — заполнить раздел\n' +
+        '  {"type":"done","section":"braindump","data":"<текст дела>"} — отметить дело выполненным\n' +
+        '  {"type":"remind","data":"<о чём>","when":"<когда, напр. завтра в 10:00>"} — поставить напоминание\n' +
+        'КРИТИЧНО: если пользователь попросил НЕСКОЛЬКО вещей — положи в actions КАЖДУЮ (три просьбы = три действия).\n' +
+        'Если действий нет — "actions":[]. В "reply" НИКОГДА не пиши JSON, теги или служебные слова.';
+
+    /** Выполнить действия из JSON-ответа. Возвращает список сообщений о сделанном. */
+    window.focusRunActions = function(actions, addFilled){
+        var msgs = [];
+        (actions || []).forEach(function(a){
+            if (!a || !a.type) return;
+            var t = String(a.type).toLowerCase();
+            try {
+                if (t === 'fill' && a.section && window.FocusSections) {
+                    var m = FocusSections.fill(String(a.section).toLowerCase(), String(a.data || ''));
+                    if (m && m.indexOf('__NEEDCREATE__') !== 0 && m) msgs.push(m);
+                } else if (t === 'done' && window.FocusSections && FocusSections.complete) {
+                    var d = FocusSections.complete(String(a.section || 'braindump').toLowerCase(), String(a.data || ''));
+                    if (d) { msgs.push(d); if (typeof addFilled === 'function') addFilled(d); }
+                } else if (t === 'remind' && window.FocusReminders) {
+                    FocusReminders.schedule(String(a.data || ''), String(a.when || ''));
+                    msgs.push('Напомню: ' + (a.data || '') + ' — ' + (a.when || ''));
+                }
+            } catch(e){}
+        });
+        return msgs;
+    };
+
+    /** Разобрать ответ модели: сначала JSON (надёжно), если не вышло — старый разбор тегов. */
+    window.focusParseAI = function(raw, applyFill, addFilled){
+        var text = String(raw || '').trim();
+        // срезаем возможные ```json ... ```
+        text = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/,'').trim();
+        try {
+            var j = JSON.parse(text);
+            if (j && typeof j === 'object' && (typeof j.reply === 'string' || Array.isArray(j.actions))) {
+                var done = window.focusRunActions(j.actions, addFilled);
+                return { reply: String(j.reply || '').trim(), msgs: done, json: true };
+            }
+        } catch(e){}
+        // ЗАПАСНОЙ ПУТЬ: модель ответила по-старому (теги в тексте) — разбираем их
+        var msgs2 = [];
+        var clean = window.focusRunTags(raw,
+            function(sec, data){
+                try { var m = window.FocusSections ? FocusSections.fill(sec, data) : ''; if (m && m.indexOf('__NEEDCREATE__') !== 0) msgs2.push(m); } catch(e){}
+            },
+            function(m){ if (m) { msgs2.push(m); if (typeof addFilled === 'function') addFilled(m); } }
+        );
+        return { reply: clean, msgs: msgs2, json: false };
+    };
+    </script>
     <script src="focus-chat-fab.js"></script>
     <style>
     #greetOverlay { position:absolute; inset:0; border-radius:52px; overflow:hidden; z-index:5000; display:block; opacity:0; transition:opacity 0.4s; pointer-events:auto; }

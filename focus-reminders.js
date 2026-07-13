@@ -62,6 +62,22 @@
     const item = { id: Date.now(), text: text || 'Напоминание', at: at.toISOString(), fired: false, notify: granted };
     const list = readAll(); list.push(item); writeAll(list);
     armTimer(item);
+
+    // ДУБЛИРУЕМ НА СЕРВЕР → придёт ПИСЬМО, даже если приложение закрыто.
+    // (Таймер в браузере живёт только пока приложение открыто — этого мало.)
+    try {
+      var u = window.FocusStorage ? FocusStorage.getUser() : null;
+      var email = u && u.email;
+      var base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+      if (email && base) {
+        fetch(base + '/reminders/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, text: item.text, at: item.at })
+        }).catch(function(){});
+      }
+    } catch(e){}
+
     const timeStr = at.toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
     return { ok: true, at: at, text: item.text, when: timeStr, notify: granted };
   }
