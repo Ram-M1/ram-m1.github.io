@@ -485,7 +485,18 @@ initAtmosphere(canvasId) {
     // Табы Max
     document.querySelectorAll('.max-tab').forEach(t => {
         t.addEventListener('click', () => {
-            document.querySelectorAll('.max-tab').forEach(x => x.classList.remove('active'));
+            // добавить человека в контакты (останется в списке навсегда)
+        document.querySelectorAll('[data-addc]').forEach(function(b){
+            b.addEventListener('click', async function(e){
+                e.stopPropagation();
+                b.textContent = 'Добавляю...';
+                var r = window.fbAddContact ? await window.fbAddContact(b.dataset.addc) : { ok:false };
+                b.textContent = r && r.ok ? '✓ В контактах' : 'Не вышло';
+                if (r && r.ok) { b.style.background = 'rgba(80,200,140,0.15)'; b.style.color = '#5ecf9a'; }
+            });
+        });
+
+        document.querySelectorAll('.max-tab').forEach(x => x.classList.remove('active'));
             t.classList.add('active');
             currentTab = t.dataset.tab;
             renderChats();
@@ -582,7 +593,10 @@ initAtmosphere(canvasId) {
                 + '<div class="chat-avatar" style="width:44px;height:44px;font-size:17px;">' + escapeHtml((u.name[0]||'?').toUpperCase()) + '</div>'
                 + '<div class="contact-info"><div class="contact-name">' + escapeHtml(u.name) + '</div>'
                 + '<div class="contact-phone">' + escapeHtml(u.phone||'') + '</div></div>'
-                + '<div class="contact-action has-app" data-uid="' + escapeHtml(u.uid) + '" data-name="' + escapeHtml(u.name) + '">Написать</div></div>';
+                + '<div style="display:flex;gap:6px;align-items:center;">'
+                + '<div class="contact-action" data-addc="' + escapeHtml(u.uid) + '" style="background:rgba(var(--accent-rgb),0.14);color:var(--accent);border:1px solid rgba(var(--accent-rgb),0.3);">+ В контакты</div>'
+                + '<div class="contact-action has-app" data-uid="' + escapeHtml(u.uid) + '" data-name="' + escapeHtml(u.name) + '">Написать</div>'
+                + '</div></div>';
         }).join('');
         resBox.querySelectorAll('.contact-action[data-uid]').forEach(function(btn){
             btn.addEventListener('click', async function(){

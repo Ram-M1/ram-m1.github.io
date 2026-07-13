@@ -546,29 +546,78 @@ function _chatId(uid1, uid2) {
 
 // Открыть/создать чат с пользователем. Возвращает { ok, chatId }
 window.fbOpenChat = async function(otherUid, otherName) {
+  // Открытие чата делает СЕРВЕР: он прописывает чат обоим участникам.
+  // Раньше клиент пытался писать в чужой документ — правила это (справедливо) запрещали.
   const user = _currentUser || auth.currentUser;
   if (!user) return { ok: false, error: 'Не авторизован' };
   try {
-    const chatId = _chatId(user.uid, otherUid);
-    const myName = (window.FocusStorage && window.FocusStorage.getUser().name) || 'Я';
-    // записываем метаданные чата в документы обоих участников
-    await setDoc(doc(db, 'chats', chatId), {
-      participants: [user.uid, otherUid],
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-    // список чатов у меня
-    await setDoc(doc(db, 'users', user.uid, 'chatList', chatId), {
-      chatId, withUid: otherUid, withName: otherName || 'Пользователь', updatedAt: new Date().toISOString()
-    }, { merge: true });
-    // список чатов у собеседника
-    await setDoc(doc(db, 'users', otherUid, 'chatList', chatId), {
-      chatId, withUid: user.uid, withName: myName, updatedAt: new Date().toISOString()
-    }, { merge: true });
-    return { ok: true, chatId };
-  } catch (e) {
-    return { ok: false, error: e.message };
-  }
+    const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+    const r = await fetch(base + '/chat/open', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: user.uid, otherUid: otherUid })
+    });
+    const d = await r.json();
+    if (!d.ok) return { ok: false, error: d.error || 'Не удалось открыть чат' };
+    return { ok: true, chatId: d.chatId };
+  } catch (e) { return { ok: false, error: e.message }; }
 };
+
+/* ДОБАВИТЬ В КОНТАКТЫ — человек остаётся в списке, даже без переписки */
+window.fbAddContact = async function(otherUid) {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return { ok: false };
+  try {
+    const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+    const r = await fetch(base + '/contacts/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: user.uid, otherUid: otherUid })
+    });
+    return await r.json();
+  } catch (e) { return { ok: false, error: e.message }; }
+};
+
+/* СПИСОК КОНТАКТОВ */
+window.fbGetContacts = async function() {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return [];
+  try {
+    const snap = await getDocs(collection(db, 'users', user.uid, 'contacts'));
+    const out = [];
+    snap.forEach(d => out.push(Object.assign({ id: d.id }, d.data())));
+    return out;
+  } catch (e) { return []; }
+};
+
+/* ОНЛАЙН-СТАТУС (как в WhatsApp): отмечаем себя «в сети», читаем статус собеседника */
+window.fbTouchOnline = async function() {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return;
+  try { await setDoc(doc(db, 'users', user.uid), { lastSeen: Date.now() }, { merge: true }); } catch(e){}
+};
+
+/** Статус человека: {online:true} или {online:false, text:'был(а) 5 минут назад'} */
+window.fbGetPresence = async function(uid) {
+  try {
+    const d = await getDoc(doc(db, 'users', uid));
+    if (!d.exists()) return { online: false, text: '' };
+    const ls = d.data().lastSeen || 0;
+    const diff = Date.now() - ls;
+    if (!ls) return { online: false, text: '' };
+    if (diff < 90 * 1000) return { online: true, text: 'в сети' };
+    const m = Math.floor(diff / 60000);
+    if (m < 60) return { online: false, text: 'был(а) ' + m + ' мин назад' };
+    const h = Math.floor(m / 60);
+    if (h < 24) return { online: false, text: 'был(а) ' + h + ' ч назад' };
+    const dd = Math.floor(h / 24);
+    return { online: false, text: 'был(а) ' + dd + ' дн назад' };
+  } catch (e) { return { online: false, text: '' }; }
+};
+
+// отмечаемся «в сети» пока приложение открыто
+setInterval(function(){ if (window.fbTouchOnline) window.fbTouchOnline(); }, 60000);
+setTimeout(function(){ if (window.fbTouchOnline) window.fbTouchOnline(); }, 2000);
 
 // ===== АДМИН / РАЗРАБОТЧИК =====
 window.ADMIN_EMAIL = 'moorsalimov@mail.ru';

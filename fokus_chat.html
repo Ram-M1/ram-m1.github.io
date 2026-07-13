@@ -926,5 +926,52 @@ initAtmosphere(canvasId) {
 })();
 </script>
 
+
+<script>
+/* ОНЛАЙН-СТАТУС + КНОПКА «В КОНТАКТЫ» (как в WhatsApp).
+   Разметка для этого была, но нигде не подключалась — статус висел статичным «онлайн». */
+(function(){
+    var peerUid = null;
+
+    function peerFromChat(){
+        var chatId = new URLSearchParams(location.search).get('chatId');
+        var me = (window.fbCurrentUser && fbCurrentUser()) ? fbCurrentUser().uid : null;
+        if (!chatId || !me || chatId.indexOf('__') === -1) return null;
+        var parts = chatId.split('__');
+        return parts[0] === me ? parts[1] : parts[0];
+    }
+
+    async function refreshStatus(){
+        var el = document.getElementById('hdrStatus');
+        if (!el || !peerUid || !window.fbGetPresence) return;
+        var p = await window.fbGetPresence(peerUid);
+        el.textContent = p.text || '';
+        el.style.color = p.online ? '#5ecf9a' : '#8e8e9e';
+    }
+
+    async function init(){
+        peerUid = peerFromChat();
+        if (!peerUid) return;
+        refreshStatus();
+        setInterval(refreshStatus, 30000);     // обновляем статус каждые 30 сек
+
+        var btn = document.getElementById('addContactBtn');
+        if (!btn || !window.fbGetContacts) return;
+        var have = (await window.fbGetContacts()).some(function(c){ return c.uid === peerUid; });
+        if (have) { btn.style.display = 'none'; return; }   // уже в контактах
+        btn.style.display = 'flex';
+        btn.addEventListener('click', async function(){
+            btn.style.opacity = '0.5';
+            var r = window.fbAddContact ? await window.fbAddContact(peerUid) : { ok:false };
+            if (r && r.ok) { btn.style.display = 'none'; if (window.toast) toast('✓ Добавлен в контакты'); }
+            else { btn.style.opacity = '1'; if (window.toast) toast('Не удалось добавить'); }
+        });
+    }
+
+    if (window.FB_AUTH_READY) setTimeout(init, 300);
+    else window.addEventListener('fb-auth-ready', function(){ setTimeout(init, 300); });
+})();
+</script>
+
 </body>
 </html>
