@@ -12,6 +12,7 @@
 */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signOut, onAuthStateChanged, sendEmailVerification, reload,
@@ -19,7 +20,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, arrayUnion,
-  addDoc, onSnapshot, orderBy, serverTimestamp, limit
+  addDoc, onSnapshot, orderBy, serverTimestamp, limit, startAfter
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -793,10 +794,11 @@ window.fbSearchChats = async function(queryText) {
 // Подписаться на сообщения чата (реалтайм). Возвращает функцию отписки.
 window.fbListenMessages = function(chatId, callback) {
   try {
-    const q = query(collection(db, 'chats', chatId, 'messages'), orderBy('ts', 'asc'), limit(200));
+    const q = query(collection(db, 'chats', chatId, 'messages'), orderBy('ts', 'desc'), limit(50));   // свежие 50, старые — по прокрутке вверх
     return onSnapshot(q, (snap) => {
       const msgs = [];
-      snap.forEach(d => msgs.push({ id: d.id, ...d.data() }));
+      snap.forEach(d => msgs.push(Object.assign({ id: d.id, _ts: d.data().ts }, d.data())));
+      msgs.reverse();          // из «свежие сверху» → в нормальный порядок (старые → новые)
       callback(msgs);
     }, () => {});
   } catch (e) {
@@ -805,6 +807,32 @@ window.fbListenMessages = function(chatId, callback) {
 };
 
 // Получить список чатов пользователя
+
+/* ПОДГРУЗКА СТАРОЙ ПЕРЕПИСКИ (прокрутка вверх, как в WhatsApp).
+   Раньше грузились только последние 200 сообщений и всё — дальше история была недоступна.
+   Теперь: свежие 50 сразу, а при прокрутке вверх подтягиваем следующие порции. */
+window.fbLoadOlderMessages = async function(chatId, beforeTs, count) {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return { ok: false, messages: [] };
+  try {
+    let q;
+    if (beforeTs) {
+      q = query(collection(db, 'chats', chatId, 'messages'),
+                orderBy('ts', 'desc'), startAfter(beforeTs), limit(count || 50));
+    } else {
+      q = query(collection(db, 'chats', chatId, 'messages'),
+                orderBy('ts', 'desc'), limit(count || 50));
+    }
+    const snap = await getDocs(q);
+    const out = [];
+    snap.forEach(d => out.push(Object.assign({ id: d.id, _ts: d.data().ts }, d.data())));
+    out.reverse();   // от старых к новым
+    return { ok: true, messages: out, hasMore: out.length === (count || 50) };
+  } catch (e) {
+    return { ok: false, messages: [], error: e.message };
+  }
+};
+
 window.fbGetChatList = async function() {
   const user = _currentUser || auth.currentUser;
   if (!user) return [];
@@ -891,92 +919,80 @@ window.fbAiSuggestReplies = async function(chatId) {
 /* ПРИВЯЗКА ПРИГЛАШЕНИЯ: новый юзер пришёл по ссылке друга (?ref=FOCUS-XXXX).
    Находим владельца кода и записываем связь: кто кого пригласил.
    Без этого рефералы не работали вообще. */
-window.fbLinkReferral = async function(refCode) {
-  try {
-    const user = _currentUser || auth.currentUser;
-    if (!user || !refCode) return { ok: false };
-    const code = String(refCode).trim().toUpperCase();
-
-    // ищем владельца кода
-    const q = query(collection(db, 'users'), where('referral.code', '==', code), limit(1));
-    const snap = await getDocs(q);
-    if (snap.empty) return { ok: false, reason: 'код не найден' };
-
-    const inviterDoc = snap.docs[0];
-    const inviterUid = inviterDoc.id;
-    if (inviterUid === user.uid) return { ok: false, reason: 'свой код' };
-
-    // не перепривязываем, если уже есть пригласивший
-    const me = await getDoc(doc(db, 'users', user.uid));
-    const myData = me.exists() ? (me.data() || {}) : {};
-    if (myData.referral && myData.referral.invitedBy) return { ok: false, reason: 'уже привязан' };
-
-    await setDoc(doc(db, 'users', user.uid), {
-      referral: Object.assign({}, myData.referral || {}, { invitedBy: inviterUid, invitedByCode: code })
-    }, { merge: true });
-
-    // добавляем меня в список приглашённых
-    const inv = inviterDoc.data() || {};
-    const invRef = inv.referral || {};
-    const list = Array.isArray(invRef.invited) ? invRef.invited : [];
-    if (list.indexOf(user.uid) === -1) list.push(user.uid);
-    await setDoc(doc(db, 'users', inviterUid), {
-      referral: Object.assign({}, invRef, { invited: list })
-    }, { merge: true });
-
-    return { ok: true, inviter: inviterUid };
-  } catch (e) { return { ok: false, error: e.message }; }
-};
 
 /* Друг стал АКТИВНЫМ (подтвердил почту + заполнил анкету) → засчитываем пригласившему. */
-window.fbMarkReferralActive = async function() {
+
+
+
+/* РЕФЕРАЛЫ — все начисления идут ЧЕРЕЗ СЕРВЕР.
+   Раньше монеты и счётчики писались прямо с телефона в чужой документ —
+   это дыра: любой мог накрутить себе монеты из консоли браузера.
+   Теперь клиент только просит, а решает и пишет воркер (сервисный ключ). */
+async function _refCall(path, body) {
   try {
     const user = _currentUser || auth.currentUser;
     if (!user) return { ok: false };
-    const me = await getDoc(doc(db, 'users', user.uid));
-    if (!me.exists()) return { ok: false };
-    const d = me.data() || {};
-    const inviterUid = d.referral && d.referral.invitedBy;
-    if (!inviterUid || d.referralCounted) return { ok: false };
+    const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+    const r = await fetch(base + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ uid: user.uid }, body || {}))
+    });
+    return await r.json();
+  } catch (e) { return { ok: false, error: e.message }; }
+}
 
-    const inv = await getDoc(doc(db, 'users', inviterUid));
-    if (!inv.exists()) return { ok: false };
-    const invD = inv.data() || {};
-    const invRef = invD.referral || {};
+/** Привязать пригласившего по коду (после регистрации по ссылке друга) */
+window.fbLinkReferral = function(refCode) { return _refCall('/referral/link', { code: refCode }); };
 
-    await setDoc(doc(db, 'users', inviterUid), {
-      referral: Object.assign({}, invRef, { activeCount: (invRef.activeCount || 0) + 1 })
-    }, { merge: true });
-    await setDoc(doc(db, 'users', user.uid), { referralCounted: true }, { merge: true });
-    return { ok: true };
-  } catch (e) { return { ok: false }; }
+/** Друг заполнил анкету → он «активный», пригласившему +1 */
+window.fbMarkReferralActive = function() { return _refCall('/referral/active', {}); };
+
+/** Друг купил подписку → пригласившему столько же F-coin (путь B) */
+window.fbCreditReferrer = function(amountRub, planName) { return _refCall('/referral/paid', { amount: amountRub, plan: planName }); };
+
+
+/* ФОНОВЫЕ УВЕДОМЛЕНИЯ (как в MAX): приходят даже когда приложение закрыто.
+   Бесплатно и без лимитов (Firebase Cloud Messaging).
+   На iPhone работает только если приложение установлено на экран «Домой» (iOS 16.4+). */
+window.FOCUS_VAPID_KEY = 'BJ2Yd24OcbMLCHoJURcHtSvAKcpBR8UGLW9ig1R0oYRkT9VhKlvGnLQzbwMWHAHwVCwTWa6gV1znKLBwJ29Vl38';   // Firebase → Cloud Messaging → Web Push certificates
+
+window.fbEnablePush = async function() {
+  try {
+    const user = _currentUser || auth.currentUser;
+    if (!user) return { ok: false, error: 'Сначала войди' };
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      return { ok: false, error: 'Устройство не поддерживает уведомления' };
+    }
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return { ok: false, error: 'Уведомления не разрешены' };
+
+    const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
+    const messaging = getMessaging(app);
+    const token = await getToken(messaging, {
+      vapidKey: window.FOCUS_VAPID_KEY,
+      serviceWorkerRegistration: reg
+    });
+    if (!token) return { ok: false, error: 'Не удалось получить токен' };
+
+    // сохраняем токен устройства — воркер будет слать на него уведомления
+    await setDoc(doc(db, 'users', user.uid), { pushToken: token, pushAt: new Date().toISOString() }, { merge: true });
+
+    // если приложение открыто — показываем уведомление сами
+    onMessage(messaging, function(payload) {
+      const n = payload.notification || {};
+      try { new Notification(n.title || 'FOCUS', { body: n.body || '', icon: 'icon-192.png' }); } catch(e){}
+    });
+
+    return { ok: true, token: token };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
 };
 
-window.fbCreditReferrer = async function(amountRub, planName) {
-  try {
-    const user = _currentUser || auth.currentUser;
-    if (!user) return { ok: false };
-    const me = await getDoc(doc(db, 'users', user.uid));
-    if (!me.exists()) return { ok: false };
-    const data = me.data() || {};
-    const ref = data.referral || {};
-    const inviterUid = ref.invitedBy;              // кто меня пригласил
-    if (!inviterUid) return { ok: false, reason: 'нет пригласившего' };
-    if (data.referralPaidCredited) return { ok: false, reason: 'уже начислено' };  // только за первую покупку
-
-    const inv = await getDoc(doc(db, 'users', inviterUid));
-    if (!inv.exists()) return { ok: false };
-    const invData = inv.data() || {};
-    const add = parseInt(amountRub, 10) || 0;
-    if (add <= 0) return { ok: false };
-
-    await updateDoc(doc(db, 'users', inviterUid), {
-      coins: (invData.coins || 0) + add,          // столько же монет, сколько друг потратил
-      referral: Object.assign({}, invData.referral || {}, { hasPaidInvite: true })
-    });
-    await updateDoc(doc(db, 'users', user.uid), { referralPaidCredited: true });
-    return { ok: true, credited: add, plan: planName || '' };
-  } catch (e) { return { ok: false, error: e.message }; }
+/** Включены ли уведомления */
+window.fbPushEnabled = function() {
+  return ('Notification' in window) && Notification.permission === 'granted';
 };
 
 window.fbAskAIJson = async function(messages, maxTokens) {

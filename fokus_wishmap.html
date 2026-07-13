@@ -307,123 +307,156 @@
        Старое фото распадается на светящиеся частицы, они разлетаются,
        а затем собираются заново — уже в новое фото. Без вспышек и «фотошопа 2005-го». */
     window.slideMorph = function(canvas, imgA, imgB, done){
-        try {
-            const box = canvas.parentNode;
-            const W = box.clientWidth, H = box.clientHeight;
-            if (!W || !H) { done(); return; }
-            const dpr = Math.min(window.devicePixelRatio || 1, 2);
-            canvas.width = W * dpr; canvas.height = H * dpr;
-            canvas.style.display = 'block';
-            const ctx = canvas.getContext('2d');
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        // Переход между фото на GPU (WebGL): одно фото ПЕРЕТЕКАЕТ в другое —
+        // мягкая волновая деформация + органичное растворение + лёгкий зум.
+        // Никакого «сложения света» (оно выжигало кадр в белое) и никаких квадратов.
+        var host = document.getElementById('slideshow') || canvas.parentNode;
+        var W = host.clientWidth, H = host.clientHeight;
+        if (!W || !H) { done(); return; }
 
-            // пиксели обоих кадров, вписанные в экран
-            function sample(img){
-                const c = document.createElement('canvas');
-                c.width = W; c.height = H;
-                const x = c.getContext('2d');
-                x.fillStyle = '#000'; x.fillRect(0, 0, W, H);
-                const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
-                if (iw && ih) {
-                    const s = Math.min(W / iw, H / ih);
-                    const w = iw * s, h = ih * s;
-                    x.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
-                }
-                return x.getImageData(0, 0, W, H).data;
+        // холст строго по размеру экрана слайдшоу — внутри рамки телефона
+        canvas.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;z-index:6;pointer-events:none;display:block;';
+        if (canvas.parentNode !== host) host.appendChild(canvas);
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(W * dpr);
+        canvas.height = Math.round(H * dpr);
+
+        var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) { canvas.style.display = 'none'; done(); return; }   // старое устройство — обычное растворение
+
+        // вписываем фото в кадр (как на слайде), фон чёрный
+        function fit(img){
+            var c = document.createElement('canvas');
+            c.width = canvas.width; c.height = canvas.height;
+            var x = c.getContext('2d');
+            x.fillStyle = '#000'; x.fillRect(0,0,c.width,c.height);
+            var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+            if (iw && ih) {
+                var s = Math.min(c.width/iw, c.height/ih);
+                var w = iw*s, h = ih*s;
+                x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+                x.drawImage(img, (c.width-w)/2, (c.height-h)/2, w, h);
             }
-            const A = sample(imgA), B = sample(imgB);
+            return c;
+        }
 
-            // сетка (держим количество частиц в разумных рамках — чтобы шло плавно 60 fps)
-            let step = 6;
-            while ((W / step) * (H / step) > 2600) step++;
-            const cx = W / 2, cy = H / 2;
-            const maxD = Math.hypot(cx, cy);
-            const P = [];
-            for (let y = 0; y < H; y += step) {
-                for (let x = 0; x < W; x += step) {
-                    const i = (y * W + x) * 4;
-                    const d = Math.hypot(x - cx, y - cy) / maxD;      // волна расходится от центра
-                    const ang = Math.atan2(y - cy, x - cx) + (Math.random() - 0.5) * 0.8;
-                    const dist = 30 + Math.random() * 70 + d * 60;
-                    P.push({
-                        x: x + step / 2, y: y + step / 2,
-                        ox: Math.cos(ang) * dist, oy: Math.sin(ang) * dist,
-                        sw: (Math.random() - 0.5) * 0.9,                // лёгкое закручивание
-                        ar: A[i], ag: A[i+1], ab: A[i+2],
-                        br: B[i], bg: B[i+1], bb: B[i+2],
-                        d: d * 0.22 + Math.random() * 0.06             // задержка = волна
-                    });
-                }
-            }
+        var VS = 'attribute vec2 p; varying vec2 vUv; void main(){ vUv = p*0.5+0.5; gl_Position = vec4(p,0.0,1.0); }';
+        var FS = [
+        'precision highp float;',
+        'varying vec2 vUv;',
+        'uniform sampler2D uFrom, uTo;',
+        'uniform float uP;',
+        'uniform float uAspect;',
+        'const vec2 C = vec2(0.5, 0.5);',
+        // расстояние с поправкой на вытянутый экран — волна остаётся КРУГОМ
+        'float rad(vec2 uv){ vec2 q = (uv - C) * vec2(uAspect, 1.0); return length(q); }',
+        // закручивание воронкой
+        'vec2 swirl(vec2 uv, float amt){',
+        '  vec2 d = uv - C; float r = length(d);',
+        '  float a = atan(d.y, d.x) + amt * (1.0 - smoothstep(0.0, 0.75, r));',
+        '  return C + vec2(cos(a), sin(a)) * r;',
+        '}',
+        // размытие в движении (лучами от центра) — киношный эффект разгона
+        'vec4 rblur(sampler2D t, vec2 uv, float s){',
+        '  vec4 sum = vec4(0.0);',
+        '  vec2 dir = uv - C;',
+        '  for(int i = 0; i < 8; i++){',
+        '    float k = float(i) / 7.0;',
+        '    sum += texture2D(t, clamp(uv - dir * s * k, 0.0, 1.0));',
+        '  }',
+        '  return sum / 8.0;',
+        '}',
+        'void main(){',
+        '  vec2 uv = vUv;',
+        '  float p = uP;',
+        '  float e = p * p * (3.0 - 2.0 * p);',
+        '  float r = rad(uv);',
+        '  float wave = e * 0.95;',                                  // радиус энергетической волны
+        '',
+        '  // СТАРОЕ ФОТО: закручивается воронкой, приближается и смазывается лучами',
+        '  float fa = smoothstep(0.0, 0.6, p);',
+        '  vec2 uvA = swirl(uv, 1.35 * fa);',
+        '  uvA = C + (uvA - C) * (1.0 - 0.22 * fa);',
+        '  vec4 ca = rblur(uFrom, uvA, 0.17 * fa);',
+        '',
+        '  // НОВОЕ ФОТО: проявляется из волны с рябью и лёгким расхождением цвета',
+        '  float tb = smoothstep(0.3, 1.0, p);',
+        '  float ripple = sin((r - wave) * 42.0) * 0.014 * (1.0 - tb) * smoothstep(0.0, 0.25, e);',
+        '  vec2 nrm = normalize(uv - C + vec2(0.0001));',
+        '  vec2 uvB = uv + nrm * ripple;',
+        '  uvB = C + (uvB - C) * (1.0 + 0.10 * (1.0 - tb));',
+        '  float ab = 0.005 * (1.0 - tb);',
+        '  vec3 cb;',
+        '  cb.r = texture2D(uTo, clamp(uvB + vec2(ab, 0.0), 0.0, 1.0)).r;',
+        '  cb.g = texture2D(uTo, clamp(uvB, 0.0, 1.0)).g;',
+        '  cb.b = texture2D(uTo, clamp(uvB - vec2(ab, 0.0), 0.0, 1.0)).b;',
+        '',
+        '  // ВОЛНА открывает новое фото: внутри круга — новое, снаружи — старое',
+        '  float mask = smoothstep(wave + 0.07, wave - 0.07, r);',
+        '  mask = max(mask, smoothstep(0.88, 1.0, p));',            // подстраховка к концу
+        '  vec3 col = mix(ca.rgb, cb, mask);',
+        '',
+        '  // СВЕЧЕНИЕ САМОЙ ВОЛНЫ (золото → фиолет, как молнии приложения)',
+        '  float ring = smoothstep(0.055, 0.0, abs(r - wave));',
+        '  float fade = 1.0 - smoothstep(0.72, 1.0, p);',
+        '  vec3 ringCol = mix(vec3(1.0, 0.86, 0.42), vec3(0.78, 0.55, 1.0), clamp(r * 1.3, 0.0, 1.0));',
+        '  col += ringCol * ring * 0.85 * fade;',
+        '',
+        '  gl_FragColor = vec4(col, 1.0);',
+        '}'
+        ].join('\n');
 
-            const DUR = 2200;                                          // не спеша, кинематографично
-            const t0 = performance.now();
-            const easeOut = t => 1 - Math.pow(1 - t, 3);
-            const easeIn  = t => t * t * t;
-            const R = step * 0.62;
+        function sh(type, src){
+            var o = gl.createShader(type);
+            gl.shaderSource(o, src); gl.compileShader(o);
+            if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) return null;
+            return o;
+        }
+        var vs = sh(gl.VERTEX_SHADER, VS), fs = sh(gl.FRAGMENT_SHADER, FS);
+        if (!vs || !fs) { canvas.style.display='none'; done(); return; }
+        var prog = gl.createProgram();
+        gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { canvas.style.display='none'; done(); return; }
+        gl.useProgram(prog);
 
-            function frame(now){
-                const p = Math.min(1, (now - t0) / DUR);
+        var buf = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+        var loc = gl.getAttribLocation(prog, 'p');
+        gl.enableVertexAttribArray(loc);
+        gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
-                // шлейфы: не стираем начисто, а притемняем — получается плавный след, как в кино
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.globalAlpha = 1;
-                ctx.fillStyle = 'rgba(0,0,0,0.34)';
-                ctx.fillRect(0, 0, W, H);
+        function tex(src, unit){
+            var t = gl.createTexture();
+            gl.activeTexture(gl.TEXTURE0 + unit);
+            gl.bindTexture(gl.TEXTURE_2D, t);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+            return t;
+        }
+        tex(fit(imgA), 0);
+        tex(fit(imgB), 1);
+        gl.uniform1i(gl.getUniformLocation(prog, 'uFrom'), 0);
+        gl.uniform1i(gl.getUniformLocation(prog, 'uTo'), 1);
+        var uP = gl.getUniformLocation(prog, 'uP');
+        gl.uniform1f(gl.getUniformLocation(prog, 'uAspect'), canvas.width / canvas.height);
 
-                // частицы светятся и складываются
-                ctx.globalCompositeOperation = 'lighter';
+        gl.viewport(0, 0, canvas.width, canvas.height);
 
-                for (let k = 0; k < P.length; k++) {
-                    const q = P[k];
-                    let p1 = (p - q.d) / 0.5;  p1 = p1 < 0 ? 0 : (p1 > 1 ? 1 : p1);   // распад старого
-                    let p2 = (p - 0.42 - q.d) / 0.58; p2 = p2 < 0 ? 0 : (p2 > 1 ? 1 : p2);  // сборка нового
-
-                    if (p1 > 0 && p1 < 1) {
-                        const e = easeIn(p1), a = 1 - e;
-                        const rot = q.sw * e;
-                        const ox = q.ox * e * Math.cos(rot) - q.oy * e * Math.sin(rot);
-                        const oy = q.ox * e * Math.sin(rot) + q.oy * e * Math.cos(rot);
-                        ctx.globalAlpha = a * 0.85;
-                        ctx.fillStyle = 'rgb(' + q.ar + ',' + q.ag + ',' + q.ab + ')';
-                        ctx.beginPath();
-                        ctx.arc(q.x + ox, q.y + oy, R * (1 + e * 0.5), 0, 6.283);
-                        ctx.fill();
-                    }
-                    if (p2 > 0) {
-                        const e = easeOut(p2), r = 1 - e;
-                        const rot = -q.sw * r;
-                        const ox = -q.ox * r * Math.cos(rot) + q.oy * r * Math.sin(rot);
-                        const oy = -q.ox * r * Math.sin(rot) - q.oy * r * Math.cos(rot);
-                        ctx.globalAlpha = Math.min(1, e * 1.15);
-                        ctx.fillStyle = 'rgb(' + q.br + ',' + q.bg + ',' + q.bb + ')';
-                        ctx.beginPath();
-                        ctx.arc(q.x + ox, q.y + oy, R * (1 + r * 0.45), 0, 6.283);
-                        ctx.fill();
-                    }
-                }
-
-                // финал: доводим до чистой картинки, чтобы не осталось «зерна»
-                if (p > 0.93) {
-                    ctx.globalCompositeOperation = 'source-over';
-                    ctx.globalAlpha = (p - 0.93) / 0.07;
-                    const c2 = document.createElement('canvas');
-                    c2.width = W; c2.height = H;
-                    const x2 = c2.getContext('2d');
-                    const im = x2.createImageData(W, H);
-                    im.data.set(B);
-                    x2.putImageData(im, 0, 0);
-                    ctx.drawImage(c2, 0, 0);
-                }
-
-                ctx.globalAlpha = 1;
-                ctx.globalCompositeOperation = 'source-over';
-
-                if (p < 1) requestAnimationFrame(frame);
-                else { done(); canvas.style.display = 'none'; }
-            }
-            requestAnimationFrame(frame);
-        } catch(e) { canvas.style.display = 'none'; done && done(); }
+        var DUR = 1900;                                   // плавно, не затянуто
+        var t0 = performance.now();
+        function frame(now){
+            var p = Math.min(1, (now - t0) / DUR);
+            gl.uniform1f(uP, p);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            if (p < 1) requestAnimationFrame(frame);
+            else { done(); canvas.style.display = 'none'; }
+        }
+        requestAnimationFrame(frame);
     };
     </script>
     <audio id="audioPlayer"></audio>
@@ -820,7 +853,12 @@ initAtmosphere(canvasId) {
         const SLIDE_MS = 7000;   // 7 секунд на фото — успеть прочувствовать
         // ХОЛСТ ПЕРЕХОДА ЧАСТИЦАМИ
         var morphCv = document.getElementById('slideMorph');
-        if (!morphCv) { morphCv = document.createElement('canvas'); morphCv.id = 'slideMorph'; morphCv.className = 'slide-morph'; cont.parentNode.appendChild(morphCv); }
+        if (!morphCv) {
+            morphCv = document.createElement('canvas');
+            morphCv.id = 'slideMorph';
+            // ВНУТРЬ экрана слайдшоу — раньше холст цеплялся не туда и анимация вылезала за рамку телефона
+            (document.getElementById('slideshow') || cont.parentNode).appendChild(morphCv);
+        }
 
         slideTimer = setInterval(() => {
             const slides = cont.querySelectorAll('.slide');

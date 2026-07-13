@@ -487,7 +487,9 @@ initAtmosphere(canvasId) {
         if (!text) return;
         if (isRealChat && window.fbSendMessage) {
             // реальный чат — шлём в облако (отобразится через реалтайм-подписку)
-            window.fbSendMessage(realChatId, text);
+            window.fbSendMessage(realChatId, text).then(function(r){
+                if (!r || !r.ok) toast('Сообщение не отправилось. Проверь связь');
+            }).catch(function(){ toast('Сообщение не отправилось. Проверь связь'); });
             input.value = '';
             input.style.height = 'auto';
             sendBtnEl.style.display = 'none'; voiceBtnEl.style.display = 'flex';
@@ -644,7 +646,8 @@ initAtmosphere(canvasId) {
         const btn = document.getElementById('apSend');
         btn.disabled = true; btn.innerText = 'Отправка...';
         if (isRealChat && window.fbSendMessage) {
-            await window.fbSendMessage(realChatId, pendingAttach);
+            var _r = await window.fbSendMessage(realChatId, pendingAttach);
+            if (!_r || !_r.ok) { toast('Не удалось отправить вложение. Файл слишком большой или нет связи'); }
         } else {
             if (pendingAttach.kind === 'photo') addMsg({ from:'me', img: pendingAttach.data, time:nowTime() });
             else addMsg({ from:'me', doc: pendingAttach.fileName, time:nowTime() });
@@ -662,11 +665,29 @@ initAtmosphere(canvasId) {
         reader.onload = () => {
             const img = new Image();
             img.onload = () => {
-                const max = 800, sc = Math.min(1, max/Math.max(img.width, img.height));
-                const cv = document.createElement('canvas');
-                cv.width = img.width*sc; cv.height = img.height*sc;
-                cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-                pendingAttach = { kind:'photo', data: cv.toDataURL('image/jpeg', 0.7), text:'' };
+                // ЛИМИТ: одно сообщение не может весить больше ~1 МБ (ограничение базы).
+                // Поэтому ужимаем фото ПОКА не влезет — иначе отправка молча проваливалась.
+                const LIMIT = 820 * 1024;   // запас под остальные поля сообщения
+                function render(max, q) {
+                    const sc = Math.min(1, max / Math.max(img.width, img.height));
+                    const cv = document.createElement('canvas');
+                    cv.width = Math.round(img.width * sc);
+                    cv.height = Math.round(img.height * sc);
+                    const cx = cv.getContext('2d');
+                    cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high';
+                    cx.drawImage(img, 0, 0, cv.width, cv.height);
+                    return cv.toDataURL('image/jpeg', q);
+                }
+                let data = render(1280, 0.82);
+                const steps = [[1024, 0.75], [860, 0.68], [720, 0.6], [600, 0.5]];
+                for (let i = 0; i < steps.length && data.length > LIMIT; i++) {
+                    data = render(steps[i][0], steps[i][1]);
+                }
+                if (data.length > LIMIT) {
+                    toast('Фото слишком тяжёлое даже после сжатия. Попробуй другое');
+                    return;
+                }
+                pendingAttach = { kind:'photo', data: data, text:'' };
                 showAttachPreview();
             };
             img.src = reader.result;
@@ -679,8 +700,11 @@ initAtmosphere(canvasId) {
     document.getElementById('docInput').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        if (file.size > 900*1024) {
-            toast('Файл больше 900КБ. Крупные файлы — через облачное хранилище (скоро)');
+        // Файл кодируется в текст и раздувается примерно на треть.
+        // Лимит сообщения ~1 МБ, поэтому исходный файл должен быть до ~700 КБ,
+        // иначе отправка падала МОЛЧА (раньше стоял лимит 900 КБ — он не спасал).
+        if (file.size > 700*1024) {
+            toast('Файл до 700 КБ. Этот — ' + Math.round(file.size/1024) + ' КБ. Сожми или пришли ссылкой');
             e.target.value = ''; return;
         }
         const reader = new FileReader();
@@ -751,6 +775,7 @@ initAtmosphere(canvasId) {
                     area.innerHTML = '';
                     area.appendChild(frag);
                     area.scrollTop = area.scrollHeight;
+                    if (window.__chatSetOldest && cached[0]) window.__chatSetOldest(cached[0]._ts);
                 }
             } catch(e){}
 
@@ -768,6 +793,8 @@ initAtmosphere(canvasId) {
                 area.innerHTML = '';
                 area.appendChild(frag);
                 area.scrollTop = area.scrollHeight;
+                // запоминаем самое старое из загруженных — от него подтянем историю при прокрутке вверх
+                if (window.__chatSetOldest && msgs[0]) window.__chatSetOldest(msgs[0]._ts);
                 // кэшируем последние 50 для мгновенного показа в след. раз
                 try { localStorage.setItem(cacheKey, JSON.stringify(msgs.slice(-50))); } catch(e){}
             });
@@ -850,5 +877,54 @@ initAtmosphere(canvasId) {
 <script>
     if ("serviceWorker" in navigator) { window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }); }
 </script>
+
+<script>
+/* ПОДГРУЗКА ИСТОРИИ ПРИ ПРОКРУТКЕ ВВЕРХ (как в WhatsApp).
+   Раньше показывались только последние сообщения — дальше история была недоступна.
+   Теперь при прокрутке вверх подтягиваются следующие 50, и так до самого начала. */
+(function(){
+    var loading = false, noMore = false, oldestTs = null;
+
+    // самое старое загруженное сообщение (его передаёт основной код чата)
+    window.__chatSetOldest = function(ts){ if (ts) oldestTs = ts; };
+
+    async function loadOlder(area){
+        if (loading || noMore || !oldestTs) return;
+        var chatId = new URLSearchParams(location.search).get('chatId');
+        if (!chatId || !window.fbLoadOlderMessages || typeof renderMsg !== 'function') return;
+
+        loading = true;
+        var loader = document.createElement('div');
+        loader.style.cssText = 'text-align:center;padding:10px;color:#8e8e9e;font-size:12px;';
+        loader.textContent = 'Загружаю историю...';
+        area.insertBefore(loader, area.firstChild);
+        var prevH = area.scrollHeight;
+
+        try {
+            var r = await window.fbLoadOlderMessages(chatId, oldestTs, 50);
+            loader.remove();
+            if (!r.ok || !r.messages.length) { noMore = true; loading = false; return; }
+            oldestTs = r.messages[0]._ts || oldestTs;
+            if (!r.hasMore) noMore = true;
+
+            var myUid = (window.fbCurrentUser && fbCurrentUser()) ? fbCurrentUser().uid : null;
+            var frag = document.createDocumentFragment();
+            r.messages.forEach(function(m){ frag.appendChild(renderMsg(m, m.from === myUid)); });
+            area.insertBefore(frag, area.firstChild);
+            area.scrollTop = area.scrollHeight - prevH;   // держим позицию — экран не прыгает
+        } catch(e) { loader.remove(); }
+        loading = false;
+    }
+
+    document.addEventListener('DOMContentLoaded', function(){
+        var area = document.getElementById('messagesArea');
+        if (!area) return;
+        area.addEventListener('scroll', function(){
+            if (area.scrollTop < 60) loadOlder(area);
+        });
+    });
+})();
+</script>
+
 </body>
 </html>

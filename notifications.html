@@ -471,5 +471,43 @@ initAtmosphere(canvasId) {
 })();
 </script>
 
+
+<script>
+/* ВКЛЮЧЕНИЕ ФОНОВЫХ УВЕДОМЛЕНИЙ (приходят при закрытом приложении) */
+(function(){
+    function render(){
+        var box = document.getElementById('activeReminders');
+        if (!box || document.getElementById('pushCard')) return;
+        var on = window.fbPushEnabled && window.fbPushEnabled();
+        var card = document.createElement('div');
+        card.id = 'pushCard';
+        card.style.cssText = 'background:rgba(35,35,46,0.6);border:1px solid rgba(var(--accent-rgb),0.18);border-radius:14px;padding:14px;margin-bottom:14px;';
+        card.innerHTML =
+            '<div style="font-size:13.5px;font-weight:700;color:#fff;margin-bottom:5px;">Уведомления на телефон</div>' +
+            '<div style="font-size:12px;color:#9a9aab;line-height:1.55;margin-bottom:10px;">Приходят, даже когда приложение закрыто.<br><span style="color:#8e8e9e;">На iPhone нужно установить приложение на экран «Домой».</span></div>' +
+            '<div id="pushBtn" style="text-align:center;padding:11px;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;' +
+            (on ? 'background:rgba(80,200,140,0.15);color:#5ecf9a;border:1px solid rgba(80,200,140,0.3);">✓ Включены'
+                : 'background:linear-gradient(135deg,#FFD966,#C8AAFF);color:#0a0a0f;">Включить уведомления') +
+            '</div>';
+        box.parentNode.insertBefore(card, box);
+
+        var btn = document.getElementById('pushBtn');
+        if (!on && btn) btn.addEventListener('click', async function(){
+            btn.textContent = 'Включаем...';
+            var r = window.fbEnablePush ? await window.fbEnablePush() : { ok:false, error:'Недоступно' };
+            if (r.ok) {
+                btn.style.cssText = 'text-align:center;padding:11px;border-radius:11px;font-size:13px;font-weight:700;background:rgba(80,200,140,0.15);color:#5ecf9a;border:1px solid rgba(80,200,140,0.3);';
+                btn.textContent = '✓ Включены';
+            } else {
+                btn.textContent = r.error || 'Не удалось включить';
+                setTimeout(function(){ btn.textContent = 'Включить уведомления'; }, 2500);
+            }
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(render, 400); });
+    else setTimeout(render, 400);
+})();
+</script>
+
 </body>
 </html>
