@@ -489,10 +489,21 @@
     // начислить награду за условие один раз за неделю
     function awardCondition(key, amount){
         const earned = getEarnedThisWeek();
-        if (earned[key]) return 0; // уже начислено на этой неделе
-        earned[key] = true;
-        saveEarnedThisWeek(earned);
-        FocusStorage.addCoins(amount);
+        if (earned[key]) return 0; // уже начислено на этой неделе (быстрая проверка на телефоне)
+
+        /* НАЧИСЛЯЕТ СЕРВЕР. Раньше монеты дописывал сам телефон — значит их можно было
+           напечатать себе сколько угодно. Теперь сервер проверяет: одну награду — один раз
+           в неделю, и не больше 333 F-coin за неделю (это потолок честного плана). */
+        if (window.fbAwardCoins) {
+            window.fbAwardCoins(amount, key).then(function(r){
+                if (r && r.ok) {
+                    earned[key] = true;
+                    saveEarnedThisWeek(earned);
+                    try { if (typeof r.coins === 'number') FocusStorage.saveUser({ coins: r.coins }); } catch(e){}
+                    if (typeof updateUI === 'function') updateUI();
+                }
+            }).catch(function(){});
+        }
         return amount;
     }
 

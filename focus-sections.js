@@ -300,8 +300,18 @@ fill: function (data) {
         var target = null, col = null;
         var cols = ['now', 'plan', 'inbox'];
 
-        // 1) по номеру (#12 или просто 12) — самый точный путь
-        var idm = q.match(/#?(\d{6,})/);
+        // 0) ТОЧНОЕ совпадение с номером дела — любой длины.
+        //    ИИ по контракту присылает номер из справки. Новые дела имеют длинный номер,
+        //    но у старых он мог быть коротким — и тогда отметка молча не срабатывала:
+        //    ассистент отвечал «отметил», а дело оставалось активным.
+        cols.forEach(function (c) {
+          (bd[c] || []).forEach(function (it) {
+            if (!target && String(it.id) === q) { target = it; col = c; }
+          });
+        });
+
+        // 1) номер внутри текста (#1784017712488) — самый точный путь
+        var idm = target ? null : q.match(/#?(\d{6,})/);
         var wantId = idm ? parseInt(idm[1], 10) : null;
         if (wantId) {
           cols.forEach(function (c) {

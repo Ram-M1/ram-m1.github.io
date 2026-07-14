@@ -745,6 +745,30 @@
             });
             const data = await res.json();
             if (data && data.ok && data.paid) {
+                /* НАЧИСЛЯЕТ СЕРВЕР. Раньше телефон сам решал, сколько монет себе выписать
+                   (сумма бралась из его же памяти) — можно было заплатить 10₽ и получить
+                   999999 монет, а один платёж зачесть много раз. Теперь сервер сверяется
+                   с ЮKassa, берёт сумму из метаданных платежа и засчитывает его ОДИН раз. */
+                if (window.fbConfirmPayment) {
+                    const conf = await window.fbConfirmPayment(pending.paymentId);
+                    localStorage.removeItem('focus_pending_payment');
+                    if (conf.ok) {
+                        try {
+                            if (typeof conf.coins === 'number') userCoins = conf.coins;
+                            if (typeof conf.coinsBought === 'number') localStorage.setItem('focus_coins_bought', String(conf.coinsBought));
+                        } catch(e){}
+                        updateBalanceUI();
+                        if (conf.already) { toast('Этот платёж уже зачислен'); }
+                        else if (conf.plan) { toast('✓ Подписка «' + conf.plan + '» активирована!'); }
+                        else {
+                            coinFX(conf.credited || 0, 'Оплата прошла!', document.getElementById('buyCoinsBtn'));
+                            toast('✓ Зачислено ' + (conf.credited || 0) + ' F-coin');
+                        }
+                    } else {
+                        toast(conf.error || 'Не удалось зачислить. Напиши в поддержку');
+                    }
+                    return;
+                }
                 // платёж прошёл
                 if (pending.plan) {
                     // это была ПОДПИСКА — списываем остаток коинов и активируем

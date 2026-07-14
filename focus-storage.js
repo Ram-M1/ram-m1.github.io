@@ -213,6 +213,18 @@ const FocusStorage = {
                 if (!isEmpty || local[k] == null || local[k] === '') merged[k] = v;
             });
             this.saveUser(merged);
+
+            /* 💰 БАЛАНС — ХОЗЯИН СЕРВЕР.
+               Купленные монеты лежат в отдельном ключе на телефоне. Раз теперь их считает
+               сервер, забираем значение ИЗ ОБЛАКА — иначе после переустановки они бы
+               «пропали», а платный ИИ говорил бы «не хватает купленных монет».
+               Если в облаке значения ещё нет (старый юзер) — локальное НЕ трогаем. */
+            try {
+                if (typeof data.coinsBought === 'number') {
+                    localStorage.setItem('focus_coins_bought', String(Math.max(0, data.coinsBought)));
+                }
+            } catch(e){}
+
             // анкета пройдена, если облако говорит profileCompleted (верхним уровнем ИЛИ в flags)
             // ИЛИ есть ключевые поля — фиксируем флаг локально, чтобы гард не выкидывал в анкету.
             var done = data.profileCompleted === true || (data.flags && data.flags.profileCompleted === true)

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v157 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v167 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -1164,8 +1164,15 @@
 
     async function runFullAnalysis(){
         const PRICE = 300;
-        // списываем купленные монеты
-        if (!FocusStorage.spendBoughtCoins(PRICE)) { showToast('Не хватает купленных монет'); return; }
+        /* СПИСЫВАЕТ СЕРВЕР. Телефону запрещено менять баланс — иначе разбор за 300 монет
+           можно было взять бесплатно, просто не списав их у себя. */
+        if (window.fbSpendCoins) {
+            const sp = await window.fbSpendCoins(PRICE, 'oracle_full');
+            if (!sp.ok) { showToast(sp.error || 'Не хватает купленных монет'); return; }
+            try { FocusStorage.saveUser({ coins: sp.coins }); FocusStorage.setBoughtCoins(sp.coinsBought); } catch(e){}
+        } else {
+            if (!FocusStorage.spendBoughtCoins(PRICE)) { showToast('Не хватает купленных монет'); return; }
+        }
         const fm = document.getElementById('fullAnalysisModal');
         fm.innerHTML = '<div class="oracle-modal-box" style="max-width:310px;text-align:center;">' +
             '<div class="oracle-modal-title" style="font-size:17px;">✨ Разбор готовится...</div>' +
@@ -1896,7 +1903,10 @@
                     const asstName0 = meUser0.assistantName || 'ассистент';
                     const sysPrompt = window._focusChatSystemPrompt ? window._focusChatSystemPrompt() : ('Тебя зовут ' + asstName0 + '. Ты ассистент FOCUS. Заполняй разделы грамотно через [FILL:раздел|пункт1|пункт2], исправляя орфографию.');
                     const _ctx = (window.FocusChatMemory ? FocusChatMemory.recent(16) : (window._focusChatHistory || [])).slice(-16);
-                    const prompt = [{ role: 'system', content: sysPrompt }, ..._ctx.map(m=>({role:m.role,content:m.content}))];
+                    // СТАТИКА первой (её ловит кэш DeepSeek → в 50 раз дешевле), динамика второй
+                    const prompt = window.focusSysMessages
+                        ? [...window.focusSysMessages(), ..._ctx.map(m=>({role:m.role,content:m.content}))]
+                        : [{ role: 'system', content: sysPrompt }, ..._ctx.map(m=>({role:m.role,content:m.content}))];
                     let res = await (window.fbAskAIJson ? window.fbAskAIJson(prompt, 700) : window.fbAskAI(prompt, 500));
                     if (res.ok && res.reply && res.reply.trim()) {
                         let full = res.reply.trim();
@@ -2008,7 +2018,9 @@
                     const sysPromptC = window._focusChatSystemPrompt ? window._focusChatSystemPrompt() :
                         ('Тебя зовут ' + asstNameC + '. Ты умный ассистент FOCUS. Отвечай коротко, по делу, живым русским.');
                     const _ctxC = (window.FocusChatMemory ? FocusChatMemory.recent(16) : (window._focusChatHistory || [])).slice(-16);
-                    const promptC = [{ role: 'system', content: sysPromptC }, ..._ctxC.map(m=>({role:m.role,content:m.content}))];
+                    const promptC = window.focusSysMessages
+                        ? [...window.focusSysMessages(), ..._ctxC.map(m=>({role:m.role,content:m.content}))]
+                        : [{ role: 'system', content: sysPromptC }, ..._ctxC.map(m=>({role:m.role,content:m.content}))];
                     let res = await (window.fbAskAIJson ? window.fbAskAIJson(promptC, 700) : window.fbAskAI(promptC, 500));
                     if (res.ok && res.reply && res.reply.trim()) {
                         let full = res.reply.trim();
@@ -2236,7 +2248,9 @@
                 if (!window.fbAskAI) { typing.remove(); addMsg('bot', 'ИИ недоступен, обнови страницу.'); return; }
 
                 const _ctx = (window.FocusChatMemory ? (window._focusChatHistory || []) : history).slice(-10);
-                const messages = [{ role:'system', content: systemPrompt() }, ..._ctx];
+                const messages = window.focusSysMessages
+                    ? [...window.focusSysMessages(), ..._ctx]
+                    : [{ role:'system', content: systemPrompt() }, ..._ctx];
                 let res = await (window.fbAskAIJson ? window.fbAskAIJson(messages, 900) : window.fbAskAI(messages, 500));
                 typing.remove();
 
@@ -2513,7 +2527,7 @@
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=157').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=167').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -2712,6 +2726,91 @@
     })();
     </script>
 
+    <script>
+    /* ═══ ЭКОНОМИЯ НА ИИ: КЭШ ПРОМПТА ═══
+       DeepSeek даёт скидку 98% на ПОВТОРЯЮЩЕЕСЯ НАЧАЛО запроса (кэш префикса).
+       Раньше промпт начинался с ИМЕНИ АССИСТЕНТА, ДАТЫ и СВОДОК разделов — а они меняются
+       каждый запрос. Из-за этого 10 КБ статичных правил, идущих СЛЕДОМ, кэш не ловил НИ РАЗУ:
+       за каждый вопрос платили полную цену за весь промпт.
+       Теперь порядок обратный:
+         1) СТАТИКА — одна и та же для всех юзеров и всегда → попадает в кэш (в 50 раз дешевле);
+         2) ДИНАМИКА — маленький блок (имя, дата, справка) → платим полную цену только за него.
+       Текст правил НЕ изменён — изменён только ПОРЯДОК. */
+    (function(){
+        var _staticCache = null;
+
+        /** Неизменная часть промпта — байт в байт одинаковая при каждом запросе */
+        window.focusStaticPrompt = function(){
+            if (_staticCache) return _staticCache;
+
+            var sectionsList = '';
+            try { if (window.FocusSections) sectionsList = window.FocusSections.listForPrompt(); } catch(e){}
+
+            var text =
+                'Ты — умный персональный ассистент-ИСПОЛНИТЕЛЬ в приложении FOCUS (саморазвитие). ' +
+                'Работаешь как слуга: чётко и ГРАМОТНО делаешь всё за пользователя, ЗАПОЛНЯЕШЬ ЛЮБЫЕ РАЗДЕЛЫ и СТАВИШЬ НАПОМИНАНИЯ.\n\n' +
+                'ВСЕ РАЗДЕЛЫ (используй эти id в [FILL]): ' + (sectionsList || 'workout, nutrition, sleep, gratitude') + '.\n' +
+                '\nПРАВИЛА ИСПОЛНИТЕЛЯ:\n' +
+                '0. На приветствие («привет», «здарова») — просто поздоровайся коротко и спроси чем помочь. НЕ перечисляй данные разделов, не отчитывайся о благодарностях и т.п. без прямого вопроса.\n' +
+                '1. ИСПРАВЛЯЙ ОРФОГРАФИЮ И ОПЕЧАТКИ юзера — в раздел записывай ГРАМОТНО, с заглавной буквы. («зделал трениворку ног» → запиши «Тренировка ног»; «памидоры агурцы» → «Помидоры, огурцы»).\n' +
+                '   НЕСКОЛЬКО ПУНКТОВ: если юзер перечисляет несколько (1..., 2..., 3... или через запятую) — раздели их в [FILL] символом «|», каждый с исправленной орфографией и заглавной буквы. Пример: «заполни благодарность 1 за утрои 2 за семью 3 за здоровие» → [FILL:gratitude|За утро|За семью|За здоровье].\n' +
+                '2. ЗНАЙ СОДЕРЖИМОЕ разделов (см. СПРАВКУ о данных юзера) — упражнения, тренировки, лекарства, БАДы, привычки, желания юзера. «заполни тренировку по плану» → возьми тренировку юзера из списка и отметь её.\n' +
+                '   ПРАВИЛО СУЩЕСТВОВАНИЯ (для ЛЮБОГО раздела, где юзер сам создаёт сущности — тренировки, лекарства, БАДы и т.п.): если просят отметить/выполнить/принять то, чего НЕТ в его списках из СПРАВКИ — НЕ выдумывай и НЕ ставь [FILL]. Скажи по-человечески: «У тебя пока нет такого-то — сначала создай/добавь его в разделе N». Работает для любых названий. Говори естественно: «тренировка ног», а не «программа Ноги».\n' +
+                '   (Разделы куда можно свободно ДОБАВЛЯТЬ новое без предварительного создания: благодарность, разгрузка мозга, карта желаний, духовные привычки, питание, настроение, сон — туда просто записывай.)\n' +
+                '3. НЕ задавай лишних вопросов — если понятно, делай СРАЗУ. Если данных реально не хватает (например «запиши что поел» без блюда) — задай ОДИН короткий уточняющий вопрос и НЕ ставь [FILL]. Всё ясно — заполняй сразу.\n\n' +
+                'ЗАПОЛНЕНИЕ РАЗДЕЛА: в конце ответа добавь служебную строку [FILL:id|данные], где id — из списка разделов выше.\n' +
+                'Примеры: [FILL:workout|Зарядка выполнена]  [FILL:sleep|7]  [FILL:nutrition|Овсянка]  [FILL:training|Тренировка ног по плану]  [FILL:gratitude|Благодарен за день]  [FILL:braindump|Позвонить маме]  [FILL:faith_habits|Утренняя молитва]\n' +
+                '«заполни тренировку по плану» → иди в training, отметь по программе юзера, заверши: [FILL:training|По программе завершена].\n\n' +
+                'НАПОМИНАНИЯ: если просят напомнить о чём-либо — добавь строку [REMIND:текст напоминания|когда].\n' +
+                'Примеры: [REMIND:Тренировка|в 18:00]  [REMIND:Прочитать молитву|вечером]  [REMIND:Сходить в храм|завтра в 9:00]  [REMIND:Обед|через 2 часа]\n' +
+                'Можно ставить напоминание на ЛЮБУЮ задачу из любого раздела и плана.\n\n' +
+                'ФОРМАТ ОТВЕТА: один короткий тёплый ответ + [FILL:...] и/или [REMIND:...] если нужно. Служебные строки пользователь не видит. Пиши живым русским, коротко.\n' +
+                'КРИТИЧНО: НИКОГДА не пиши слово [FILL] или [REMIND] в обычном тексте ответа и не объясняй пользователю как ты работаешь с тегами — он их не видит и не должен видеть. Тег ставится ТОЛЬКО отдельной служебной строкой в конце.\n' +
+                'СТАТУС РАЗДЕЛОВ: ты ВИДИШЬ актуальное состояние всех разделов в СПРАВКЕ (что выполнено сегодня, что нет). Когда юзер спрашивает «зарядка отмечена?», «что я сегодня сделал?» — отвечай ПРАВДИВО по справке, не говори что не знаешь. Ты отслеживаешь изменения — данные в справке всегда свежие.\n' +
+                'РАСКЛАД ДЕЛ (важно!): ты — личный ассистент как «Пятница». Когда юзер спрашивает «что у меня осталось?», «какие дела?», «что по плану?», «напомни что я хотел сделать» — посмотри в СПРАВКУ (особенно разгрузку мозга: входящие, «сделать сейчас», запланированное с дедлайнами) и дай короткий понятный расклад по пунктам. Затем предложи: отметить выполненное, добавить новое или поставить напоминание.\n' +
+                'ОТМЕТИТЬ ВЫПОЛНЕННОЕ: если юзер говорит «сделал X», «выполнил X», «закрыл X» про дело из разгрузки мозга — добавь служебную строку [DONE:braindump|текст дела] (текст — как в справке, можно часть). Это уберёт дело из активных. Пример: юзер «позвонил маме сделал» → [DONE:braindump|позвонил маме].\n' +
+                'Если юзер надиктовывает новые дела — заполняй через [FILL:braindump|Дело1|Дело2] грамотно.' +
+                (window.FOCUS_JSON_RULES || '');
+
+            // запоминаем только когда список разделов реально загрузился —
+            // иначе на следующем вызове соберём заново (и кэш будет корректным)
+            if (sectionsList) _staticCache = text;
+            return text;
+        };
+
+        /** Изменяемая часть — маленькая: имя ассистента, реальное время, свежая справка */
+        window.focusDynamicContext = function(){
+            var u = {};
+            try { u = (window.FocusStorage && window.FocusStorage.getUser()) || {}; } catch(e){}
+            var asst = u.assistantName || 'Ассистент';
+
+            var now = new Date();
+            var days = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+            var dateStr = now.toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' });
+            var timeStr = now.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+
+            var userCtx = '';
+            try { if (window.FocusSections) userCtx = window.FocusSections.userContext(); } catch(e){}
+            var astroCtx = '';
+            try { if (u.birthDate && window.FocusAstro) astroCtx = window.FocusAstro.contextForAI(u); } catch(e){}
+
+            return 'Тебя зовут ' + asst + '.\n' +
+                'СЕЙЧАС: ' + days[now.getDay()] + ', ' + dateStr + ', время ' + timeStr + '. ' +
+                'Это РЕАЛЬНОЕ текущее время юзера — всегда опирайся на него. «Сегодня» = ' + dateStr + '. ' +
+                'Считай «завтра», «через час», «в 18:00» ОТ ЭТОГО времени. Если срок дела уже прошёл — скажи об этом прямо.\n' +
+                (userCtx ? ('СПРАВКА о данных юзера (используй ТОЛЬКО для заполнения разделов и когда прямо спрашивают; НЕ пересказывай и НЕ упоминай это без вопроса): ' + userCtx + '.\n') : '') +
+                (astroCtx ? ('Тип личности: ' + astroCtx + '. Учитывай, но не упоминай астрологию без нужды.') : '');
+        };
+
+        /** Готовые системные сообщения: [статика (кэш), динамика] */
+        window.focusSysMessages = function(){
+            return [
+                { role: 'system', content: window.focusStaticPrompt() },
+                { role: 'system', content: window.focusDynamicContext() }
+            ];
+        };
+    })();
+    </script>
     <script src="focus-chat-fab.js"></script>
     <style>
     #greetOverlay { position:absolute; inset:0; border-radius:52px; overflow:hidden; z-index:5000; display:block; opacity:0; transition:opacity 0.4s; pointer-events:auto; }

@@ -204,11 +204,131 @@ onAuthStateChanged(auth, (user) => {
 window.fbCurrentUser = function() { return _currentUser || auth.currentUser; };
 
 // сохранить данные профиля пользователя в Firestore
+/** Приводим имя к виду для поиска */
+function _nameLower(n) { return String(n || '').trim().toLowerCase(); }
+function _nameTokens(n) {
+  return _nameLower(n).split(/\s+/).filter(function(w){ return w.length > 1; }).slice(0, 6);
+}
+
+
+/* ═══ ДЕНЬГИ: ВСЁ СЧИТАЕТ СЕРВЕР ═══
+   Телефон только просит и показывает результат. Сам он баланс менять не может. */
+
+function _api() { return (window.FOCUS_AI_PROXY || '').replace(/\/+$/, ''); }
+
+/** Синхронизировать баланс с облаком (единственный источник правды) */
+function _syncBalance(d) {
+  try {
+    if (!window.FocusStorage) return;
+    if (typeof d.coins === 'number') FocusStorage.saveUser({ coins: d.coins });
+    if (typeof d.coinsBought === 'number' && FocusStorage.setBoughtCoins) FocusStorage.setBoughtCoins(d.coinsBought);
+  } catch(e){}
+}
+
+/** ПОТРАТИТЬ монеты (ИИ, Оракул). Только купленные — заработанные идут на подписку. */
+window.fbSpendCoins = async function(amount, reason) {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return { ok: false, error: 'Не авторизован' };
+  try {
+    const r = await fetch(_api() + '/coins/spend', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: user.uid, amount: amount, reason: reason || 'ai' })
+    });
+    const d = await r.json();
+    if (d.ok) _syncBalance(d);
+    return d;
+  } catch (e) { return { ok: false, error: 'Нет связи' }; }
+};
+
+/** НАЧИСЛИТЬ заработанные монеты (план заданий / родитель ребёнку) */
+window.fbAwardCoins = async function(amount, key, toUid) {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return { ok: false, error: 'Не авторизован' };
+  try {
+    const body = { uid: toUid || user.uid, amount: amount, key: key || '' };
+    if (toUid && toUid !== user.uid) body.from = user.uid;    // родитель платит своими
+    const r = await fetch(_api() + '/coins/award', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (d.ok && (!toUid || toUid === user.uid)) _syncBalance(d);
+    return d;
+  } catch (e) { return { ok: false, error: 'Нет связи' }; }
+};
+
+/** ПОДТВЕРДИТЬ ОПЛАТУ — сервер проверит платёж в ЮKassa и начислит сам */
+window.fbConfirmPayment = async function(paymentId) {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return { ok: false, error: 'Не авторизован' };
+  try {
+    const r = await fetch(_api() + '/payment/confirm', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentId: paymentId, uid: user.uid })
+    });
+    const d = await r.json();
+    if (d.ok) _syncBalance(d);
+    return d;
+  } catch (e) { return { ok: false, error: 'Нет связи' }; }
+};
+
+
+/* РАЗОВЫЙ ПЕРЕНОС купленных монет в облако (у старых юзеров они были только на телефоне).
+   Выполняется один раз за установку; сервер примет, только если в облаке ещё пусто. */
+window.fbMigrateBoughtCoins = async function() {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return;
+  try {
+    if (localStorage.getItem('focus_bought_migrated')) return;
+    let bought = 0;
+    try { bought = parseInt(localStorage.getItem('focus_coins_bought')) || 0; } catch(e){}
+    if (bought <= 0) { localStorage.setItem('focus_bought_migrated', '1'); return; }
+
+    const r = await fetch(_api() + '/coins/migrate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: user.uid, bought: bought })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      localStorage.setItem('focus_bought_migrated', '1');
+      if (typeof d.coinsBought === 'number') { try { FocusStorage.setBoughtCoins(d.coinsBought); } catch(e){} }
+    }
+  } catch(e){}
+};
+
+// запускаем один раз после входа
+setTimeout(function(){ if (window.fbMigrateBoughtCoins) window.fbMigrateBoughtCoins(); }, 4000);
+
 window.fbSaveUserData = async function(data) {
   const user = _currentUser || auth.currentUser;
   if (!user) return { ok: false, error: 'Не авторизован' };
   try {
-    await setDoc(doc(db, 'users', user.uid), data, { merge: true });
+    // СЛУЖЕБНЫЕ ПОЛЯ ДЛЯ ПОИСКА.
+    // Раньше поиск скачивал ВСЮ базу юзеров и перебирал вручную (1000 юзеров = 1000 чтений).
+    // Теперь при каждом сохранении профиля пишем нормализованные поля — и поиск находит
+    // человека ТОЧЕЧНЫМ запросом за 1 чтение. Пишем только если поле реально пришло,
+    // чтобы частичное сохранение (например, только монет) ничего не затёрло.
+    const payload = Object.assign({}, data);
+
+    /* 🔒 ДЕНЕЖНЫЕ ПОЛЯ ТЕЛЕФОН НЕ ПИШЕТ — НИКОГДА.
+       Раньше монеты и подписку записывал сам телефон. Значит любой, кто откроет консоль,
+       мог выписать себе 999999 монет и подписку Про бесплатно.
+       Теперь их меняет ТОЛЬКО сервер (после проверки оплаты в ЮKassa либо по правилам наград),
+       а телефон эти поля просто ЧИТАЕТ из облака. */
+    delete payload.coins;
+    delete payload.coinsBought;
+    delete payload.subscription;
+    delete payload.subscriptionUntil;
+    delete payload.role;
+
+    if (typeof data.phone === 'string' && data.phone) payload.phoneNorm = _normPhone(data.phone);
+    if (typeof data.name === 'string' && data.name) {
+      payload.nameLower  = _nameLower(data.name);
+      payload.nameTokens = _nameTokens(data.name);
+    }
+    if (typeof data.email === 'string' && data.email) payload.emailLower = data.email.toLowerCase();
+
+    await setDoc(doc(db, 'users', user.uid), payload, { merge: true });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e.message };
@@ -461,19 +581,16 @@ window.fbDeleteChildTask = async function(childUid, taskId) {
 
 // Внутреннее: переток F-coin родитель → ребёнок
 async function _transferCoins(fromUid, toUid, amount) {
-  if (!amount || amount <= 0) return;
+  /* Раньше телефон писал монеты В ЧУЖОЙ документ — правила это запрещают,
+     поэтому родительские награды МОЛЧА не доходили (у родителя списывалось,
+     ребёнку не приходило). Теперь перевод делает сервер. */
   try {
-    const fromSnap = await getDoc(doc(db, 'users', fromUid));
-    if (fromSnap.exists()) {
-      const fromCoins = fromSnap.data().coins || 0;
-      await setDoc(doc(db, 'users', fromUid), { coins: Math.max(0, fromCoins - amount) }, { merge: true });
-    }
-    const toSnap = await getDoc(doc(db, 'users', toUid));
-    if (toSnap.exists()) {
-      const toCoins = toSnap.data().coins || 0;
-      await setDoc(doc(db, 'users', toUid), { coins: toCoins + amount }, { merge: true });
-    }
-  } catch (e) {}
+    const r = await fetch((window.FOCUS_AI_PROXY || '').replace(/\/+$/, '') + '/coins/award', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: toUid, from: fromUid, amount: amount })
+    });
+    return await r.json();
+  } catch (e) { return { ok: false, error: e.message }; }
 }
 
 // Ребёнок: сохранить свою геопозицию в облако (вызывается при заходе в приложение)
@@ -517,24 +634,26 @@ function _normPhone(phone) {
 }
 
 window.fbFindUserByPhone = async function(phone) {
+  /* ПОИСК ПО НОМЕРУ — через сервер, ТОЧЕЧНЫМ запросом (1 чтение).
+     Раньше телефон скачивал ВСЮ коллекцию users и перебирал её сам:
+     при 1000 юзеров — 1000 чтений на каждый поиск, при 10 000 — приложение вставало колом.
+     Ответ функции НЕ изменился — интерфейс работает как прежде. */
   const user = _currentUser || auth.currentUser;
   if (!user) return { ok: false, error: 'Не авторизован' };
   const norm = _normPhone(phone);
   if (norm.length < 10) return { ok: false, error: 'Введи полный номер (10 цифр)' };
   try {
-    // берём всех юзеров и сравниваем по нормализованному телефону
-    // (телефоны в базе могут быть в разном формате: 8917..., +7917..., 917...)
-    const snap = await getDocs(collection(db, 'users'));
-    let found = null;
-    snap.forEach(d => {
-      if (d.id === user.uid) return;
-      const p = _normPhone(d.data().phone);
-      if (p && p === norm) found = { uid: d.id, ...d.data() };
+    const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+    const r = await fetch(base + '/users/find', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: user.uid, mode: 'phone', q: phone })
     });
-    if (!found) return { ok: false, error: 'Пользователь с таким номером не найден в FOCUS' };
-    return { ok: true, user: { uid: found.uid, name: found.name || 'Пользователь', phone: found.phone } };
+    const d = await r.json();
+    if (!d.ok) return { ok: false, error: d.error || 'Не найден' };
+    return { ok: true, user: d.user };
   } catch (e) {
-    return { ok: false, error: e.message };
+    return { ok: false, error: 'Нет связи. Попробуй ещё раз' };
   }
 };
 
@@ -578,17 +697,23 @@ window.fbOpenChat = async function(otherUid, otherName) {
   } catch (e) { return { ok: false, error: e.message }; }
 };
 
-/* ДОБАВИТЬ В КОНТАКТЫ — человек остаётся в списке, даже без переписки */
-window.fbAddContact = async function(otherUid, otherName) {
+/* ДОБАВИТЬ В КОНТАКТЫ — человек остаётся в списке, даже без переписки.
+   ЕДИНСТВЕННАЯ версия (раньше их было две, и старая — медленная — затирала эту).
+   Принимает (uid, имя, телефон): телефон нужен, он показывается в карточке контакта. */
+window.fbAddContact = async function(otherUid, otherName, otherPhone) {
   const user = _currentUser || auth.currentUser;
   if (!user) return { ok: false };
+  if (!otherUid || otherUid === user.uid) return { ok: false, error: 'Некорректный контакт' };
   try {
-    // мгновенно добавляем СЕБЕ (это разрешено правилами) — кнопка отвечает сразу
+    // мгновенно добавляем СЕБЕ (правила это разрешают) — кнопка отвечает сразу, без ожидания сети
     await setDoc(doc(db, 'users', user.uid, 'contacts', otherUid), {
-      uid: otherUid, name: otherName || 'Пользователь', addedAt: new Date().toISOString()
+      uid: otherUid,
+      name: otherName || 'Пользователь',
+      phone: otherPhone || '',
+      addedAt: new Date().toISOString()
     }, { merge: true });
 
-    // взаимное добавление — на сервере, в фоне
+    // взаимное добавление + уточнение имени/телефона — на сервере, в ФОНЕ (интерфейс не ждёт)
     try {
       const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
       fetch(base + '/contacts/add', {
@@ -615,63 +740,136 @@ window.fbGetContacts = async function() {
 };
 
 /* ОНЛАЙН-СТАТУС (как в WhatsApp): отмечаем себя «в сети», читаем статус собеседника */
-window.fbTouchOnline = async function() {
+let _lastTouch = 0;
+const _TOUCH_EVERY = 4 * 60 * 1000;   // раз в 4 минуты (было — каждую минуту)
+
+/* ОТМЕТКА «Я В СЕТИ».
+   Раньше телефон писал в базу КАЖДУЮ МИНУТУ, даже когда приложение свёрнуто:
+   при 1000 юзеров это 120 000 записей в сутки — деньги и разряд батареи.
+   Теперь:
+     • пишем раз в 4 минуты, и ТОЛЬКО когда приложение открыто на экране;
+     • при сворачивании честно отмечаем «вышел», при возврате — «зашёл»;
+     • состояние хранит публичная визитка (имя + статус), а не весь профиль. */
+window.fbTouchOnline = async function(force, online) {
   const user = _currentUser || auth.currentUser;
   if (!user) return;
-  try { await setDoc(doc(db, 'users', user.uid), { lastSeen: Date.now() }, { merge: true }); } catch(e){}
+  if (typeof document !== 'undefined' && document.hidden && !force) return;   // свёрнуто — не тревожим сеть
+
+  const now = Date.now();
+  if (!force && (now - _lastTouch) < _TOUCH_EVERY) return;
+  _lastTouch = now;
+
+  try {
+    let name = '';
+    try { name = ((window.FocusStorage && window.FocusStorage.getUser()) || {}).name || ''; } catch(e){}
+    await setDoc(doc(db, 'publicProfiles', user.uid), {
+      name: name,
+      online: online === false ? false : true,
+      lastSeen: now
+    }, { merge: true });
+  } catch(e){}
 };
+
+/* ЖИВОЙ СТАТУС собеседника — подписка, а не опрос.
+   Раньше телефон КАЖДЫЕ 30 СЕКУНД дёргал базу и спрашивал «он в сети?».
+   Теперь база сама сообщает об изменении — мгновенно и без лишних чтений. */
+window.fbWatchPresence = function(uid, callback) {
+  if (!uid || !callback) return function(){};
+  try {
+    return onSnapshot(doc(db, 'publicProfiles', uid), function(d){
+      if (!d.exists()) { callback({ online: false, text: '' }); return; }
+      callback(_presenceText(d.data()));
+    }, function(){});
+  } catch (e) { return function(){}; }
+};
+
+/** Превращаем данные визитки в человеческий текст */
+function _presenceText(p) {
+  const ls = (p && p.lastSeen) || 0;
+  if (!ls) return { online: false, text: '' };
+  const diff = Date.now() - ls;
+  // «в сети» = приложение открыто И отметка свежая (с запасом на редкие записи)
+  if (p.online !== false && diff < 6 * 60 * 1000) return { online: true, text: 'в сети' };
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return { online: false, text: 'был(а) только что' };
+  if (m < 60) return { online: false, text: 'был(а) ' + m + ' мин назад' };
+  const h = Math.floor(m / 60);
+  if (h < 24) return { online: false, text: 'был(а) ' + h + ' ч назад' };
+  const dd = Math.floor(h / 24);
+  return { online: false, text: 'был(а) ' + dd + ' дн назад' };
+}
 
 /** Статус человека: {online:true} или {online:false, text:'был(а) 5 минут назад'} */
 window.fbGetPresence = async function(uid) {
   try {
-    const d = await getDoc(doc(db, 'users', uid));
+    const d = await getDoc(doc(db, 'publicProfiles', uid));
     if (!d.exists()) return { online: false, text: '' };
-    const ls = d.data().lastSeen || 0;
-    const diff = Date.now() - ls;
-    if (!ls) return { online: false, text: '' };
-    if (diff < 90 * 1000) return { online: true, text: 'в сети' };
-    const m = Math.floor(diff / 60000);
-    if (m < 60) return { online: false, text: 'был(а) ' + m + ' мин назад' };
-    const h = Math.floor(m / 60);
-    if (h < 24) return { online: false, text: 'был(а) ' + h + ' ч назад' };
-    const dd = Math.floor(h / 24);
-    return { online: false, text: 'был(а) ' + dd + ' дн назад' };
+    return _presenceText(d.data());
   } catch (e) { return { online: false, text: '' }; }
 };
 
 // отмечаемся «в сети» пока приложение открыто
-setInterval(function(){ if (window.fbTouchOnline) window.fbTouchOnline(); }, 60000);
-setTimeout(function(){ if (window.fbTouchOnline) window.fbTouchOnline(); }, 2000);
+/* Раньше: запись в базу каждые 60 секунд — всегда, даже в фоне.
+   Теперь: раз в 4 минуты и только пока приложение на экране.
+   При сворачивании/возврате — честная отметка «вышел / зашёл». */
+setInterval(function(){ if (window.fbTouchOnline) window.fbTouchOnline(); }, 60000);   // проверка; сама запись — не чаще 4 мин
+setTimeout(function(){ if (window.fbTouchOnline) window.fbTouchOnline(true, true); }, 1500);
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', function(){
+    if (!window.fbTouchOnline) return;
+    if (document.hidden) window.fbTouchOnline(true, false);   // свернул — «вышел»
+    else window.fbTouchOnline(true, true);                    // вернулся — «в сети»
+  });
+  window.addEventListener('pagehide', function(){
+    if (window.fbTouchOnline) window.fbTouchOnline(true, false);
+  });
+}
 
 // ===== АДМИН / РАЗРАБОТЧИК =====
 window.ADMIN_EMAIL = 'moorsalimov@mail.ru';
 
 // поиск юзеров по ИМЕНИ (частичное совпадение, до 10 результатов)
 window.fbFindUsersByName = async function(query) {
+  /* ПОИСК ПО ИМЕНИ — через сервер, по индексу. Ответ тот же, что раньше. */
   const user = _currentUser || auth.currentUser;
   if (!user) return { ok: false, error: 'Не авторизован' };
-  const q = (query || '').trim().toLowerCase();
+  const q = (query || '').trim();
   if (q.length < 2) return { ok: false, error: 'Введи минимум 2 буквы' };
   try {
-    const snap = await getDocs(collection(db, 'users'));
-    const found = [];
-    snap.forEach(d => {
-      if (d.id === user.uid) return;
-      const data = d.data();
-      const nm = (data.name || '').toLowerCase();
-      if (nm && nm.indexOf(q) !== -1) found.push({ uid: d.id, name: data.name || 'Пользователь', phone: data.phone || '' });
+    const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+    const r = await fetch(base + '/users/find', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: user.uid, mode: 'name', q: q })
     });
-    if (!found.length) return { ok: false, error: 'Никого с таким именем не найдено' };
-    return { ok: true, users: found.slice(0, 10) };
-  } catch (e) { return { ok: false, error: e.message }; }
+    const d = await r.json();
+    if (!d.ok) return { ok: false, error: d.error || 'Никого не найдено' };
+    return { ok: true, users: d.users || [] };
+  } catch (e) {
+    return { ok: false, error: 'Нет связи. Попробуй ещё раз' };
+  }
 };
 
 window.fbFindAdminUid = async function() {
+  /* 🔴 БЫЛО: ПОЛНЫЙ обход коллекции users — и это срабатывало ПРИ КАЖДОМ СТАРТЕ приложения
+     (создание контакта с админом). То есть каждый запуск скачивал всю базу юзеров.
+     СТАЛО: точечный запрос на сервере + результат запоминается навсегда
+     (uid админа не меняется) — обращение происходит ОДИН раз за всю жизнь установки. */
   try {
-    const snap = await getDocs(collection(db, 'users'));
-    let adminUid = null;
-    snap.forEach(d => { const em = (d.data().email || '').toLowerCase(); if (em === window.ADMIN_EMAIL) adminUid = d.id; });
-    return adminUid;
+    const cached = localStorage.getItem('focus_admin_uid');
+    if (cached) return cached;
+
+    const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+    const r = await fetch(base + '/users/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: window.ADMIN_EMAIL })
+    });
+    const d = await r.json();
+    if (!d.ok || !d.uid) return null;
+    try { localStorage.setItem('focus_admin_uid', d.uid); } catch(e){}
+    return d.uid;
   } catch (e) { return null; }
 };
 
@@ -741,6 +939,24 @@ window.fbGetAdminInbox = async function() {
 
 // Отправить сообщение (текст и/или вложение: фото/файл/перевод F-coin)
 // opts: { text, kind: 'text'|'photo'|'file'|'coins', data, fileName, amount }
+
+/* ПОДГРУЗКА ПОЛНОГО ФОТО/ФАЙЛА — только когда юзер реально тапнул по нему.
+   Результат запоминается в памяти: повторный тап не тянет из сети заново. */
+const _mediaCache = new Map();
+window.fbGetMedia = async function(chatId, mediaId) {
+  if (!chatId || !mediaId) return { ok: false };
+  const key = chatId + '/' + mediaId;
+  if (_mediaCache.has(key)) return { ok: true, data: _mediaCache.get(key), cached: true };
+  try {
+    const d = await getDoc(doc(db, 'chats', chatId, 'media', mediaId));
+    if (!d.exists()) return { ok: false, error: 'Файл не найден' };
+    const data = d.data().data || '';
+    if (_mediaCache.size > 20) _mediaCache.clear();   // не разрастаемся в памяти
+    _mediaCache.set(key, data);
+    return { ok: true, data: data };
+  } catch (e) { return { ok: false, error: e.message }; }
+};
+
 window.fbSendMessage = async function(chatId, opts) {
   const user = _currentUser || auth.currentUser;
   if (!user) return { ok: false };
@@ -756,8 +972,39 @@ window.fbSendMessage = async function(chatId, opts) {
       at: new Date().toISOString(),
       ts: serverTimestamp()
     };
-    if (kind === 'photo') msg.data = opts.data;              // base64 сжатого фото
-    if (kind === 'file') { msg.data = opts.data; msg.fileName = opts.fileName || 'файл'; msg.fileSize = opts.fileSize || ''; }
+    /* ═══ ТЯЖЁЛОЕ СОДЕРЖИМОЕ — В ОТДЕЛЬНЫЙ ДОКУМЕНТ ═══
+       Раньше фото и файлы лежали ПРЯМО ВНУТРИ сообщения. Из-за этого при каждом открытии
+       чата телефон скачивал ВСЕ фото целиком — даже те, что юзер не смотрит. 50 сообщений
+       с фото = десятки мегабайт на ровном месте: чат «грузился и тупил».
+       Теперь: само фото уходит в отдельный документ, а в сообщении остаётся только
+       КРОШЕЧНАЯ миниатюра (несколько КБ) — она видна сразу. Полное фото подгружается
+       ТОЛЬКО когда юзер по нему тапнул. */
+    if (kind === 'photo' || kind === 'file') {
+      let mediaId = null;
+      try {
+        const mref = await addDoc(collection(db, 'chats', chatId, 'media'), {
+          data: opts.data,
+          kind: kind,
+          fileName: opts.fileName || '',
+          from: user.uid,
+          at: new Date().toISOString()
+        });
+        mediaId = mref.id;
+      } catch (e) {
+        mediaId = null;   // правила ещё не обновлены — работаем по-старому, ничего не ломаем
+      }
+
+      if (mediaId) {
+        msg.mediaId = mediaId;
+        msg.thumb = opts.thumb || '';                       // мини-превью прямо в сообщении
+      } else {
+        msg.data = opts.data;                              // ЗАПАСНОЙ ПУТЬ: как раньше
+      }
+      if (kind === 'file') {
+        msg.fileName = opts.fileName || 'файл';
+        msg.fileSize = opts.fileSize || '';
+      }
+    }
     if (kind === 'coins') msg.amount = opts.amount || 0;     // перевод F-coin
     await addDoc(collection(db, 'chats', chatId, 'messages'), msg);
     // текст превью для списка чатов
@@ -791,48 +1038,44 @@ window.fbSendMessage = async function(chatId, opts) {
 
 // Перевод F-coin другому пользователю (в чате)
 window.fbTransferCoinsInChat = async function(chatId, toUid, amount) {
+  /* ПЕРЕВОД МОНЕТ.
+     Раньше это делал телефон: он пытался начислить монеты В ЧУЖОЙ документ, а правила это
+     запрещают → у отправителя списывалось, получателю НЕ приходило. Монеты просто исчезали.
+     Плюс проверялся общий баланс — можно было перевести ЗАРАБОТАННЫЕ монеты, чего нельзя.
+     Теперь всё считает сервер: проверяет КУПЛЕННЫЕ монеты и переводит атомарно. */
   const user = _currentUser || auth.currentUser;
   if (!user) return { ok: false, error: 'Не авторизован' };
   amount = parseInt(amount) || 0;
   if (amount <= 0) return { ok: false, error: 'Неверная сумма' };
+
   try {
-    // проверяем баланс отправителя
-    const meSnap = await getDoc(doc(db, 'users', user.uid));
-    const myCoins = (meSnap.exists() && meSnap.data().coins) || 0;
-    if (myCoins < amount) return { ok: false, error: 'Недостаточно F-coin (есть ' + myCoins + ')' };
-    // переток
-    await _transferCoins(user.uid, toUid, amount);
-    // сообщение-квитанция в чат
-    await window.fbSendMessage(chatId, { kind: 'coins', amount, text: '' });
-    return { ok: true, newBalance: myCoins - amount };
+    const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+    const r = await fetch(base + '/coins/transfer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: user.uid, toUid: toUid, amount: amount })
+    });
+    const d = await r.json();
+    if (!d.ok) return { ok: false, error: d.error || 'Перевод не прошёл' };
+
+    // синхронизируем баланс на телефоне с тем, что посчитал сервер
+    try {
+      if (window.FocusStorage) {
+        FocusStorage.saveUser({ coins: d.myCoins });
+        if (FocusStorage.setBoughtCoins) FocusStorage.setBoughtCoins(d.myBought);
+      }
+    } catch(e){}
+
+    // квитанция в чат (не задерживаем ответ — уходит следом)
+    window.fbSendMessage(chatId, { kind: 'coins', amount: amount, text: '' }).catch(function(){});
+
+    return { ok: true, newBalance: d.myCoins };
   } catch (e) {
-    return { ok: false, error: e.message };
+    return { ok: false, error: 'Нет связи. Перевод не выполнен' };
   }
 };
 
-// Добавить пользователя в контакты
-window.fbAddContact = async function(contactUid, name, phone) {
-  const user = _currentUser || auth.currentUser;
-  if (!user) return { ok: false };
-  try {
-    await setDoc(doc(db, 'users', user.uid, 'contacts', contactUid), {
-      uid: contactUid, name: name || 'Контакт', phone: phone || '', addedAt: new Date().toISOString()
-    }, { merge: true });
-    return { ok: true };
-  } catch (e) { return { ok: false, error: e.message }; }
-};
 
-// Получить список контактов
-window.fbGetContacts = async function() {
-  const user = _currentUser || auth.currentUser;
-  if (!user) return [];
-  try {
-    const snap = await getDocs(collection(db, 'users', user.uid, 'contacts'));
-    const list = [];
-    snap.forEach(d => list.push({ id: d.id, ...d.data() }));
-    return list;
-  } catch (e) { return []; }
-};
 
 // Глобальный поиск по чатам, сообщениям и файлам (как в WhatsApp)
 window.fbSearchChats = async function(queryText) {
@@ -848,7 +1091,9 @@ window.fbSearchChats = async function(queryText) {
     const matchedChats = chatList.filter(c => (c.withName || '').toLowerCase().includes(qq));
     // сообщения и файлы во всех чатах (ограничиваем для скорости)
     const matchedMessages = [];
-    for (const c of chatList) {
+    // ограничиваем: ищем по 20 последним чатам (раньше обходились ВСЕ чаты подряд —
+    // при 100 чатах это 100 запросов и секунды ожидания)
+    for (const c of chatList.slice(0, 20)) {
       try {
         // берём только последние 50 сообщений чата (не все — для скорости)
         const msgSnap = await getDocs(query(collection(db, 'chats', c.chatId, 'messages'), orderBy('ts', 'desc'), limit(50)));
@@ -936,34 +1181,6 @@ window.FOCUS_AI_PROXY = 'https://focus-ai.playing-life-rama.workers.dev';
 
 // Универсальный вызов ИИ. messages — массив [{role, content}]
 // Возвращает { ok, reply } или { ok:false, error }
-if (!window.fbAskAI) window.fbAskAI = async function(messages, maxTokens) {
-  try {
-    const res = await fetch(window.FOCUS_AI_PROXY, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, max_tokens: maxTokens || 600 })
-    });
-    // если воркер вернул не-200 — показываем статус
-    if (!res.ok) {
-      let detail = '';
-      try { const errData = await res.json(); detail = errData.error || errData.detail || ''; } catch(e){}
-      return { ok: false, error: 'Воркер вернул ' + res.status + (detail ? ': ' + detail : '') };
-    }
-    const data = await res.json();
-    if (data.ok && data.reply && data.reply.trim()) return { ok: true, reply: data.reply };
-    // пустой ответ модели — ОДИН авто-повтор (DeepSeek иногда отдаёт пусто)
-    try {
-      const res2 = await fetch(window.FOCUS_AI_PROXY, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, max_tokens: maxTokens || 600 })
-      });
-      if (res2.ok) { const d2 = await res2.json(); if (d2.ok && d2.reply && d2.reply.trim()) return { ok: true, reply: d2.reply }; }
-    } catch(e){}
-    return { ok: false, error: data.error || data.detail || 'Пустой ответ ИИ' };
-  } catch (e) {
-    return { ok: false, error: 'Нет связи с воркером: ' + e.message + ' (проверь адрес воркера и что он развёрнут)' };
-  }
-};
 
 // ИИ-подсказки ответов в чате: возвращает массив из 3 вариантов
 window.fbAiSuggestReplies = async function(chatId) {
@@ -1088,33 +1305,7 @@ window.fbPushEnabled = function() {
   return ('Notification' in window) && Notification.permission === 'granted';
 };
 
-window.fbAskAIJson = async function(messages, maxTokens) {
-  try {
-    const res = await fetch(window.FOCUS_AI_PROXY, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, max_tokens: maxTokens || 900, json: true })
-    });
-    const data = await res.json();
-    if (data.ok && data.reply) return { ok: true, reply: data.reply };
-    return { ok: false, error: data.error || 'Пустой ответ' };
-  } catch (e) { return { ok: false, error: 'Нет связи с ИИ: ' + e.message }; }
-};
 
-window.fbAskAIVision = async function(messages, imageDataUrl, maxTokens) {
-  try {
-    const res = await fetch(window.FOCUS_AI_PROXY, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, image: imageDataUrl, max_tokens: maxTokens || 700 })
-    });
-    const data = await res.json();
-    if (data.ok && data.reply) return { ok: true, reply: data.reply, visionUnsupported: !!data.visionUnsupported };
-    return { ok: false, error: data.error || 'Пустой ответ', detail: data.detail, hint: data.hint };
-  } catch (e) {
-    return { ok: false, error: 'Нет связи с ИИ: ' + e.message };
-  }
-};
 
 // ========== БЭКАП ДАННЫХ РАЗДЕЛОВ (безопасный, ручной вызов) ==========
 const _SYNC_SKIP = ['focus_realchats_cache','focus_geo_sent','_fb_synced','_fb_restored','focus_selected_child','focus_controlled_children'];
@@ -1187,7 +1378,7 @@ window.fbRestoreAllData = async function(){
         window.fbBackupAllData();
       }
     } catch(e){}
-  }, 30000);
+  }, 90000);   // было 30 сек — телефон дёргался каждые полминуты впустую
   // МГНОВЕННЫЙ сброс в облако — БЕЗ задержки (в отличие от fbBackupAllData c debounce).
   // Нужен на сворачивание/закрытие: там таймеры не успевают выполниться.
   window.fbFlushNow = function(){
@@ -1230,14 +1421,21 @@ window.fbCreateGroup = async function(name, description, avatar, memberUids) {
       participants: members,
       createdAt: new Date().toISOString()
     });
-    // добавляем группу в chatList каждого участника
-    for (const uid of members) {
-      await setDoc(doc(db, 'users', uid, 'chatList', groupId), {
-        chatId: groupId, type: 'group', withName: name || 'Группа',
-        avatar: avatar || '', lastText: 'Группа создана',
-        updatedAt: new Date().toISOString(), unread: 0
+    // Свой список чатов пишем сами...
+    await setDoc(doc(db, 'users', user.uid, 'chatList', groupId), {
+      chatId: groupId, type: 'group', withName: name || 'Группа',
+      avatar: avatar || '', lastText: 'Группа создана',
+      updatedAt: new Date().toISOString(), unread: 0
+    });
+    // ...а остальным участникам рассылает СЕРВЕР (в чужой документ клиенту писать нельзя —
+    // раньше из-за этого группа просто НЕ появлялась у людей).
+    try {
+      const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+      await fetch(base + '/group/sync', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: user.uid, groupId: groupId, note: 'Группа создана' })
       });
-    }
+    } catch(e){}
     return { ok: true, groupId };
   } catch (e) { return { ok: false, error: e.message }; }
 };
@@ -1286,11 +1484,14 @@ window.fbAddGroupMember = async function(groupId, newUid) {
     if (!g.exists()) return { ok: false, error: 'Группа не найдена' };
     const data = g.data();
     await setDoc(doc(db, 'chats', groupId), { participants: arrayUnion(newUid) }, { merge: true });
-    await setDoc(doc(db, 'users', newUid, 'chatList', groupId), {
-      chatId: groupId, type: 'group', withName: data.name || 'Группа',
-      avatar: data.avatar || '', lastText: 'Вас добавили в группу',
-      updatedAt: new Date().toISOString(), unread: 1
-    });
+    // добавление в список чатов нового участника — через сервер
+    try {
+      const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+      await fetch(base + '/group/sync', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: user.uid, groupId: groupId, note: 'Вас добавили в группу' })
+      });
+    } catch(e){}
     return { ok: true };
   } catch (e) { return { ok: false, error: e.message }; }
 };

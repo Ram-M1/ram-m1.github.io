@@ -528,7 +528,15 @@ initAtmosphere(canvasId) {
             } catch(e){ toast('Ошибка связи'); return; }
         }
         // ДЕМО-специалист (пока каталог не наполнен реальными) → локально
-        FocusStorage.spendCoins(price);
+        /* СПИСЫВАЕТ СЕРВЕР (телефону запрещено менять баланс).
+           Платить за Оракула можно ТОЛЬКО купленными монетами. */
+        if (window.fbSpendCoins) {
+            const sp = await window.fbSpendCoins(price, 'oracle');
+            if (!sp.ok) { toast(sp.error || 'Не хватает F-coin'); return; }
+            try { FocusStorage.saveUser({ coins: sp.coins }); } catch(e){}
+        } else {
+            FocusStorage.spendCoins(price);
+        }
         updateBalance();
         const orders = getMyOrders();
         orders.push({ id: Date.now(), psychicName: currentPsychic.name, formatName: selectedFormat.name, price, status: 'pending', createdAt: new Date().toISOString() });

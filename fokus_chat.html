@@ -691,7 +691,14 @@ initAtmosphere(canvasId) {
                     toast('Фото слишком тяжёлое даже после сжатия. Попробуй другое');
                     return;
                 }
-                pendingAttach = { kind:'photo', data: data, text:'' };
+
+                // МИНИАТЮРА (несколько КБ) — она лежит прямо в сообщении и видна МГНОВЕННО.
+                // Полное фото хранится отдельно и грузится только по тапу.
+                var thumb = '';
+                try { thumb = render(180, 0.45); } catch(e){}
+                if (thumb.length > 20000) { try { thumb = render(120, 0.35); } catch(e){} }
+
+                pendingAttach = { kind:'photo', data: data, thumb: thumb, text:'' };
                 showAttachPreview();
             };
             img.src = reader.result;
@@ -751,18 +758,90 @@ initAtmosphere(canvasId) {
             wrap.style.display = 'flex';
             wrap.style.flexDirection = 'column';
             const t = m.at ? new Date(m.at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}) : '';
+            const chatId = new URLSearchParams(location.search).get('chatId');
             let inner = '';
-            if (m.kind === 'photo' && m.data) {
-                inner = `<div class="msg ${mine?'me':'them'}"><img src="${m.data}" class="msg-img" onclick="window.open('${m.data}','_blank')">${m.text?'<div>'+escapeHtml(m.text)+'</div>':''}<span class="msg-time">${t}</span></div>`;
-            } else if (m.kind === 'file' && m.data) {
-                inner = `<div class="msg ${mine?'me':'them'}"><a href="${m.data}" download="${escapeHtml(m.fileName||'файл')}" class="msg-doc" style="text-decoration:none;color:inherit;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg><div><div class="msg-doc-name">${escapeHtml(m.fileName||'Файл')}</div><div style="font-size:10px;opacity:0.7;">${escapeHtml(m.fileSize||'')}</div></div></a><span class="msg-time">${t}</span></div>`;
+
+            if (m.kind === 'photo' && (m.thumb || m.data)) {
+                /* Показываем МИНИАТЮРУ (несколько КБ) — она приходит вместе с сообщением.
+                   Полное фото весит сотни КБ и грузится ТОЛЬКО по тапу (раньше все фото
+                   скачивались при каждом открытии чата — отсюда тормоза). */
+                const src = m.thumb || m.data;
+                inner = `<div class="msg ${mine?'me':'them'}"><img class="msg-img" data-full="${m.mediaId||''}" src="${src}">${m.text?'<div>'+escapeHtml(m.text)+'</div>':''}<span class="msg-time">${t}</span></div>`;
+
+            } else if (m.kind === 'file' && (m.mediaId || m.data)) {
+                inner = `<div class="msg ${mine?'me':'them'}"><div class="msg-doc" data-file="${m.mediaId||''}" data-name="${escapeHtml(m.fileName||'файл')}" style="cursor:pointer;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg><div><div class="msg-doc-name">${escapeHtml(m.fileName||'Файл')}</div><div style="font-size:10px;opacity:0.7;">${escapeHtml(m.fileSize||'')}</div></div></div><span class="msg-time">${t}</span></div>`;
+
             } else if (m.kind === 'coins') {
                 inner = `<div class="msg-coins">💰 ${mine?'Ты перевёл':'Тебе перевели'} ${m.amount} F-coin<span class="msg-time" style="display:block;color:#a88;">${t}</span></div>`;
             } else {
                 inner = `<div class="msg ${mine?'me':'them'}">${escapeHtml(m.text)}<span class="msg-time">${t}</span></div>`;
             }
             wrap.innerHTML = inner;
+
+            // ── тап по фото: подгружаем полное и открываем просмотрщик ──
+            const img = wrap.querySelector('.msg-img');
+            if (img) {
+                img.style.cursor = 'zoom-in';
+                img.addEventListener('click', async function(){
+                    let full = m.data || null;                       // старые сообщения: фото уже внутри
+                    if (!full && m.mediaId && window.fbGetMedia) {
+                        img.style.opacity = '0.55';
+                        const r = await window.fbGetMedia(chatId, m.mediaId);
+                        img.style.opacity = '1';
+                        if (!r.ok) { toast('Не удалось загрузить фото'); return; }
+                        full = r.data;
+                    }
+                    if (full) openPhotoViewer(full);
+                });
+            }
+
+            // ── тап по файлу: подгружаем и скачиваем ──
+            const fileEl = wrap.querySelector('.msg-doc');
+            if (fileEl) {
+                fileEl.addEventListener('click', async function(){
+                    let full = m.data || null;
+                    if (!full && m.mediaId && window.fbGetMedia) {
+                        fileEl.style.opacity = '0.55';
+                        const r = await window.fbGetMedia(chatId, m.mediaId);
+                        fileEl.style.opacity = '1';
+                        if (!r.ok) { toast('Не удалось загрузить файл'); return; }
+                        full = r.data;
+                    }
+                    if (!full) return;
+                    try {
+                        const a = document.createElement('a');
+                        a.href = full;
+                        a.download = m.fileName || 'файл';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } catch(e) { toast('Не удалось скачать'); }
+                });
+            }
+
             return wrap;
+        }
+
+        /* ПРОСМОТРЩИК ФОТО внутри приложения.
+           Раньше фото открывалось в новой вкладке — на iPhone это часто блокируется
+           и юзер вообще не мог посмотреть картинку. */
+        function openPhotoViewer(src){
+            const ov = document.createElement('div');
+            ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.95);' +
+                'display:flex;align-items:center;justify-content:center;padding:16px;' +
+                'padding-top:calc(16px + env(safe-area-inset-top,0px));';
+            const im = document.createElement('img');
+            im.src = src;
+            im.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;border-radius:10px;';
+            const close = document.createElement('div');
+            close.textContent = '✕';
+            close.style.cssText = 'position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:18px;' +
+                'width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.14);color:#fff;' +
+                'display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;';
+            ov.appendChild(im);
+            ov.appendChild(close);
+            ov.addEventListener('click', function(){ ov.remove(); });
+            document.body.appendChild(ov);
         }
 
         function startRealChat(){
@@ -774,10 +853,17 @@ initAtmosphere(canvasId) {
             try {
                 const cached = JSON.parse(localStorage.getItem(cacheKey));
                 if (cached && cached.length) {
+                    // Помечаем показанные — тогда, когда придут данные из облака,
+                    // список НЕ перерисуется заново: допишутся только новые сообщения.
+                    window.__shownIds = new Set();
                     const frag = document.createDocumentFragment();
-                    cached.forEach(m => frag.appendChild(renderMsg(m, m.from === myUid)));
+                    cached.forEach(function(m){
+                        window.__shownIds.add(m.id);
+                        frag.appendChild(renderMsg(m, m.from === myUid));
+                    });
                     area.innerHTML = '';
                     area.appendChild(frag);
+                    area.dataset.inited = '1';
                     area.scrollTop = area.scrollHeight;
                     if (window.__chatSetOldest && cached[0]) window.__chatSetOldest(cached[0]._ts);
                 }
@@ -792,15 +878,55 @@ initAtmosphere(canvasId) {
                     return;
                 }
                 const uid = myUidNow();
-                const frag = document.createDocumentFragment();
-                msgs.forEach(m => frag.appendChild(renderMsg(m, m.from === uid)));
-                area.innerHTML = '';
-                area.appendChild(frag);
-                area.scrollTop = area.scrollHeight;
-                // запоминаем самое старое из загруженных — от него подтянем историю при прокрутке вверх
+
+                /* ДОПИСЫВАЕМ НОВОЕ, А НЕ ПЕРЕРИСОВЫВАЕМ ВСЁ.
+                   Раньше на каждое обновление весь список сообщений СТИРАЛСЯ и рисовался
+                   заново — отсюда мелькание, рывки и тормоза в длинной переписке
+                   (50 сообщений с картинками = 50 узлов DOM заново каждый раз).
+                   Теперь на экране остаётся то, что уже нарисовано, а новое просто
+                   добавляется в конец — как в WhatsApp и MAX. */
+                if (!window.__shownIds) window.__shownIds = new Set();
+                var shown = window.__shownIds;
+
+                // первый показ (или чат переоткрыли) — рисуем разом
+                if (!area.dataset.inited) {
+                    const frag = document.createDocumentFragment();
+                    msgs.forEach(function(m){
+                        frag.appendChild(renderMsg(m, m.from === uid));
+                        shown.add(m.id);
+                    });
+                    area.innerHTML = '';
+                    area.appendChild(frag);
+                    area.dataset.inited = '1';
+                    area.scrollTop = area.scrollHeight;
+                } else {
+                    // дальше — только НОВЫЕ сообщения
+                    var atBottom = (area.scrollHeight - area.scrollTop - area.clientHeight) < 120;
+                    var added = 0;
+                    msgs.forEach(function(m){
+                        if (shown.has(m.id)) return;
+                        shown.add(m.id);
+                        area.appendChild(renderMsg(m, m.from === uid));
+                        added++;
+                    });
+                    // экран не дёргаем, если юзер читает старое
+                    if (added && atBottom) area.scrollTop = area.scrollHeight;
+                }
                 if (window.__chatSetOldest && msgs[0]) window.__chatSetOldest(msgs[0]._ts);
                 // кэшируем последние 50 для мгновенного показа в след. раз
-                try { localStorage.setItem(cacheKey, JSON.stringify(msgs.slice(-50))); } catch(e){}
+                // В КЭШ — БЕЗ ТЯЖЁЛОГО. Раньше сюда падали фото целиком (base64),
+                // и память телефона (лимит 5 МБ) переполнялась — приложение начинало молча ломаться.
+                // Миниатюру оставляем: она крошечная и даёт мгновенный показ при открытии чата.
+                try {
+                    const light = msgs.slice(-50).map(function(x){
+                        const c = Object.assign({}, x);
+                        delete c.data;           // полное фото/файл в кэше не держим
+                        return c;
+                    });
+                    localStorage.setItem(cacheKey, JSON.stringify(light));
+                } catch(e){
+                    try { localStorage.removeItem(cacheKey); } catch(_){}   // переполнено — чистим, не ломаемся
+                }
             });
         }
         if (window.FB_AUTH_READY) startRealChat();
@@ -913,7 +1039,10 @@ initAtmosphere(canvasId) {
 
             var myUid = (window.fbCurrentUser && fbCurrentUser()) ? fbCurrentUser().uid : null;
             var frag = document.createDocumentFragment();
-            r.messages.forEach(function(m){ frag.appendChild(renderMsg(m, m.from === myUid)); });
+            r.messages.forEach(function(m){
+                if (window.__shownIds) window.__shownIds.add(m.id);
+                frag.appendChild(renderMsg(m, m.from === myUid));
+            });
             area.insertBefore(frag, area.firstChild);
             area.scrollTop = area.scrollHeight - prevH;   // держим позицию — экран не прыгает
         } catch(e) { loader.remove(); }
@@ -923,7 +1052,14 @@ initAtmosphere(canvasId) {
     document.addEventListener('DOMContentLoaded', function(){
         var area = document.getElementById('messagesArea');
         if (!area) return;
+        // подгружаем историю ТОЛЬКО когда юзер сам прокрутил вверх и есть что прокручивать.
+        // Раньше срабатывало сразу при открытии чата — мелькала надпись «Загружаю историю».
+        var userScrolled = false;
+        area.addEventListener('touchstart', function(){ userScrolled = true; }, { passive: true });
+        area.addEventListener('wheel', function(){ userScrolled = true; }, { passive: true });
         area.addEventListener('scroll', function(){
+            if (!userScrolled) return;
+            if (area.scrollHeight <= area.clientHeight + 40) return;
             if (area.scrollTop < 60) loadOlder(area);
         });
     });
@@ -945,19 +1081,39 @@ initAtmosphere(canvasId) {
         return parts[0] === me ? parts[1] : parts[0];
     }
 
-    async function refreshStatus(){
+    var _lastPresence = null;
+
+    function paintStatus(p){
         var el = document.getElementById('hdrStatus');
-        if (!el || !peerUid || !window.fbGetPresence) return;
-        var p = await window.fbGetPresence(peerUid);
+        if (!el || !p) return;
+        _lastPresence = p;
         el.textContent = p.text || '';
         el.style.color = p.online ? '#5ecf9a' : '#8e8e9e';
+    }
+
+    async function refreshStatus(){
+        // запасной путь (если живая подписка недоступна)
+        if (!peerUid || !window.fbGetPresence) return;
+        paintStatus(await window.fbGetPresence(peerUid));
     }
 
     async function init(){
         peerUid = peerFromChat();
         if (!peerUid) return;
-        refreshStatus();
-        setInterval(refreshStatus, 30000);     // обновляем статус каждые 30 сек
+        /* ЖИВАЯ ПОДПИСКА вместо опроса.
+           Раньше телефон каждые 30 секунд спрашивал базу «он в сети?» — это 120 лишних
+           обращений в час и разряд батареи. Теперь база сама сообщает об изменении. */
+        if (window.fbWatchPresence) {
+            window.fbWatchPresence(peerUid, paintStatus);
+            // раз в 30 сек ПЕРЕРИСОВЫВАЕМ текст локально («был 5 мин назад» → «6 мин»),
+            // без обращения к сети
+            setInterval(function(){
+                if (_lastPresence && !_lastPresence.online) refreshStatus();
+            }, 60000);
+        } else {
+            refreshStatus();
+            setInterval(refreshStatus, 30000);
+        }
 
         var btn = document.getElementById('addContactBtn');
         if (!btn || !window.fbGetContacts) return;
@@ -966,7 +1122,7 @@ initAtmosphere(canvasId) {
         btn.style.display = 'flex';
         btn.addEventListener('click', async function(){
             btn.style.opacity = '0.5';
-            var r = window.fbAddContact ? await window.fbAddContact(peerUid) : { ok:false };
+            var r = window.fbAddContact ? await window.fbAddContact(peerUid, (typeof realChatName !== 'undefined' ? realChatName : ''), '') : { ok:false };
             if (r && r.ok) { btn.style.display = 'none'; if (window.toast) toast('✓ Добавлен в контакты'); }
             else { btn.style.opacity = '1'; if (window.toast) toast('Не удалось добавить'); }
         });

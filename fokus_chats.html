@@ -229,15 +229,17 @@
     .sheet-title { font-size:16px; font-weight:700; color:#fff; margin-bottom:4px; }
     .sheet-sub { font-size:11px; color:#9a9aab; margin-bottom:14px; line-height:1.4; }
     .contact-item { display:flex; align-items:center; gap:10px; padding:10px 4px; min-width:0; width:100%; box-sizing:border-box; overflow:hidden; }
-    .contact-item > .contact-avatar { flex-shrink:0; }
+    .contact-item > .contact-avatar { width:40px; height:40px; min-width:40px; max-width:40px; flex-shrink:0; border-radius:50%;
+        display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px; color:#0a0a0f;
+        background:linear-gradient(135deg, var(--accent), var(--accent-2)); overflow:hidden; }
     .contact-info { flex:1; min-width:0; }
     .contact-name { font-size:13.5px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     /* блок с именем занимает всё свободное место и УСЫХАЕТ, а не налезает на кнопки */
     .contact-info, .contact-item > div:not(.contact-action):not(.contact-avatar) { min-width:0; flex:1; }
     .contact-phone { font-size:11px; color:#8e8e9e; }
-    .contact-action { flex-shrink:0; font-size:11.5px; font-weight:700; padding:7px 13px; border-radius:10px; cursor:pointer; white-space:nowrap; }
+    .contact-action { flex-shrink:0; font-size:11px; font-weight:700; padding:7px 10px; border-radius:10px; cursor:pointer; white-space:nowrap; }
     /* компактная кнопка «+» — раньше длинная надпись «+ В контакты» выпихивала «Написать» за экран */
-    .contact-action.add-btn { width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center;
+    .contact-action.add-btn { width:30px; height:30px; min-width:30px; padding:0; display:flex; align-items:center; justify-content:center;
         font-size:18px; line-height:1; border-radius:10px;
         background:rgba(var(--accent-rgb),0.14); color:var(--accent); border:1px solid rgba(var(--accent-rgb),0.3); }
     .contact-action.has-app { background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; }
@@ -435,7 +437,7 @@ initAtmosphere(canvasId) {
         b.dataset.busy = '1';
         var old = b.textContent;
         b.textContent = '...';
-        var r = window.fbAddContact ? await window.fbAddContact(b.dataset.addc, b.dataset.addname || '') : { ok:false };
+        var r = window.fbAddContact ? await window.fbAddContact(b.dataset.addc, b.dataset.addname || '', b.dataset.addphone || '') : { ok:false };
         if (r && r.ok) {
             b.textContent = '✓';
             b.style.background = 'rgba(80,200,140,0.16)';
@@ -647,13 +649,16 @@ initAtmosphere(canvasId) {
             if (!res.ok) { resBox.innerHTML = '<div class="empty-chats">' + (res.error||'Не найден') + '</div>'; return; }
             matches = res.users;
         }
+        resBox.style.width = '100%';
+        resBox.style.boxSizing = 'border-box';
+        resBox.style.overflow = 'hidden';
         resBox.innerHTML = matches.map(function(u, i){
-            return '<div class="contact-item">'
-                + '<div class="chat-avatar" style="width:44px;height:44px;font-size:17px;">' + escapeHtml((u.name[0]||'?').toUpperCase()) + '</div>'
+            return '<div class="contact-item" style="width:100%;box-sizing:border-box;">'
+                + '<div class="chat-avatar" style="width:42px;height:42px;min-width:42px;flex-shrink:0;border-radius:50%;font-size:16px;">' + escapeHtml((u.name[0]||'?').toUpperCase()) + '</div>'
                 + '<div class="contact-info"><div class="contact-name">' + escapeHtml(u.name) + '</div>'
                 + '<div class="contact-phone">' + escapeHtml(u.phone||'') + '</div></div>'
                 + '<div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">'
-                + '<div class="contact-action add-btn" data-addc="' + escapeHtml(u.uid) + '" data-addname="' + escapeHtml(u.name) + '" title="Добавить в контакты">+</div>'
+                + '<div class="contact-action add-btn" data-addc="' + escapeHtml(u.uid) + '" data-addname="' + escapeHtml(u.name) + '" data-addphone="' + escapeHtml(u.phone||'') + '" title="Добавить в контакты">+</div>'
                 + '<div class="contact-action has-app" data-uid="' + escapeHtml(u.uid) + '" data-name="' + escapeHtml(u.name) + '">Написать</div>'
                 + '</div></div>';
         }).join('');
