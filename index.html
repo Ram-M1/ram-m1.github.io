@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v153 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v157 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -11,6 +11,9 @@
   } catch(e){}
 </script>
 <style>
+  /* ФОН — САМОЙ ПЕРВОЙ СТРОКОЙ. Раньше он задавался только в глубине CSS,
+     и браузер успевал мигнуть белым при каждом переходе на главную. */
+  html, body { background:#0a0a0f; margin:0; }
   html.booting, html.booting body { background:#000 !important; }
 </style>
 <script>try{var _t=localStorage.getItem('focus_theme')||'original';document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
@@ -659,22 +662,28 @@
 <script src="focus-analytics.js"></script>
 </head>
 <body>
-<div id="preGreetCover" style="position:fixed;inset:0;background:#000;z-index:2147483647;transition:opacity .5s;"></div>
+<div id="preGreetCover" style="position:fixed;inset:0;background:#000;z-index:2147483647;display:none;"></div>
 <script>
   // мгновенно решаем: если это новый юзер (не приветствовали) — держим чёрный экран, чтобы главная не мелькнула до приветствия
   (function(){ try {
     var greeted = localStorage.getItem('focus_greeted');
     var u = JSON.parse(localStorage.getItem('focus_user')||'{}');
     var cover = document.getElementById('preGreetCover');
-    if (greeted || !u || !u.name || !u.assistantName) {
-      // Приветствие не нужно (юзер уже в приложении) — убираем заглушку МГНОВЕННО, без плавного гашения.
-      // Раньше она гасла 0.4с при каждом возврате на главную — выглядело как «страница грузится дважды».
-      if (cover) { cover.style.transition = 'none'; cover.remove(); }
+    var needGreeting = !greeted && u && u.name && u.assistantName;
+
+    if (!needGreeting) {
+      // ПРИВЕТСТВИЕ НЕ НУЖНО — заглушки нет вообще.
+      // Раньше она была вписана прямо в HTML и браузер УСПЕВАЛ её нарисовать до скрипта:
+      // при каждом возврате на главную мелькал чёрный кадр («как будто грузится дважды»).
+      if (cover) cover.remove();
       document.documentElement.classList.remove('booting');
+      return;
     }
-    // иначе заглушка остаётся; initGreeting уберёт её когда оверлей появится
+
+    // нужно приветствие — только теперь показываем чёрный экран
+    if (cover) cover.style.display = 'block';
     // СТРАХОВКА: если приветствие не стартовало за 5с — убрать заглушку (чтоб не завис чёрный экран)
-    setTimeout(function(){ var c=document.getElementById('preGreetCover'); if(c){ c.style.opacity='0'; setTimeout(function(){ c&&c.remove(); },500); } }, 5000);
+    setTimeout(function(){ var c=document.getElementById('preGreetCover'); if(c){ c.style.transition='opacity .5s'; c.style.opacity='0'; setTimeout(function(){ c&&c.remove(); },500); } }, 5000);
   } catch(e){ var c=document.getElementById('preGreetCover'); if(c) c.remove(); } })();
 </script>
 <div class="phone">
@@ -2504,7 +2513,7 @@
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=153').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=157').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -2573,6 +2582,9 @@
         '«отметь что купил уголки» / «сделал X» — НАЙДИ это дело в справке по смыслу и верни его НОМЕР в "id".\n' +
         'НИКОГДА не создавай новое дело через fill, чтобы потом его закрыть — это дублирует задачи.\n' +
         'Если подходящего дела в справке НЕТ — так и скажи в reply, ничего не выдумывай.\n' +
+        'КОГДА ПЕРЕЧИСЛЯЕШЬ ДЕЛА: бери их ТОЛЬКО из справки (там лежат АКТИВНЫЕ дела) и ОБЯЗАТЕЛЬНО\n' +
+        'указывай, где дело лежит — «Сделать сейчас» / «Запланировано» / «Входящие». Группируй по этим разделам.\n' +
+        'ВЫПОЛНЕННЫЕ дела (архив) НИКОГДА не перечисляй — их в справке нет, и вспоминать их из переписки НЕЛЬЗЯ.\n' +
         'КРИТИЧНО: если пользователь попросил НЕСКОЛЬКО вещей — положи в actions КАЖДУЮ (три просьбы = три действия).\n' +
         'Если действий нет — "actions":[]. В "reply" НИКОГДА не пиши JSON, теги или служебные слова.';
 
@@ -2651,6 +2663,55 @@
         return { reply: clean, msgs: msgs2, json: false };
     };
     </script>
+    
+    <script>
+    /* КЛАВИАТУРА НЕ ДОЛЖНА ЗАКРЫВАТЬ ПОЛЕ ВВОДА.
+       На iOS клавиатура НЕ сжимает страницу — она просто наезжает сверху.
+       Поэтому поле ввода оказывалось ПОД ней: ты печатал вслепую (чёрный экран),
+       и текст был виден только после закрытия клавиатуры.
+       Решение: подгоняем окно чата под видимую часть экрана. */
+    (function(){
+        var vv = window.visualViewport;
+        if (!vv) return;
+
+        function fit(){
+            var win = document.querySelector('.ai-chat-window');
+            if (!win || win.style.display === 'none') return;
+            // видимая высота = экран минус клавиатура
+            win.style.height = vv.height + 'px';
+            win.style.top = vv.offsetTop + 'px';
+            win.style.bottom = 'auto';
+            // прокручиваем переписку вниз, чтобы последнее сообщение было видно
+            var body = document.querySelector('.ai-chat-messages');
+            if (body) body.scrollTop = body.scrollHeight;
+        }
+        function reset(){
+            var win = document.querySelector('.ai-chat-window');
+            if (!win) return;
+            win.style.height = '';
+            win.style.top = '';
+            win.style.bottom = '';
+        }
+
+        vv.addEventListener('resize', fit);
+        vv.addEventListener('scroll', fit);
+
+        // при фокусе на поле — подстроиться (клавиатура появляется с задержкой)
+        document.addEventListener('focusin', function(e){
+            if (e.target && e.target.classList && e.target.classList.contains('ai-chat-input')) {
+                setTimeout(fit, 60);
+                setTimeout(fit, 250);
+                setTimeout(fit, 500);
+            }
+        });
+        document.addEventListener('focusout', function(e){
+            if (e.target && e.target.classList && e.target.classList.contains('ai-chat-input')) {
+                setTimeout(reset, 100);
+            }
+        });
+    })();
+    </script>
+
     <script src="focus-chat-fab.js"></script>
     <style>
     #greetOverlay { position:absolute; inset:0; border-radius:52px; overflow:hidden; z-index:5000; display:block; opacity:0; transition:opacity 0.4s; pointer-events:auto; }

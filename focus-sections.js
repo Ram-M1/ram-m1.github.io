@@ -270,8 +270,11 @@ fill: function (data) {
       summary: function () {
         var bd = readJSON('focus_braindump', null);
         if (!bd) return null;
+        // номера всех дел, уже уехавших в архив — их ИИ видеть НЕ должен
+        var archived = {};
+        (bd.doneLog || []).forEach(function(x){ archived[String(x.id)] = true; });
         function line(arr, label) {
-          var act = (arr || []).filter(function(x){ return !x.done; });
+          var act = (arr || []).filter(function(x){ return !x.done && !archived[String(x.id)]; });
           if (!act.length) return null;
           // ВАЖНО: отдаём ИИ НОМЕРА дел — чтобы он отмечал существующее по номеру,
           // а не создавал новое «на всякий случай».

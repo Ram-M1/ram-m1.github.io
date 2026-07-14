@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
+<style>html,body{background:#0a0a0f;margin:0;}</style>
 <script>try{var _t=localStorage.getItem('focus_theme')||'original';document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
 <meta charset="UTF-8">
 <link rel="manifest" href="manifest.json">
@@ -973,6 +974,34 @@ initAtmosphere(canvasId) {
 
     if (window.FB_AUTH_READY) setTimeout(init, 300);
     else window.addEventListener('fb-auth-ready', function(){ setTimeout(init, 300); });
+})();
+</script>
+
+
+<script>
+/* КЛАВИАТУРА НЕ ЗАКРЫВАЕТ ПОЛЕ ВВОДА (iOS не сжимает страницу под клавиатуру) */
+(function(){
+    var vv = window.visualViewport;
+    if (!vv) return;
+    function fit(){
+        var ph = document.querySelector('.phone') || document.body;
+        ph.style.height = vv.height + 'px';
+        var area = document.getElementById('messagesArea');
+        if (area) area.scrollTop = area.scrollHeight;
+    }
+    function reset(){
+        var ph = document.querySelector('.phone') || document.body;
+        ph.style.height = '';
+    }
+    vv.addEventListener('resize', fit);
+    document.addEventListener('focusin', function(e){
+        if (e.target && e.target.classList && e.target.classList.contains('chat-input')) {
+            setTimeout(fit, 60); setTimeout(fit, 250); setTimeout(fit, 500);
+        }
+    });
+    document.addEventListener('focusout', function(e){
+        if (e.target && e.target.classList && e.target.classList.contains('chat-input')) setTimeout(reset, 100);
+    });
 })();
 </script>
 

@@ -12,7 +12,6 @@
 */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signOut, onAuthStateChanged, sendEmailVerification, reload,
@@ -1049,6 +1048,17 @@ window.fbEnablePush = async function() {
     }
     const perm = await Notification.requestPermission();
     if (perm !== 'granted') return { ok: false, error: 'Уведомления не разрешены' };
+
+    // Модуль уведомлений подгружаем ТОЛЬКО здесь, по нажатию кнопки.
+    // Раньше он подключался вверху файла — и если браузер его не тянул,
+    // ломался ВЕСЬ файл авторизации, и в приложение было не зайти.
+    let getMessaging, getToken, onMessage;
+    try {
+      const m = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js");
+      getMessaging = m.getMessaging; getToken = m.getToken; onMessage = m.onMessage;
+    } catch (e) {
+      return { ok: false, error: 'Уведомления не поддерживаются этим браузером' };
+    }
 
     const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
     const messaging = getMessaging(app);
