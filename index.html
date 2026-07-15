@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v184 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v186 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -671,6 +671,27 @@
 <script src="focus-analytics.js"></script>
 </head>
 <body>
+<script>
+/* ГЛОБАЛЬНАЯ разблокировка звука+вибро — на ПЕРВОЕ касание страницы (любое).
+   Приветствие может стартовать после перезагрузки (правка профиля), и тогда
+   контекст касания теряется. Поэтому разблокируем заранее и держим готовым. */
+window._focusAudioCtx = null;
+window._focusUnlockAudio = function(){
+  try {
+    if(!window._focusAudioCtx) window._focusAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if(window._focusAudioCtx.state==='suspended') window._focusAudioCtx.resume();
+    var b=window._focusAudioCtx.createBuffer(1,1,22050), sr=window._focusAudioCtx.createBufferSource();
+    sr.buffer=b; sr.connect(window._focusAudioCtx.destination); sr.start(0);
+  } catch(e){}
+};
+(function(){
+  function u(){ window._focusUnlockAudio(); document.removeEventListener('touchstart',u); document.removeEventListener('pointerdown',u); document.removeEventListener('click',u); }
+  document.addEventListener('touchstart',u,{passive:true});
+  document.addEventListener('pointerdown',u,{passive:true});
+  document.addEventListener('click',u);
+})();
+</script>
+
 <div id="preGreetCover" style="position:fixed;inset:0;background:#000;z-index:2147483647;display:none;"></div>
 <script>
   // мгновенно решаем: если это новый юзер (не приветствовали) — держим чёрный экран, чтобы главная не мелькнула до приветствия
@@ -2667,7 +2688,7 @@
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=184').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=186').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -3001,7 +3022,7 @@
     }
     @keyframes spotBreath { 0%,100%{ opacity:0.5; transform:scale(1); } 50%{ opacity:1; transform:scale(1.1); } }
     .greet-box { position:absolute; left:50%; transform:translateX(-50%); width:calc(100% - 44px); max-width:350px; background:transparent; border:none; border-radius:0; padding:6px; text-align:center; z-index:5003; box-shadow:none; top:50%; margin-top:-140px; max-height:none; overflow:visible; transition:top 1.0s cubic-bezier(0.34,1,0.64,1), margin-top 1.0s, left 1.0s, transform 1.0s, opacity 0.6s; }
-    #greetOrbFree { position:absolute; z-index:5102; width:360px; height:640px; left:50%; top:320px; transform:translate(-50%,-50%); transition:left 1.5s cubic-bezier(0.4,0,0.2,1), top 1.5s cubic-bezier(0.4,0,0.2,1), width 1.5s, height 1.5s, opacity 0.6s; pointer-events:none; }
+    #greetOrbFree { position:absolute; z-index:5102; width:360px; height:760px; left:50%; top:320px; transform:translate(-50%,-50%); transition:left 1.5s cubic-bezier(0.4,0,0.2,1), top 1.5s cubic-bezier(0.4,0,0.2,1), width 1.5s, height 1.5s, opacity 0.6s; pointer-events:none; }
     #greetOrbFree canvas { width:100%; height:100%; display:block; }
     #greetOverlay.darkbg { background:#000; }
     #greetOverlay.finishing::before { opacity:0 !important; }
@@ -3154,7 +3175,7 @@
             ov.innerHTML = '<div class="greet-spotlight" id="greetSpot"><i></i></div>' +
                 '<canvas id="greetFx" style="position:absolute;inset:0;z-index:5115;pointer-events:none;"></canvas>' +
                 '' +
-                '<div id="greetOrbFree"><canvas class="focus-orb-canvas greet-orb" width="360" height="640" data-birth="1"></canvas></div>' +
+                '<div id="greetOrbFree"><canvas class="focus-orb-canvas greet-orb" width="360" height="760" data-birth="1"></canvas></div>' +
                 '<div class="greet-box" id="greetBox">' +
                     '<div class="greet-name" id="greetTitle"></div>' +
                     '<div class="greet-text" id="greetTextEl"></div>' +
@@ -3218,23 +3239,13 @@
             function orbCenter(){ var el=document.querySelector('.greet-orb'); var cr=fxCv.getBoundingClientRect(); if(!el) return {x:cr.width/2,y:200}; var r=el.getBoundingClientRect(); return {x:r.left+r.width/2-cr.left, y:r.top+r.height/2-cr.top}; }
 
             // ===== ЗВУК + ТРЯСКА + ВИБРО для заставки (Web Audio, синтез — без файлов) =====
-            var _actx = null, _audioUnlocked=false;
             function _audio(){
-                if(_actx) return _actx;
-                try { _actx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){ _actx=null; }
-                return _actx;
+                // используем ГЛОБАЛЬНЫЙ контекст (уже разблокирован первым касанием)
+                if(window._focusAudioCtx){ try { if(window._focusAudioCtx.state==='suspended') window._focusAudioCtx.resume(); } catch(e){} return window._focusAudioCtx; }
+                try { window._focusAudioCtx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){ window._focusAudioCtx=null; }
+                return window._focusAudioCtx;
             }
-            // разблокировка звука на первом касании (браузеры блокируют автоплей)
-            (function(){
-                function unlock(){
-                    if(_audioUnlocked) return;
-                    var a=_audio(); if(a){ try { if(a.state==='suspended') a.resume(); var b=a.createBuffer(1,1,22050); var s=a.createBufferSource(); s.buffer=b; s.connect(a.destination); s.start(0); _audioUnlocked=true; } catch(e){} }
-                    document.removeEventListener('touchstart', unlock);
-                    document.removeEventListener('click', unlock);
-                }
-                document.addEventListener('touchstart', unlock, {passive:true});
-                document.addEventListener('click', unlock);
-            })();
+            // (разблокировка звука теперь глобальная — в начале страницы)
             // ГУЛ зарождающегося ядра — низкая нарастающая волна (космический гул)
             function _coreHum(durMs){
                 var ac=_audio(); if(!ac) return;
@@ -3294,7 +3305,8 @@
                 var bx = bcv.getContext('2d');
                 // ЗВУК зарождения ядра — глубокий нарастающий гул (первые ~2с)
                 try { var _a=_audio(); if(_a && _a.state==='suspended') _a.resume(); } catch(e){}
-                _coreHum(2000);
+                // небольшая задержка — даём контексту проснуться после resume (иначе первый звук глохнет)
+                setTimeout(function(){ _coreHum(2000); }, 60);
                 var ph = document.querySelector('.phone'); var PWc = ph?ph.clientWidth:375, PHc = ph?ph.clientHeight:700;
                 bcv.width = PWc*2; bcv.height = PHc*2; bcv.style.width = PWc+'px'; bcv.style.height = PHc+'px'; bx.setTransform(2,0,0,2,0,0);
                 var R = 70;                      // радиус крупной формы рождения
