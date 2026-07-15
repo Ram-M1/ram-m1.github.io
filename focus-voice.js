@@ -133,11 +133,28 @@
       load();
       if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = load;
       setTimeout(load, 300);
+      setTimeout(load, 1000);   // iOS иногда отдаёт голоса с задержкой
       // читаем настройку юзера (вкл/выкл озвучки)
       try {
         const u = window.FocusStorage && FocusStorage.getUser();
         if (u && typeof u.voiceReply === 'boolean') this.enabled = u.voiceReply;
       } catch(e){}
+
+      /* iOS/Safari блокируют синтез речи, пока не было касания экрана.
+         Разблокируем движок при ПЕРВОМ касании — коротким беззвучным произнесением.
+         Без этого озвучка молча не срабатывает на айфоне. */
+      const unlock = () => {
+        try {
+          const u = new SpeechSynthesisUtterance('');
+          u.volume = 0;
+          speechSynthesis.speak(u);
+          this._unlocked = true;
+        } catch(e){}
+        document.removeEventListener('touchend', unlock);
+        document.removeEventListener('click', unlock);
+      };
+      document.addEventListener('touchend', unlock, { once:true });
+      document.addEventListener('click', unlock, { once:true });
     },
 
     // проговорить текст
@@ -145,18 +162,30 @@
       if (!this.enabled || !('speechSynthesis' in window)) { if (onDone) onDone(); return; }
       const clean = this._clean(text);
       if (!clean) { if (onDone) onDone(); return; }
-      try {
-        speechSynthesis.cancel();   // прервать предыдущее
-        const u = new SpeechSynthesisUtterance(clean);
-        u.lang = 'ru-RU';
-        if (!this._voice) this._voice = this._pickVoice();
-        if (this._voice) u.voice = this._voice;
-        u.pitch = this.pitch;
-        u.rate = this.rate;
-        u.onend = () => { if (onDone) onDone(); };
-        u.onerror = () => { if (onDone) onDone(); };
-        speechSynthesis.speak(u);
-      } catch(e) { if (onDone) onDone(); }
+
+      const doSpeak = () => {
+        try {
+          speechSynthesis.cancel();   // прервать предыдущее
+          const u = new SpeechSynthesisUtterance(clean);
+          u.lang = 'ru-RU';
+          if (!this._voice) this._voice = this._pickVoice();
+          if (this._voice) u.voice = this._voice;
+          u.pitch = this.pitch;
+          u.rate = this.rate;
+          u.onend = () => { if (onDone) onDone(); };
+          u.onerror = () => { if (onDone) onDone(); };
+          speechSynthesis.speak(u);
+          // БАГ SAFARI: синтез иногда «засыпает» — будим его
+          setTimeout(function(){ try { if (speechSynthesis.paused) speechSynthesis.resume(); } catch(e){} }, 100);
+        } catch(e) { if (onDone) onDone(); }
+      };
+
+      // если голоса ещё не загрузились — ждём чуть и пробуем
+      if (!this._voice) {
+        this._voice = this._pickVoice();
+        if (!this._voice) { setTimeout(doSpeak, 350); return; }
+      }
+      doSpeak();
     },
 
     // остановить (при перебивании — юзер снова заговорил)

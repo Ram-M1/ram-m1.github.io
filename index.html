@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v179 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v184 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -135,6 +135,15 @@
         45% { transform: translate(-3px,1px); }
         60% { transform: translate(3px,-1px); }
         75% { transform: translate(-2px,0); }
+    }
+    /* Лёгкая тряска для ударов молний в заставке (частые, поэтому короче и мягче) */
+    .phone.bolt-shake { animation: boltShake 0.16s ease-out; }
+    @keyframes boltShake {
+        0% { transform: translate(0,0); }
+        25% { transform: translate(-3px,1.5px); }
+        50% { transform: translate(3px,-1.5px); }
+        75% { transform: translate(-1.5px,1px); }
+        100% { transform: translate(0,0); }
     }
     .phone::before {
         content: '';
@@ -1864,6 +1873,7 @@
             });
             return matched;
         }
+        window._focusRecognize = recognize;
 
         // извлечь ПОЛЕЗНЫЙ текст из команды (что заполнять) — убрать глаголы и триггер-слово
         // ВАЖНО: \b не работает с кириллицей в JS, поэтому границы через пробелы/начало
@@ -1970,6 +1980,7 @@
                                 result.innerHTML = '<span class="check">✓</span> ' + directMsgs.join('; ').replace(/</g,'&lt;');
                             } else {
                                 result.innerHTML = '🧠 ' + reply.replace(/</g,'&lt;').replace(/\n/g,'<br>');
+                            _focusSpeakIfVoice(reply);
                             }
                         }
                         try { if (FocusStorage.useAI) FocusStorage.useAI('mentor','text'); } catch(e){}
@@ -2073,6 +2084,7 @@
                                 window._focusOpenChat();           // чат покажет обмен из памяти
                             } else {
                                 result.innerHTML = '🧠 ' + reply.replace(/</g,'&lt;').replace(/\n/g,'<br>');
+                            _focusSpeakIfVoice(reply);
                             }
                         }
                     } else {
@@ -2095,11 +2107,81 @@
         input.addEventListener('keydown', (e) => { if (e.key === 'Enter') process(); });
 
         // экспорт для голосового вызова: подставить команду и выполнить
+
+        // Единая озвучка ответа для компактного чата (голосом отвечаем, если команда была голосовой)
+        function _focusSpeakIfVoice(replyText){
+            try {
+                if (window._focusVoiceMode && window.FocusSpeak && replyText) {
+                    var wasListening = window.FocusVoice && FocusVoice.active;
+                    if (wasListening) { try { FocusVoice.stop(); } catch(e){} }
+                    FocusSpeak.speak(replyText, function(){
+                        if (wasListening && window._focusReenableWake) { try { window._focusReenableWake(); } catch(e){} }
+                    });
+                }
+            } catch(e){}
+            window._focusVoiceMode = false;
+        }
+
+
+        /* ═══ ЕДИНОЕ ЯДРО АССИСТЕНТА ═══
+           Один мозг для компактного и расширенного вида. Раньше логика была
+           продублирована и разъехалась: расширенный чат не умел половину того,
+           что компактный (прогресс, лимиты, __NEEDCREATE__). Теперь оба зовут это. */
+        window._focusHandleAIReply = function(rawReply, matchedActions, sourceText){
+            var full = String(rawReply || '').trim();
+            var out = { reply: '', msgs: [], needCreate: null, filled: false };
+            if (!full) return out;
+            // если действия не переданы — распознаём сами из текста юзера (единая логика)
+            if (!matchedActions && sourceText && window._focusRecognize) {
+                try { matchedActions = window._focusRecognize(sourceText); } catch(e){}
+            }
+
+            // выполняем ВСЕ команды из ответа (заполнения + отметки + напоминания)
+            var parsed = window.focusParseAI(full, null, null);
+            out.reply = parsed.reply || full;
+            var allMsgs = parsed.msgs || [];
+
+            // __NEEDCREATE__ — ассистент не выдумывает то, чего нет
+            if (out.reply.indexOf('__NEEDCREATE__') !== -1) {
+                out.needCreate = out.reply.replace('__NEEDCREATE__', '').trim();
+                out.reply = '';
+                return out;
+            }
+
+            if (allMsgs.length) { out.msgs = allMsgs; out.filled = true; }
+            else if (matchedActions && matchedActions.length) {
+                // ИИ ответил без тега, но юзер явно хотел заполнить → заполняем напрямую + прогресс
+                matchedActions.forEach(function(m){
+                    try {
+                        var secId = (window.SEC_MAP && SEC_MAP[m.action]) || m.action;
+                        var content = (window.extractContent && sourceText) ? extractContent(sourceText, m) : '';
+                        if (window.FocusRewards) FocusRewards.mark(m.sphere, m.action);
+                        if (window.markSectionDone) markSectionDone(m.action);
+                        if (content && window.FocusSections && FocusSections.SECTIONS[secId]) {
+                            var dm = FocusSections.fill(secId, content);
+                            if (dm) out.msgs.push(dm);
+                        }
+                    } catch(e){}
+                });
+                if (out.msgs.length) out.filled = true;
+            }
+            return out;
+        };
+
         window._focusProcessVoiceCommand = function(command){
             if (!command) { input.focus(); return; }
-            input.value = command;
             window._focusVoiceMode = true;   // пометка: команда пришла голосом → ответ озвучиваем
-            process();
+            // Отправляем в ТОТ чат, что сейчас открыт.
+            // Раньше всегда шло в компактный — и если открыт расширенный, команда
+            // «терялась» (уходила в скрытый компактный экран).
+            var overlay = document.getElementById('aiChatOverlay');
+            var expandedOpen = overlay && (overlay.classList.contains('show') || overlay.classList.contains('active') || overlay.style.display === 'flex' || overlay.style.display === 'block');
+            if (expandedOpen && window._focusSendChatVoice) {
+                window._focusSendChatVoice(command);   // расширенный чат
+            } else {
+                input.value = command;
+                process();                              // компактный
+            }
         };
 
         // ===== РАЗВЁРНУТЫЙ ЧАТ С ИИ (диалог + заполнение разделов) =====
@@ -2289,26 +2371,20 @@
                 typing.remove();
 
                 if (res.ok && res.reply && res.reply.trim()) {
-                    let reply = res.reply.trim();
-                    // ВЫПОЛНЯЕМ ВСЕ КОМАНДЫ (раньше бралась только первая — из трёх просьб делалась одна)
-                    var parsed = window.focusParseAI(reply, applyFill, addFilled);
-                    reply = parsed.reply;
-                    if (parsed.msgs && parsed.msgs.length) addFilled(parsed.msgs.join('; '));
-                    if (reply) addMsg('bot', reply);
-                    // ОЗВУЧКА: если команда пришла голосом — проговариваем ответ киношным голосом
-                    try {
-                        if (window._focusVoiceMode && window.FocusSpeak && reply) {
-                            // пауза прослушивания на время речи (чтоб не услышать сам себя), потом снова слушаем
-                            var wasListening = window.FocusVoice && FocusVoice.active;
-                            if (wasListening) { try { FocusVoice.stop(); } catch(e){} }
-                            FocusSpeak.speak(reply, function(){
-                                if (wasListening && window._focusReenableWake) { try { window._focusReenableWake(); } catch(e){} }
-                            });
-                        }
-                    } catch(e){}
-                    window._focusVoiceMode = false;   // сбрасываем флаг
-                    var _mem = (parsed && parsed.reply) ? parsed.reply : (window.focusStripTags ? window.focusStripTags(res.reply) : res.reply);
-                    if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: _mem }); else history.push({ role:'assistant', content: _mem });
+                    // память
+                    if (window.FocusChatMemory) FocusChatMemory.push({ role:'assistant', content: (window.focusStripTags ? window.focusStripTags(res.reply.trim()) : res.reply.trim()) });
+
+                    // ЕДИНОЕ ЯДРО: те же способности, что в компактном (команды, прогресс, __NEEDCREATE__)
+                    var h = window._focusHandleAIReply(res.reply, null, text);
+
+                    if (h.needCreate) {
+                        addMsg('bot', h.needCreate);           // не выдумывает несуществующее
+                    } else {
+                        if (h.msgs && h.msgs.length) addFilled(h.msgs.join('; '));
+                        if (h.reply) addMsg('bot', h.reply);
+                        // озвучка (если команда голосом)
+                        _focusSpeakIfVoice(h.reply || (h.msgs || []).join('; '));
+                    }
                     try { if (FocusStorage.useAI) FocusStorage.useAI('mentor','text'); } catch(e){}
                 } else {
                     addMsg('bot', '⚠️ ' + (res.error || 'Не ответил, попробуй ещё раз'));
@@ -2317,6 +2393,12 @@
 
             chatSend.addEventListener('click', sendChat);
             chatInput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') sendChat(); });
+
+            // ГОЛОСОВАЯ команда в расширенный чат (флаг озвучки уже стоит в _focusProcessVoiceCommand)
+            window._focusSendChatVoice = function(text){
+                chatInput.value = text;
+                sendChat();
+            };
 
             // ЕДИНЫЙ АССИСТЕНТ: открыть чат и сразу отправить сообщение из компактной карточки
             window._focusOpenChatWith = function(text){
@@ -2585,7 +2667,7 @@
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=179').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=184').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -3135,10 +3217,84 @@
             })();
             function orbCenter(){ var el=document.querySelector('.greet-orb'); var cr=fxCv.getBoundingClientRect(); if(!el) return {x:cr.width/2,y:200}; var r=el.getBoundingClientRect(); return {x:r.left+r.width/2-cr.left, y:r.top+r.height/2-cr.top}; }
 
+            // ===== ЗВУК + ТРЯСКА + ВИБРО для заставки (Web Audio, синтез — без файлов) =====
+            var _actx = null, _audioUnlocked=false;
+            function _audio(){
+                if(_actx) return _actx;
+                try { _actx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){ _actx=null; }
+                return _actx;
+            }
+            // разблокировка звука на первом касании (браузеры блокируют автоплей)
+            (function(){
+                function unlock(){
+                    if(_audioUnlocked) return;
+                    var a=_audio(); if(a){ try { if(a.state==='suspended') a.resume(); var b=a.createBuffer(1,1,22050); var s=a.createBufferSource(); s.buffer=b; s.connect(a.destination); s.start(0); _audioUnlocked=true; } catch(e){} }
+                    document.removeEventListener('touchstart', unlock);
+                    document.removeEventListener('click', unlock);
+                }
+                document.addEventListener('touchstart', unlock, {passive:true});
+                document.addEventListener('click', unlock);
+            })();
+            // ГУЛ зарождающегося ядра — низкая нарастающая волна (космический гул)
+            function _coreHum(durMs){
+                var ac=_audio(); if(!ac) return;
+                try {
+                    var t=ac.currentTime, dur=durMs/1000;
+                    // два осциллятора: глубокий бас + гармоника, нарастают и уходят
+                    var o1=ac.createOscillator(), o2=ac.createOscillator(), g=ac.createGain(), flt=ac.createBiquadFilter();
+                    o1.type='sine'; o2.type='triangle';
+                    o1.frequency.setValueAtTime(42, t); o1.frequency.exponentialRampToValueAtTime(88, t+dur*0.7);
+                    o2.frequency.setValueAtTime(84, t); o2.frequency.exponentialRampToValueAtTime(176, t+dur*0.7);
+                    flt.type='lowpass'; flt.frequency.setValueAtTime(200, t); flt.frequency.linearRampToValueAtTime(900, t+dur);
+                    g.gain.setValueAtTime(0, t);
+                    g.gain.linearRampToValueAtTime(0.16, t+dur*0.45);   // нарастание
+                    g.gain.linearRampToValueAtTime(0.10, t+dur*0.8);
+                    g.gain.linearRampToValueAtTime(0, t+dur);           // затухание
+                    o1.connect(flt); o2.connect(flt); flt.connect(g); g.connect(ac.destination);
+                    o1.start(t); o2.start(t); o1.stop(t+dur); o2.stop(t+dur);
+                } catch(e){}
+            }
+            // РАЗРЯД молнии — резкий электрический треск (шум + быстрый спад)
+            function _zap(){
+                var ac=_audio(); if(!ac) return;
+                try {
+                    var t=ac.currentTime;
+                    // белый шум через буфер
+                    var len=Math.floor(ac.sampleRate*0.18), buf=ac.createBuffer(1,len,ac.sampleRate), d=buf.getChannelData(0);
+                    for(var i=0;i<len;i++){ d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.5); }  // затухающий шум
+                    var src=ac.createBufferSource(); src.buffer=buf;
+                    var flt=ac.createBiquadFilter(); flt.type='bandpass'; flt.frequency.value=2200; flt.Q.value=0.7;
+                    var g=ac.createGain(); g.gain.setValueAtTime(0.28, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.18);
+                    // + короткий тональный «щелчок» сверху
+                    var o=ac.createOscillator(); o.type='square'; o.frequency.setValueAtTime(1400,t); o.frequency.exponentialRampToValueAtTime(300,t+0.08);
+                    var og=ac.createGain(); og.gain.setValueAtTime(0.12,t); og.gain.exponentialRampToValueAtTime(0.001,t+0.09);
+                    src.connect(flt); flt.connect(g); g.connect(ac.destination);
+                    o.connect(og); og.connect(ac.destination);
+                    src.start(t); o.start(t); o.stop(t+0.1);
+                } catch(e){}
+            }
+            // УДАР: тряска экрана (Mortal Kombat) + вибро телефона + звук разряда
+            var _lastStrike=0;
+            function _focusStrike(){
+                var now=Date.now();
+                if(now-_lastStrike < 140) return;   // не чаще ~7 раз/сек, чтоб не тряслось безумно
+                _lastStrike=now;
+                // тряска
+                var ph=document.querySelector('.phone');
+                if(ph){ ph.classList.remove('bolt-shake'); void ph.offsetWidth; ph.classList.add('bolt-shake'); setTimeout(function(){ ph.classList.remove('bolt-shake'); }, 160); }
+                // вибрация (лёгкая, как просил)
+                if(navigator.vibrate){ try { navigator.vibrate(22); } catch(e){} }
+                // звук разряда
+                _zap();
+            }
+
             // ===== ПОЛНОЕ РОЖДЕНИЕ ОРБА (фазы: ядро → пыль с краёв → молнии пробивают → сетка ткётся молниями) =====
             function runBirth(cx, cy, onDone){
                 var bcv = document.getElementById('greetBirth'); if(!bcv){ onDone&&onDone(); return; }
                 var bx = bcv.getContext('2d');
+                // ЗВУК зарождения ядра — глубокий нарастающий гул (первые ~2с)
+                try { var _a=_audio(); if(_a && _a.state==='suspended') _a.resume(); } catch(e){}
+                _coreHum(2000);
                 var ph = document.querySelector('.phone'); var PWc = ph?ph.clientWidth:375, PHc = ph?ph.clientHeight:700;
                 bcv.width = PWc*2; bcv.height = PHc*2; bcv.style.width = PWc+'px'; bcv.style.height = PHc+'px'; bx.setTransform(2,0,0,2,0,0);
                 var R = 70;                      // радиус крупной формы рождения
@@ -3207,8 +3363,18 @@
                     }
                     // проекция узлов
                     var pc=nodes.map(function(n){return proj(n.lat,n.lon,rot);});
-                    // МОЛНИИ ПРОБИВАЮТ ядро
-                    if(e>T_pierceS && e<T_pierceE && Math.random()<0.28){ var pa=Math.random()*6.28; addBolt(cx+Math.cos(pa)*150,cy+Math.sin(pa)*150,cx,cy,22,2.4,1); }
+                    // МОЛНИИ ПРОБИВАЮТ ядро — от САМЫХ КРАЁВ экрана, со всех сторон (как в рабочем орбе)
+                    if(e>T_pierceS && e<T_pierceE && Math.random()<0.32){
+                        // выбираем случайную точку прямо НА КРАЮ экрана (все 4 стороны + углы)
+                        var edge=Math.floor(Math.random()*4), ex, ey;
+                        if(edge===0){ ex=Math.random()*PWc; ey=-4; }           // верх
+                        else if(edge===1){ ex=PWc+4; ey=Math.random()*PHc; }   // право
+                        else if(edge===2){ ex=Math.random()*PWc; ey=PHc+4; }   // низ
+                        else { ex=-4; ey=Math.random()*PHc; }                  // лево
+                        // disp больше (размах молнии шире на длинной дистанции)
+                        addBolt(ex, ey, cx, cy, 40, 2.6, 1);
+                        _focusStrike();   // УДАР: тряска экрана (как в Mortal Kombat) + вибро + звук
+                    }
                     // СЕТКА ТКЁТСЯ МОЛНИЯМИ (узлы раскрываются, дуги-молнии по рёбрам)
                     if(revealN>0){
                         var revealed=new Array(nodes.length).fill(false); for(var r=0;r<revealN;r++) revealed[revealOrder[r]]=true;

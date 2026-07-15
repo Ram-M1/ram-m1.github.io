@@ -18,27 +18,39 @@
 
   /** Общий запрос к воркеру с таймаутом */
   async function call(body, timeoutMs) {
-    const controller = new AbortController();
-    const timer = setTimeout(function(){ controller.abort(); }, timeoutMs || TIMEOUT_MS);
-    try {
-      const res = await fetch(window.FOCUS_AI_PROXY, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: controller.signal
-      });
-      clearTimeout(timer);
-      if (!res.ok) {
-        let detail = '';
-        try { const e = await res.json(); detail = e.error || e.detail || ''; } catch(_){}
-        return { ok: false, error: 'Воркер вернул ' + res.status + (detail ? ': ' + detail : '') };
+    // ДВЕ попытки при обрыве связи. Нестабильный VPN/сеть часто роняет ПЕРВЫЙ запрос,
+    // но второй проходит. Раньше приложение сдавалось сразу — теперь пробует ещё раз.
+    var lastErr = '';
+    for (var attempt = 1; attempt <= 2; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(function(){ controller.abort(); }, timeoutMs || TIMEOUT_MS);
+      try {
+        const res = await fetch(window.FOCUS_AI_PROXY, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: controller.signal
+        });
+        clearTimeout(timer);
+        if (!res.ok) {
+          let detail = '';
+          try { const e = await res.json(); detail = e.error || e.detail || ''; } catch(_){}
+          return { ok: false, error: 'Воркер вернул ' + res.status + (detail ? ': ' + detail : '') };
+        }
+        return { ok: true, data: await res.json() };
+      } catch (e) {
+        clearTimeout(timer);
+        if (e.name === 'AbortError') return { ok: false, error: 'ИИ долго думал (таймаут). Попробуй короче вопрос.' };
+        lastErr = e.message;
+        // обрыв связи → ждём чуть и пробуем снова (второй раз)
+        if (attempt < 2) { await new Promise(function(r){ setTimeout(r, 900); }); continue; }
       }
-      return { ok: true, data: await res.json() };
-    } catch (e) {
-      clearTimeout(timer);
-      if (e.name === 'AbortError') return { ok: false, error: 'ИИ долго думал (таймаут). Попробуй короче вопрос.' };
-      return { ok: false, error: 'Нет связи с ИИ: ' + e.message };
     }
+    // обе попытки не удались — человеческое сообщение
+    var isNet = /load failed|failed to fetch|network/i.test(lastErr);
+    return { ok: false, error: isNet
+      ? 'Нет связи с сервером. Если включён VPN — попробуй отключить его или сменить сеть.'
+      : 'Нет связи с ИИ: ' + lastErr };
   }
 
   /** Показывает в консоли, сколько промпта пришло ИЗ КЭША (в 50 раз дешевле).
