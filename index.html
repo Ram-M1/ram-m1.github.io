@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v186 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v188 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -2688,7 +2688,7 @@ window._focusUnlockAudio = function(){
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=186').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=188').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -3022,7 +3022,7 @@ window._focusUnlockAudio = function(){
     }
     @keyframes spotBreath { 0%,100%{ opacity:0.5; transform:scale(1); } 50%{ opacity:1; transform:scale(1.1); } }
     .greet-box { position:absolute; left:50%; transform:translateX(-50%); width:calc(100% - 44px); max-width:350px; background:transparent; border:none; border-radius:0; padding:6px; text-align:center; z-index:5003; box-shadow:none; top:50%; margin-top:-140px; max-height:none; overflow:visible; transition:top 1.0s cubic-bezier(0.34,1,0.64,1), margin-top 1.0s, left 1.0s, transform 1.0s, opacity 0.6s; }
-    #greetOrbFree { position:absolute; z-index:5102; width:360px; height:760px; left:50%; top:320px; transform:translate(-50%,-50%); transition:left 1.5s cubic-bezier(0.4,0,0.2,1), top 1.5s cubic-bezier(0.4,0,0.2,1), width 1.5s, height 1.5s, opacity 0.6s; pointer-events:none; }
+    #greetOrbFree { position:absolute; z-index:5102; width:360px; height:640px; left:50%; top:320px; transform:translate(-50%,-50%); transition:left 1.5s cubic-bezier(0.4,0,0.2,1), top 1.5s cubic-bezier(0.4,0,0.2,1), width 1.5s, height 1.5s, opacity 0.6s; pointer-events:none; }
     #greetOrbFree canvas { width:100%; height:100%; display:block; }
     #greetOverlay.darkbg { background:#000; }
     #greetOverlay.finishing::before { opacity:0 !important; }
@@ -3175,7 +3175,7 @@ window._focusUnlockAudio = function(){
             ov.innerHTML = '<div class="greet-spotlight" id="greetSpot"><i></i></div>' +
                 '<canvas id="greetFx" style="position:absolute;inset:0;z-index:5115;pointer-events:none;"></canvas>' +
                 '' +
-                '<div id="greetOrbFree"><canvas class="focus-orb-canvas greet-orb" width="360" height="760" data-birth="1"></canvas></div>' +
+                '<div id="greetOrbFree"><canvas class="focus-orb-canvas greet-orb" width="360" height="640" data-birth="1"></canvas></div>' +
                 '<div class="greet-box" id="greetBox">' +
                     '<div class="greet-name" id="greetTitle"></div>' +
                     '<div class="greet-text" id="greetTextEl"></div>' +
@@ -3434,7 +3434,20 @@ window._focusUnlockAudio = function(){
             }
             function burnText(el){ burnEl(el); }
             // залп молний из орба в точку (несколько разрядов)
-            function boltBurst(tx,ty,count){ var oc=orbCenter(); var n=0; var iv=setInterval(function(){ fxBolt(oc.x,oc.y,tx,ty,false); n++; if(n>=(count||5)) clearInterval(iv); }, 70); }
+            function boltBurst(tx,ty,count){ var oc=orbCenter(); var n=0; var iv=setInterval(function(){ fxBolt(oc.x,oc.y,tx,ty,false); n++; if(n>=(count||5)) clearInterval(iv); }, 70);
+                // ЭФФЕКТЫ на реальный удар: тряска (Mortal Kombat) + вибро + звук разряда
+                _focusStrike();
+                // МОЛНИИ ОТ КРАЁВ ЭКРАНА в орб (со всех 4 сторон, включая низ) — на полноэкранном fxCv
+                var ph=document.querySelector('.phone'); var EW=ph?ph.clientWidth:375, EH=ph?ph.clientHeight:700;
+                for(var eb=0; eb<2; eb++){
+                    var edge=Math.floor(Math.random()*4), ex, ey;
+                    if(edge===0){ ex=Math.random()*EW; ey=2; }              // верх
+                    else if(edge===1){ ex=EW-2; ey=Math.random()*EH; }      // право
+                    else if(edge===2){ ex=Math.random()*EW; ey=EH-2; }      // низ (до самого края экрана)
+                    else { ex=2; ey=Math.random()*EH; }                     // лево
+                    fxBolt(ex, ey, oc.x, oc.y, false);  // от края экрана к орбу (толстые/чёткие как основные)
+                }
+            }
 
             var idx = 0;
 
@@ -3554,7 +3567,7 @@ window._focusUnlockAudio = function(){
                         var orb0=document.getElementById('greetOrbFree');
                         if(orb0){ orb0.style.width='230px'; orb0.style.height='409px'; orb0.style.top='155px'; orb0.style.left='50%'; }
                         if(gb0){ gb0.style.width='calc(100% - 40px)'; gb0.style.left='50%'; gb0.style.top='340px'; }
-                        setTimeout(function(){ if(gb0) gb0.style.opacity='1'; var oc=orbCenter(); sequence(oc.x, oc.y+120); }, 1550);
+                        setTimeout(function(){ if(gb0) gb0.style.opacity='1'; var oc=orbCenter(); try{ if(window._focusUnlockAudio) window._focusUnlockAudio(); }catch(e){} _coreHum(2000); sequence(oc.x, oc.y+120); }, 1550);
                     }, 8600);
                 } else if(step.target){
                     setTimeout(function(){
