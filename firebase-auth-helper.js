@@ -19,8 +19,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, arrayUnion,
-  addDoc, onSnapshot, orderBy, serverTimestamp, limit, startAfter
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  addDoc, onSnapshot, orderBy, serverTimestamp, limit, startAfter, deleteDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyASAdRxYNELOEwCQyAKPSecLBIHrqNoap4",
@@ -59,17 +58,44 @@ window.fbSendCode = async function(email) {
 };
 
 window.fbVerifyCode = async function(email, code) {
+  const em = String(email || '').trim().toLowerCase();
+  const cd = String(code || '').trim();
+
+  // 1) КОД → КЛЮЧ (через наш сервер). Если не отвечает — понятная подсказка.
+  let token = '';
   try {
     const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
     const r = await fetch(base + '/auth/verify-code', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: String(email || '').trim().toLowerCase(), code: String(code || '').trim() })
+      body: JSON.stringify({ email: em, code: cd })
     });
     const d = await r.json();
     if (!d.ok || !d.token) return { ok: false, error: d.error || 'Неверный код' };
-    const cred = await signInWithCustomToken(auth, d.token);   // входим по ключу от сервера
-    return { ok: true, uid: cred.user.uid, email: String(email).trim().toLowerCase() };
-  } catch (e) { return { ok: false, error: 'Ошибка входа: ' + (e.message || '') }; }
+    token = d.token;
+  } catch (e) {
+    return { ok: false, error: 'Сервер не отвечает. Проверь интернет и попробуй снова' };
+  }
+
+  // 2) КЛЮЧ → ВХОД (напрямую в Firebase). Здесь и падал network-request-failed:
+  //    браузер не мог достучаться до серверов Google (частая причина — VPN или
+  //    блокировка). Даём ДВЕ попытки и человеческую подсказку вместо сырой ошибки.
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const cred = await signInWithCustomToken(auth, token);
+      return { ok: true, uid: cred.user.uid, email: em };
+    } catch (e) {
+      const msg = String(e && e.message || '');
+      const netFail = /network-request-failed|network error|Failed to fetch/i.test(msg);
+      if (netFail && attempt < 2) {
+        await new Promise(function(res){ setTimeout(res, 1200); });   // подождём и повторим
+        continue;
+      }
+      if (netFail) {
+        return { ok: false, error: 'Firebase недоступен. Если включён VPN — отключи его и попробуй снова. Либо смени сеть (например, мобильный интернет).' };
+      }
+      return { ok: false, error: 'Ошибка входа: ' + msg };
+    }
+  }
 };
 const db = getFirestore(app);
 
@@ -760,14 +786,35 @@ window.fbTouchOnline = async function(force, online) {
   _lastTouch = now;
 
   try {
-    let name = '';
-    try { name = ((window.FocusStorage && window.FocusStorage.getUser()) || {}).name || ''; } catch(e){}
-    await setDoc(doc(db, 'publicProfiles', user.uid), {
-      name: name,
-      online: online === false ? false : true,
-      lastSeen: now
-    }, { merge: true });
+    let name = '', avatar = '';
+    try {
+      var lu = (window.FocusStorage && window.FocusStorage.getUser()) || {};
+      name = lu.name || '';
+      avatar = lu.avatarSmall || '';   // лёгкая версия для списка (см. профиль)
+    } catch(e){}
+    var payload = { name: name, online: online === false ? false : true, lastSeen: now };
+    if (avatar) payload.avatar = avatar;   // ЕДИНЫЙ аватар FOCUS — виден везде
+    await setDoc(doc(db, 'publicProfiles', user.uid), payload, { merge: true });
   } catch(e){}
+};
+
+/* Загрузить визитки нескольких людей РАЗОМ (для списка диалогов).
+   Одним махом тянем имя+аватар+статус всех собеседников — список рисуется мгновенно. */
+window.fbGetProfilesBatch = async function(uids) {
+  var out = {};
+  if (!uids || !uids.length) return out;
+  try {
+    await Promise.all(uids.slice(0, 40).map(async function(uid){
+      try {
+        var d = await getDoc(doc(db, 'publicProfiles', uid));
+        if (d.exists()) {
+          var f = d.data();
+          out[uid] = { name: f.name || '', avatar: f.avatar || '', online: f.online, lastSeen: f.lastSeen || 0 };
+        }
+      } catch(e){}
+    }));
+  } catch(e){}
+  return out;
 };
 
 /* ЖИВОЙ СТАТУС собеседника — подписка, а не опрос.
@@ -1160,6 +1207,17 @@ window.fbLoadOlderMessages = async function(chatId, beforeTs, count) {
   }
 };
 
+
+/* Убрать чат из своего списка (у собеседника остаётся). Как «удалить чат» в мессенджерах. */
+window.fbHideChat = async function(chatId) {
+  const user = _currentUser || auth.currentUser;
+  if (!user || !chatId) return { ok: false };
+  try {
+    await deleteDoc(doc(db, 'users', user.uid, 'chatList', chatId));
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+};
+
 window.fbGetChatList = async function() {
   const user = _currentUser || auth.currentUser;
   if (!user) return [];
@@ -1168,6 +1226,27 @@ window.fbGetChatList = async function() {
     const list = [];
     snap.forEach(d => list.push({ id: d.id, ...d.data() }));
     list.sort((a,b) => (b.updatedAt||'').localeCompare(a.updatedAt||''));
+
+    /* Подтягиваем СВЕЖИЙ аватар и статус собеседников из визиток — РАЗОМ.
+       Так в списке диалогов у каждого актуальное фото и «в сети», и всё это
+       грузится одним махом, а не по одному запросу на чат. */
+    try {
+      var peers = list.filter(function(c){ return c.type !== 'group' && c.withUid; })
+                      .map(function(c){ return c.withUid; });
+      if (peers.length && window.fbGetProfilesBatch) {
+        var profs = await window.fbGetProfilesBatch(peers);
+        list.forEach(function(c){
+          var p = profs[c.withUid];
+          if (p) {
+            if (p.avatar) c.avatar = p.avatar;
+            if (p.name) c.withName = p.name;
+            c._online = p.online;
+            c._lastSeen = p.lastSeen;
+          }
+        });
+      }
+    } catch(e){}
+
     return list;
   } catch (e) {
     return [];

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v167 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v174 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -2527,7 +2527,7 @@
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=167').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=174').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -2645,9 +2645,20 @@
 
         rems.forEach(function(a){
             try {
-                if (!window.FocusReminders) return;
-                FocusReminders.schedule(String(a.data || ''), String(a.when || ''));
-                msgs.push('Напомню: ' + (a.data || '') + ' — ' + (a.when || ''));
+                if (!window.FocusReminders) { msgs.push('Напоминания недоступны — обнови страницу'); return; }
+                var txt = String(a.data || a.text || '').trim();
+                var whn = String(a.when || '').trim();
+
+                /* ЧЕСТНОСТЬ. Раньше ассистент писал «Напомню...» ВСЕГДА — даже когда
+                   время он не понял и напоминание НЕ ставилось. Юзер был уверен, что
+                   уведомление придёт, а его не было. Теперь сначала проверяем время. */
+                var at = (FocusReminders.parse ? FocusReminders.parse(whn) : null);
+                if (!at) {
+                    msgs.push('Не понял, во сколько напомнить про «' + txt + '». Скажи точное время — например «завтра в 10:00».');
+                    return;
+                }
+                FocusReminders.schedule(txt, whn);
+                msgs.push('Напомню: ' + txt + ' — ' + at.toLocaleString('ru-RU', { day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' }));
             } catch(e){}
         });
 

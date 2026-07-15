@@ -21,38 +21,59 @@
   }
 
   /** Распарсить время из текста: «в 18:00», «через 2 часа», «вечером», «завтра в 9». */
-  function parseWhen(text) {
-    const t = (text || '').toLowerCase();
-    const now = new Date();
-    let target = new Date(now);
+  function parseWhen(when) {
+  var w = String(when || '').toLowerCase().trim();
+  if (!w) return null;
+  var now = new Date();
+  var d = new Date(now);
 
-    // «через N минут/часов»
-    let m = t.match(/через\s+(\d+)\s*(минут|час)/);
-    if (m) {
-      const n = parseInt(m[1], 10);
-      if (m[2].startsWith('минут')) target.setMinutes(target.getMinutes() + n);
-      else target.setHours(target.getHours() + n);
-      return target;
-    }
-    // «завтра»
-    const tomorrow = t.includes('завтра');
-    if (tomorrow) target.setDate(target.getDate() + 1);
-    // явное время «в 18:00» / «в 9»
-    m = t.match(/в\s+(\d{1,2})[:.]?(\d{2})?/);
-    if (m) {
-      target.setHours(parseInt(m[1], 10), m[2] ? parseInt(m[2], 10) : 0, 0, 0);
-      if (!tomorrow && target <= now) target.setDate(target.getDate() + 1);
-      return target;
-    }
-    // словесные части суток
-    if (t.includes('утром')) { target.setHours(8, 0, 0, 0); }
-    else if (t.includes('днём') || t.includes('днем') || t.includes('обед')) { target.setHours(13, 0, 0, 0); }
-    else if (t.includes('вечером')) { target.setHours(19, 0, 0, 0); }
-    else if (t.includes('ночью')) { target.setHours(22, 0, 0, 0); }
-    else return null; // время не распознано
-    if (!tomorrow && target <= now) target.setDate(target.getDate() + 1);
-    return target;
+  // ── сдвиг по дням ──
+  // ВАЖНО: «послезавтра» проверяем ПЕРВЫМ — иначе оно попадало под «завтра»
+  // и напоминание вставало на сутки раньше.
+  if (/послезавтра/.test(w))      d.setDate(d.getDate() + 2);
+  else if (/завтра/.test(w))      d.setDate(d.getDate() + 1);
+  else if (/через\s+(\d+)\s*(дн|день|дня|дней)/.test(w)) {
+    d.setDate(d.getDate() + parseInt(w.match(/через\s+(\d+)/)[1], 10));
   }
+
+  // ── «через N минут / часов» ──
+  var mm = w.match(/через\s+(\d+)\s*(мин|минут)/);
+  if (mm) { var r = new Date(now); r.setMinutes(r.getMinutes() + parseInt(mm[1],10)); return r; }
+  var hh = w.match(/через\s+(\d+)\s*(час|часа|часов)/);
+  if (hh) { var r2 = new Date(now); r2.setHours(r2.getHours() + parseInt(hh[1],10)); return r2; }
+
+  // ── точное время: «в 18:00», «18:00», «в 9 утра», «в 7 вечера» ──
+  var t = w.match(/(\d{1,2})[:.](\d{2})/);          // 18:00 / 18.00 (со словом «в» и без)
+  if (t) {
+    var H = parseInt(t[1],10), M = parseInt(t[2],10);
+    if (/вечера|вечером/.test(w) && H < 12) H += 12;
+    d.setHours(H, M, 0, 0);
+    if (d <= now && !/завтра|послезавтра|через/.test(w)) d.setDate(d.getDate() + 1);  // время прошло → на завтра
+    return d;
+  }
+  var t2 = w.match(/(?:^|\s)(\d{1,2})\s*(утра|дня|вечера|ночи)?(?:\s|$)/);   // «в 9 утра», «в 19»
+  if (t2) {
+    var H2 = parseInt(t2[1],10);
+    if (/вечера|ночи/.test(w) && H2 < 12) H2 += 12;
+    if (/дня/.test(w) && H2 < 12) H2 += 12;
+    if (H2 >= 0 && H2 <= 23) {
+      d.setHours(H2, 0, 0, 0);
+      if (d <= now && !/завтра|послезавтра|через/.test(w)) d.setDate(d.getDate() + 1);
+      return d;
+    }
+  }
+
+  // ── словесное время ──
+  if (/утром/.test(w))   { d.setHours(9, 0, 0, 0);  if (d <= now) d.setDate(d.getDate()+1); return d; }
+  if (/днём|днем/.test(w)){ d.setHours(14, 0, 0, 0); if (d <= now) d.setDate(d.getDate()+1); return d; }
+  if (/вечером/.test(w)) { d.setHours(19, 0, 0, 0); if (d <= now) d.setDate(d.getDate()+1); return d; }
+  if (/ночью/.test(w))   { d.setHours(22, 0, 0, 0); if (d <= now) d.setDate(d.getDate()+1); return d; }
+
+  // ── «завтра» / «послезавтра» БЕЗ времени → ставим на утро (раньше просто не работало) ──
+  if (/завтра|послезавтра/.test(w)) { d.setHours(10, 0, 0, 0); return d; }
+
+  return null;
+}
 
   /** Поставить напоминание. text — о чём, when — Date или строка со временем. */
   async function schedule(text, when) {
@@ -68,13 +89,19 @@
     try {
       var u = window.FocusStorage ? FocusStorage.getUser() : null;
       var email = u && u.email;
+      var uid = null;
+      try { uid = (window.fbCurrentUser && window.fbCurrentUser()) || null; } catch(e){}
       var base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
       if (email && base) {
         fetch(base + '/reminders/add', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email, text: item.text, at: item.at })
-        }).catch(function(){});
+          body: JSON.stringify({ email: email, uid: uid, text: item.text, at: item.at })
+        }).then(function(r){ return r.json(); })
+          .then(function(d){ console.log('[FOCUS] напоминание на сервере:', d.ok ? 'принято ✓' : ('ОШИБКА: ' + (d.error||'?'))); })
+          .catch(function(e){ console.log('[FOCUS] напоминание НЕ ушло на сервер:', e.message); });
+      } else {
+        console.log('[FOCUS] напоминание НЕ ушло на сервер: нет email в профиле');
       }
     } catch(e){}
 

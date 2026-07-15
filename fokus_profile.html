@@ -426,6 +426,8 @@ initAtmosphere(canvasId) {
     // --- Данные профиля ---
     const user = FocusStorage.getUser();
     document.getElementById('profileName').innerText = user.name || 'Друг';
+    // ЕДИНЫЙ аватар: показываем сохранённое фото (из облака оно уже в user.avatar)
+    try { if (user.avatar && typeof renderAvatar === 'function') renderAvatar(user.avatar); } catch(e){}
 
     // --- Астрология и нумерология (знак зодиака + число судьбы) ---
     if (user.birthDate && window.FocusAstro) {
@@ -496,8 +498,25 @@ initAtmosphere(canvasId) {
                 const sx = (img.width - min) / 2, sy = (img.height - min) / 2;
                 ctx.drawImage(img, sx, sy, min, min, 0, 0, SIZE, SIZE);
                 const compressed = canvas.toDataURL('image/jpeg', 0.82);
+
+                /* ЕДИНЫЙ АВАТАР FOCUS. Делаем две версии:
+                   • полную (эта, 300px) — для профиля;
+                   • лёгкую (маленькую) — для списка диалогов и визитки, чтобы всё летало.
+                   Обе уходят в ОБЛАКО — тогда фото видно и у собеседников, и на любом устройстве. */
+                var small = compressed;
+                try {
+                    var sc = document.createElement('canvas'); sc.width = 96; sc.height = 96;
+                    sc.getContext('2d').drawImage(img, sx, sy, min, min, 0, 0, 96, 96);
+                    small = sc.toDataURL('image/jpeg', 0.7);
+                } catch(e){}
+
                 renderAvatar(compressed);
-                FocusStorage.saveUser({ avatar: compressed });
+                FocusStorage.saveUser({ avatar: compressed, avatarSmall: small });
+                // в облако — чтобы аватар был единым везде
+                if (window.fbSaveUserData) fbSaveUserData({ avatar: compressed, avatarSmall: small });
+                // сразу обновляем визитку (там лёгкая версия для списка у собеседников)
+                if (window.fbTouchOnline) { try { fbTouchOnline(true, true); } catch(e){} }
+
                 document.getElementById('avatarModal').classList.remove('show');
                 toast('Фото профиля обновлено');
             };
