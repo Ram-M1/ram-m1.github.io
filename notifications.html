@@ -186,6 +186,21 @@
         </div>
         <div id="activeReminders" style="margin-bottom:16px;"></div>
 
+        <!-- Голосовые ответы ассистента -->
+        <div class="section-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg>
+            ГОЛОС АССИСТЕНТА
+        </div>
+        <div class="quiet-card" style="margin-bottom:16px;">
+            <div class="quiet-top">
+                <div class="quiet-left">
+                    <div class="quiet-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg></div>
+                    <div><div class="quiet-name">Отвечать голосом</div><div class="quiet-desc">Ассистент проговаривает ответы вслух</div></div>
+                </div>
+                <div class="toggle-switch" id="voiceToggle"></div>
+            </div>
+        </div>
+
         <!-- Тихие часы -->
         <div class="section-label">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
@@ -306,6 +321,7 @@
 </div>
 <script src="focus-reminders.js"></script>
 <script src="focus-storage.js"></script>
+<script src="focus-voice.js"></script>
 <script type="module" src="firebase-auth-helper.js"></script>
 <script src="focus-core.js"></script>
 <script>
@@ -349,6 +365,24 @@ initAtmosphere(canvasId) {
 
     // ===== Главный выключатель =====
     const master=document.getElementById('masterToggle');
+
+        // Голосовые ответы ассистента
+        (function(){
+            var vt = document.getElementById('voiceToggle');
+            if (!vt) return;
+            // текущее состояние из настроек
+            var on = true;
+            try { var u = FocusStorage.getUser(); if (typeof u.voiceReply === 'boolean') on = u.voiceReply; } catch(e){}
+            if (on) vt.classList.add('active');
+            vt.addEventListener('click', function(){
+                on = !on;
+                vt.classList.toggle('active', on);
+                if (window.FocusSpeak) FocusSpeak.setEnabled(on);
+                else { try { FocusStorage.saveUser({ voiceReply: on }); } catch(e){} }
+                // короткая проба голоса при включении
+                if (on && window.FocusSpeak) setTimeout(function(){ FocusSpeak.speak('Голосовые ответы включены'); }, 200);
+            });
+        })();
     let masterOn = S._master !== false;
     master.classList.toggle('active', masterOn);
 

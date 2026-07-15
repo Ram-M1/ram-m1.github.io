@@ -39,6 +39,9 @@
   // ── «через N минут / часов» ──
   var mm = w.match(/через\s+(\d+)\s*(мин|минут)/);
   if (mm) { var r = new Date(now); r.setMinutes(r.getMinutes() + parseInt(mm[1],10)); return r; }
+  // "через час" / "через полчаса" (без числа)
+  if (/через\s+час(?!\w)/.test(w) && !/через\s+\d/.test(w)) { var rh = new Date(now); rh.setHours(rh.getHours()+1); return rh; }
+  if (/через\s+полчаса/.test(w)) { var rph = new Date(now); rph.setMinutes(rph.getMinutes()+30); return rph; }
   var hh = w.match(/через\s+(\d+)\s*(час|часа|часов)/);
   if (hh) { var r2 = new Date(now); r2.setHours(r2.getHours() + parseInt(hh[1],10)); return r2; }
 
@@ -146,7 +149,7 @@
   function active() { return readAll().filter(r => !r.fired); }
   function remove(id) { writeAll(readAll().filter(r => r.id !== id)); }
 
-  window.FocusReminders = { schedule, parseWhen, active, remove, ensurePermission };
+  window.FocusReminders = { schedule, parseWhen, parse: parseWhen, active, list: active, remove, cancel: remove, ensurePermission };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();

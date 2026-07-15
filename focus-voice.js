@@ -103,4 +103,83 @@
   };
 
   window.FocusVoice = FocusVoice;
+
+  /* ═══════════════════════════════════════════════════════════════
+     ОЗВУЧКА ОТВЕТА (TTS) — «киношный» голос ассистента.
+     Использует голоса устройства (на iPhone — движок Siri, звучит отлично).
+     Бесплатно, работает офлайн. Настройка тембра/скорости под киношность.
+     ═══════════════════════════════════════════════════════════════ */
+  const FocusSpeak = {
+    enabled: true,
+    _voice: null,
+    _ready: false,
+    pitch: 0.85,   // ниже обычного = солиднее, "киношнее"
+    rate: 0.97,    // чуть медленнее = весомее
+
+    // выбрать лучший русский голос устройства
+    _pickVoice() {
+      if (!('speechSynthesis' in window)) return null;
+      const voices = speechSynthesis.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith('ru'));
+      if (!voices.length) return null;
+      // приоритет: премиум/enhanced/siri голоса
+      return voices.find(v => /enhanced|premium|siri|neural|natural/i.test(v.name))
+          || voices.find(v => /milena|yuri|google/i.test(v.name))
+          || voices[0];
+    },
+
+    init() {
+      if (!('speechSynthesis' in window)) return;
+      const load = () => { this._voice = this._pickVoice(); this._ready = !!this._voice; };
+      load();
+      if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = load;
+      setTimeout(load, 300);
+      // читаем настройку юзера (вкл/выкл озвучки)
+      try {
+        const u = window.FocusStorage && FocusStorage.getUser();
+        if (u && typeof u.voiceReply === 'boolean') this.enabled = u.voiceReply;
+      } catch(e){}
+    },
+
+    // проговорить текст
+    speak(text, onDone) {
+      if (!this.enabled || !('speechSynthesis' in window)) { if (onDone) onDone(); return; }
+      const clean = this._clean(text);
+      if (!clean) { if (onDone) onDone(); return; }
+      try {
+        speechSynthesis.cancel();   // прервать предыдущее
+        const u = new SpeechSynthesisUtterance(clean);
+        u.lang = 'ru-RU';
+        if (!this._voice) this._voice = this._pickVoice();
+        if (this._voice) u.voice = this._voice;
+        u.pitch = this.pitch;
+        u.rate = this.rate;
+        u.onend = () => { if (onDone) onDone(); };
+        u.onerror = () => { if (onDone) onDone(); };
+        speechSynthesis.speak(u);
+      } catch(e) { if (onDone) onDone(); }
+    },
+
+    // остановить (при перебивании — юзер снова заговорил)
+    shutup() {
+      try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch(e){}
+    },
+
+    // убрать эмодзи и служебное перед озвучкой
+    _clean(text) {
+      return String(text || '')
+        .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu, '')  // эмодзи/символы
+        .replace(/[*_#`>]/g, '')      // markdown
+        .replace(/\s+/g, ' ')
+        .trim();
+    },
+
+    setEnabled(on) {
+      this.enabled = !!on;
+      try { if (window.FocusStorage) FocusStorage.saveUser({ voiceReply: this.enabled }); } catch(e){}
+      if (!on) this.shutup();
+    }
+  };
+
+  window.FocusSpeak = FocusSpeak;
+  try { FocusSpeak.init(); } catch(e){}
 })();

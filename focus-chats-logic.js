@@ -302,30 +302,46 @@
     };
   }
 
-  async function loadFromCloud(){
+  // единый флаг «идёт загрузка» — чтобы две загрузки не перетирали друг друга
+  var loading = false;
+
+  /* ЕДИНАЯ загрузка из облака. Защищена от пустого ответа: если сервер вернул пусто
+     (сессия ещё не поднялась или сбой сети), а у нас уже показаны чаты — НЕ стираем их.
+     Именно голое `chats = []` вызывало «мигание»: чаты показывались из кэша, потом
+     пустой ответ их стирал, потом они возвращались. */
+  async function pullChats(reason){
     if (!window.fbGetChatList) return;
+    if (loading) return;            // уже грузим — не запускаем второй раз параллельно
+    loading = true;
     try {
-      // гарантируем контакт «Администратор»
       try { if (window.fbEnsureAdminContact) await window.fbEnsureAdminContact(); } catch(e){}
 
       var list = await window.fbGetChatList();
-      chats = (list || []).map(normalizeChat);
-      // админ — наверх среди прочих равных
-      render();
-      saveCache();
-    } catch(e){}
-  }
 
-  // мягкое обновление (после отправки/прихода) — не трёт экран, если данные те же
-  async function refreshSoft(){
-    if (!window.fbGetChatList) return;
-    try {
-      var list = await window.fbGetChatList();
+      // ПУСТО + у нас уже есть чаты → игнорируем (не мигаем)
+      if ((!list || !list.length) && chats.length) { loading = false; return; }
+
       var fresh = (list || []).map(normalizeChat);
-      var sigOld = chats.map(function(c){ return c.chatId + c.updatedAt + c.unread; }).join('|');
-      var sigNew = fresh.map(function(c){ return c.chatId + c.updatedAt + c.unread; }).join('|');
+
+      // рисуем только если реально изменилось (иначе лишняя перерисовка = мелькание)
+      var sigOld = chats.map(function(c){ return c.chatId + c.updatedAt + c.unread; }).sort().join('|');
+      var sigNew = fresh.map(function(c){ return c.chatId + c.updatedAt + c.unread; }).sort().join('|');
       if (sigOld !== sigNew) { chats = fresh; render(); saveCache(); }
     } catch(e){}
+    loading = false;
+  }
+
+  async function loadFromCloud(){ return pullChats('initial'); }
+
+  // мягкое обновление (после отправки/прихода) — та же защищённая логика
+  async function refreshSoft(){ return pullChats('soft'); }
+
+  // обновление при ВОЗВРАТЕ на страницу (из диалога) — с повтором,
+  // потому что Firebase-сессия поднимается не мгновенно
+  function refreshOnReturn(){
+    refreshSoft();
+    setTimeout(refreshSoft, 600);    // сессия успела подняться
+    setTimeout(refreshSoft, 1800);   // страховка
   }
 
   // ─────────── ОТКРЫТЬ ДИАЛОГ ───────────
@@ -554,8 +570,21 @@
       if (wr) {
         e.stopPropagation();
         wr.textContent = '...';
-        var open = window.fbOpenChat ? await window.fbOpenChat(wr.dataset.write, wr.dataset.wname||'') : { ok:false };
-        if (open.ok || open.chatId) openChat(open.chatId, wr.dataset.wname);
+        var peerUid = wr.dataset.write, peerName = wr.dataset.wname || 'Пользователь';
+        var open = window.fbOpenChat ? await window.fbOpenChat(peerUid, peerName) : { ok:false };
+        if (open.ok || open.chatId) {
+          // СРАЗУ добавляем чат в наш список (если его там ещё нет) — тогда при возврате
+          // из диалога он гарантированно виден, даже если сервер чуть задержался.
+          if (!chats.some(function(c){ return c.chatId === open.chatId; })) {
+            chats.unshift(normalizeChat({
+              chatId: open.chatId, withUid: peerUid, withName: peerName,
+              updatedAt: new Date().toISOString(), type: 'user'
+            }));
+            saveCache();
+          }
+          closeSheet();
+          openChat(open.chatId, peerName);
+        }
         else { toast('Не удалось открыть чат'); wr.textContent = 'Написать'; }
         return;
       }
@@ -588,8 +617,8 @@
     });
 
     // ── ОБНОВЛЕНИЕ ПРИ ВОЗВРАТЕ на экран (пришёл из диалога — счётчики свежие) ──
-    document.addEventListener('visibilitychange', function(){ if (!document.hidden) refreshSoft(); });
-    window.addEventListener('pageshow', function(){ refreshSoft(); });
+    document.addEventListener('visibilitychange', function(){ if (!document.hidden) refreshOnReturn(); });
+    window.addEventListener('pageshow', function(){ refreshOnReturn(); });
 
     // лёгкий фоновый пуллинг, пока экран открыт (раз в 15 сек — дёшево, список живой)
     setInterval(function(){ if (!document.hidden) refreshSoft(); }, 15000);

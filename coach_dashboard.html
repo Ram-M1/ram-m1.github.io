@@ -860,7 +860,7 @@ initAtmosphere(canvasId) {
         // реальный код связи через Firebase
         try {
             if (window.fbCreatePairCode) {
-                const r = await window.fbCreatePairCode();
+                const r = await window.fbCreatePairCode('coach');
                 codeEl.innerText = (r && r.ok) ? r.code : genCode();
             } else {
                 codeEl.innerText = genCode();

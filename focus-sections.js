@@ -150,8 +150,12 @@
           return '__NEEDCREATE__Не нашёл такое лекарство. У тебя есть: ' + names + '. Новое добавь в разделе «Лекарства».';
         }
         var key = 'focus_med_taken_' + today();
-        var taken = readJSON(key, []);
-        if (taken.indexOf(med.id) === -1) taken.push(med.id);
+        /* ФОРМАТ КАК В РАЗДЕЛЕ: taken = { medId: [метки времени приёма] }.
+           Раньше писался массив id — раздел «Лекарства» такой формат не понимал,
+           и приём, отмеченный через ИИ, в разделе НЕ появлялся (галочки не было). */
+        var taken = readJSON(key, {});
+        if (!Array.isArray(taken[med.id])) taken[med.id] = [];
+        taken[med.id].push(Date.now());
         writeJSON(key, taken);
         return 'Отметил приём лекарства: ' + med.name;
       },
@@ -177,8 +181,11 @@
           return '__NEEDCREATE__Не нашёл такую добавку. У тебя есть: ' + names + '. Новую добавь в разделе «БАДы и спортпит».';
         }
         var key = 'focus_supp_taken_' + today();
-        var taken = readJSON(key, []);
-        if (taken.indexOf(s.id) === -1) taken.push(s.id);
+        /* ФОРМАТ КАК В РАЗДЕЛЕ: { id: [метки времени] } — а не массив id.
+           Иначе приём БАДа через ИИ в разделе не отображался. */
+        var taken = readJSON(key, {});
+        if (!Array.isArray(taken[s.id])) taken[s.id] = [];
+        taken[s.id].push(Date.now());
         writeJSON(key, taken);
         return 'Отметил приём: ' + s.name;
       },
@@ -541,17 +548,38 @@ fill: function (data) {
     return parts.join('. ');
   }
 
+  /* ЦЕНТРАЛЬНЫЙ хук: после заполнения раздела ОТМЕЧАЕМ АКТИВНОСТЬ В ПРОГРЕССЕ.
+     Раньше данные писались в раздел, но прогресс (focus_activity_days) об этом НЕ узнавал —
+     поэтому «ИИ заполнил тренировку», а в Прогрессе пусто и стрик не растёт.
+     Теперь любое заполнение (и руками, и через ИИ) отражается в прогрессе и даёт монеты за стрик. */
+  function markProgress(id) {
+    try {
+      var s = SECTIONS[id];
+      if (s && s.group && window.FocusRewards && window.FocusRewards.mark) {
+        window.FocusRewards.mark(s.group, s.reward || id);
+      }
+    } catch (e) {}
+  }
+
   function fill(id, data, ctx) {
     var s = SECTIONS[id];
     if (!s || !s.fill) return null;
-    try { return s.fill(data, ctx || {}); } catch (e) { return null; }
+    try {
+      var r = s.fill(data, ctx || {});
+      markProgress(id);   // ← синхронизируем прогресс
+      return r;
+    } catch (e) { return null; }
   }
 
   /** Отметить дело выполненным в разделе (если раздел это поддерживает). */
   function complete(id, data) {
     var s = SECTIONS[id];
     if (!s || !s.complete) return null;
-    try { return s.complete(data); } catch (e) { return null; }
+    try {
+      var r = s.complete(data);
+      markProgress(id);   // выполнение дела тоже = активность в прогрессе
+      return r;
+    } catch (e) { return null; }
   }
 
   window.FocusSections = { SECTIONS: SECTIONS, detect: detect, listForPrompt: listForPrompt, userContext: userContext, fill: fill, complete: complete, today: today };

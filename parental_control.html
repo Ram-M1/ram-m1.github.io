@@ -340,7 +340,7 @@ initAtmosphere(canvasId) {
         addModal.classList.add('show');
         // реальный код привязки через Firebase
         if (window.fbCreatePairCode) {
-            const res = await window.fbCreatePairCode();
+            const res = await window.fbCreatePairCode('parent');
             if (res.ok) {
                 document.getElementById('inviteCode').innerText = res.code;
                 window._pendingPairCode = res.code;

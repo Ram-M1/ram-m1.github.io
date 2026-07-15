@@ -402,14 +402,17 @@ window.fbOnAuthChange = function(callback) {
 // ========== ПРИВЯЗКА РОДИТЕЛЬ ↔ РЕБЁНОК (по коду) ==========
 
 // Родитель: создать код привязки. Код сохраняется в pairing_codes/{code} → uid родителя
-window.fbCreatePairCode = async function() {
+window.fbCreatePairCode = async function(kind) {
+  /* Код привязки. ТИП ('coach' | 'parent') теперь хранится в коде — раньше его не было,
+     поэтому нельзя было отличить клиента коуча от ребёнка, и правила для коуча не работали. */
   const user = _currentUser || auth.currentUser;
   if (!user) return { ok: false, error: 'Не авторизован' };
-  // короткий читаемый код
   const code = 'F' + Math.random().toString(36).slice(2, 7).toUpperCase();
   try {
     await setDoc(doc(db, 'pairing_codes', code), {
-      parentUid: user.uid,
+      ownerUid: user.uid,
+      parentUid: user.uid,            // для обратной совместимости
+      kind: kind === 'coach' ? 'coach' : 'parent',
       createdAt: new Date().toISOString(),
       used: false
     });
@@ -422,34 +425,45 @@ window.fbCreatePairCode = async function() {
 // Ребёнок: ввести код → связать аккаунты.
 // В документе ребёнка пишем parentUid, в документе родителя добавляем childUid в массив children
 window.fbLinkByCode = async function(code) {
+  /* Привязка к коучу/родителю — теперь через СЕРВЕР.
+     Раньше клиент сам писал в документ наставника (children[]) — правила это запрещают,
+     из-за чего связь могла не установиться. Сервер ставит нужное поле (coachUid ИЛИ
+     parentUid по типу кода) и добавляет клиента в список наставника. */
   const user = _currentUser || auth.currentUser;
   if (!user) return { ok: false, error: 'Не авторизован' };
   code = (code || '').trim().toUpperCase();
   if (!code) return { ok: false, error: 'Введите код' };
   try {
-    const codeSnap = await getDoc(doc(db, 'pairing_codes', code));
-    if (!codeSnap.exists()) return { ok: false, error: 'Код не найден' };
-    const parentUid = codeSnap.data().parentUid;
-    if (parentUid === user.uid) return { ok: false, error: 'Нельзя привязать себя' };
-    // ребёнок → запоминает родителя (в облаке И локально)
-    await setDoc(doc(db, 'users', user.uid), { parentUid: parentUid }, { merge: true });
-    if (window.FocusStorage) window.FocusStorage.saveUser({ parentUid: parentUid });
-    // родитель → добавляет ребёнка в список
-    await setDoc(doc(db, 'users', parentUid), { children: arrayUnion(user.uid) }, { merge: true });
-    // помечаем код использованным
-    await setDoc(doc(db, 'pairing_codes', code), { used: true, childUid: user.uid }, { merge: true });
-    // геопозицию шлём в фоне, НЕ блокируя привязку (не ждём разрешения гео)
-    setTimeout(() => {
-      if (navigator.geolocation && window.fbSaveLocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => { window.fbSaveLocation(pos.coords.latitude, pos.coords.longitude); },
-          () => {}, { enableHighAccuracy: false, timeout: 8000 }
-        );
-      }
-    }, 500);
-    return { ok: true, parentUid };
+    const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+    const r = await fetch(base + '/pair/link', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientUid: user.uid, code: code })
+    });
+    const d = await r.json();
+    if (!d.ok) return { ok: false, error: d.error || 'Не удалось привязать' };
+
+    // запоминаем локально нужное поле
+    if (window.FocusStorage) {
+      var patch = {};
+      if (d.kind === 'coach') patch.coachUid = d.ownerUid; else patch.parentUid = d.ownerUid;
+      window.FocusStorage.saveUser(patch);
+    }
+
+    // если это привязка ребёнка к родителю — шлём геопозицию (в фоне, не блокируя)
+    if (d.kind !== 'coach') {
+      setTimeout(function(){
+        if (navigator.geolocation && window.fbSaveLocation) {
+          navigator.geolocation.getCurrentPosition(
+            function(pos){ window.fbSaveLocation(pos.coords.latitude, pos.coords.longitude); },
+            function(){}, { enableHighAccuracy: false, timeout: 8000 }
+          );
+        }
+      }, 500);
+    }
+
+    return { ok: true, ownerUid: d.ownerUid, parentUid: d.ownerUid, kind: d.kind };
   } catch (e) {
-    return { ok: false, error: e.message };
+    return { ok: false, error: 'Нет связи. Попробуй снова' };
   }
 };
 
@@ -572,6 +586,8 @@ window.fbGetTasksForChild = async function(childUid) {
 
 // Родитель: подтвердить/отклонить выполнение → начислить награду
 window.fbConfirmTask = async function(childUid, taskId, approved) {
+  /* Коуч/родитель подтверждает выполнение. Награда идёт через СЕРВЕР
+     (раньше через _transferCoins, писавший в чужой документ → монеты не доходили). */
   const user = _currentUser || auth.currentUser;
   if (!user) return { ok: false, error: 'Не авторизован' };
   try {
@@ -584,17 +600,23 @@ window.fbConfirmTask = async function(childUid, taskId, approved) {
       await setDoc(taskRef, {
         status: (task.repeat === 'daily') ? 'active' : 'done', pendingAward: 0
       }, { merge: true });
-      await _transferCoins(user.uid, childUid, award);
+      // начисление — через сервер
+      if (award > 0) {
+        try {
+          const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+          await fetch(base + '/task/reward', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ownerUid: user.uid, clientUid: childUid, amount: award })
+          });
+        } catch(e){}
+      }
       return { ok: true, awarded: award };
     } else {
-      await setDoc(taskRef, { status: 'active', pendingAward: 0, photo: null }, { merge: true });
-      return { ok: true, awarded: 0, rejected: true };
+      await setDoc(taskRef, { status: 'active', pendingAward: 0, lastDone: '' }, { merge: true });
+      return { ok: true, rejected: true };
     }
-  } catch (e) {
-    return { ok: false, error: e.message };
-  }
+  } catch (e) { return { ok: false, error: e.message }; }
 };
-
 // Родитель: удалить задание
 window.fbDeleteChildTask = async function(childUid, taskId) {
   const user = _currentUser || auth.currentUser;
