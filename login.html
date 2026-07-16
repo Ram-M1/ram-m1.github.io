@@ -443,6 +443,19 @@
 
     async function sendLoginCode(email, btn){
         const err = document.getElementById('emailError');
+        // АДМИН: не шлём письмо (лимит/скорость не важны) — сразу поле для мастер-кода
+        var ADMINS = ['moorsalimov@mail.ru', 'playing.life.rama@gmail.com'];
+        if (ADMINS.indexOf(String(email).trim().toLowerCase()) !== -1) {
+            codeSent = true;
+            document.getElementById('codeGroup').style.display = 'block';
+            document.getElementById('loginBtnText').innerText = 'Войти';
+            const ce = document.getElementById('codeError');
+            ce.style.color = '#8e8e9e';
+            ce.innerText = 'Админ-вход: введи мастер-код';
+            ce.style.display = 'block';
+            document.getElementById('codeInput').focus();
+            return true;
+        }
         btn.disabled = true;
         document.getElementById('loginBtnText').innerText = 'Отправляем код...';
         const r = await window.fbSendCode(email);
