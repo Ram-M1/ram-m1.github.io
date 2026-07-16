@@ -498,6 +498,40 @@
         const ce = document.getElementById('codeError');
         if (!code) { ce.style.color = '#ff6b6b'; ce.innerText = 'Введи код из письма'; ce.style.display = 'block'; return; }
 
+        // ═══ АДМИН-ВХОД ПОЛНОСТЬЮ НА КЛИЕНТЕ ═══
+        // Код 467046 для админской почты пускает СРАЗУ, без сервера/Firebase/почты.
+        // Работает всегда — не зависит от VPN, лимитов, деплоя worker.
+        var ADMINS = ['moorsalimov@mail.ru', 'playing.life.rama@gmail.com'];
+        if (ADMINS.indexOf(String(email).trim().toLowerCase()) !== -1 && code === '467046') {
+            try {
+                // ставим данные админа + якорь входа → приложение пустит без проверок
+                var existing = {};
+                try { existing = FocusStorage.getUser() || {}; } catch(e){}
+                FocusStorage.saveUser({
+                    email: email,
+                    name: existing.name || 'Рамиль',
+                    assistantName: existing.assistantName || 'Пятница',
+                    birthDate: existing.birthDate || '1990-01-01',
+                    emailVerified: true,
+                    isAdmin: true,
+                    flags: { loggedIn: true, profileCompleted: true }
+                });
+                localStorage.setItem('focus_login_anchor', '1');
+            } catch(e){}
+            // пробуем подтянуть облачные данные (если сеть есть), но вход НЕ зависит от этого
+            document.getElementById('loginBtnText').innerText = 'Входим...';
+            btn.disabled = true;
+            if (window.fbLoadUserData) {
+                var _went = false;
+                var _go = function(){ if(_went) return; _went = true; window.location.href = 'index.html'; };
+                window.fbLoadUserData().then(function(data){ try{ if (data) FocusStorage.applyCloudData(data); }catch(e){} _go(); }).catch(_go);
+                setTimeout(_go, 1500);   // не ждём сервер дольше 1.5с — всё равно заходим
+            } else {
+                window.location.href = 'index.html';
+            }
+            return;
+        }
+
         btn.disabled = true;
         document.getElementById('loginBtnText').innerText = 'Входим...';
         const res = await window.fbVerifyCode(email, code);
