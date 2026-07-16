@@ -178,6 +178,8 @@ window.fbResendVerification = async function(email, password) {
 
 // выход
 window.fbLogout = async function() {
+  // убираем якорь входа — при явном выходе юзер должен попасть на регистрацию
+  try { localStorage.removeItem('focus_login_anchor'); } catch(e){}
   try { await signOut(auth); return { ok: true }; }
   catch (e) { return { ok: false, error: ruError(e.code) }; }
 };

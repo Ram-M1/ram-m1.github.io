@@ -654,10 +654,20 @@
     // Автовход: если сессия Firebase восстановилась (юзер уже входил и подтвердил почту)
     // — сразу пускаем в приложение, минуя landing (не надо вводить пароль каждый раз)
     (function(){
+        // МГНОВЕННО: если на этом устройстве уже был вход (якорь) — не показываем лендинг,
+        // сразу ведём в приложение. Приложение само восстановит данные/сессию.
+        try {
+            var anchor = localStorage.getItem('focus_login_anchor') === '1';
+            var u0 = FocusStorage.getUser();
+            var has0 = u0 && ((u0.flags && (u0.flags.profileCompleted || u0.loggedIn)) || (u0.name && u0.assistantName));
+            if (anchor || has0) { location.replace('index.html'); return; }
+        } catch(e){}
+
         function checkSession(){
             const user = window.fbCurrentUser && window.fbCurrentUser();
             if (user && user.emailVerified) {
-                // проверяем заполнена ли анкета — решаем куда вести
+                // юзер вошёл (в т.ч. в браузере) — ставим якорь и ведём в приложение
+                try { localStorage.setItem('focus_login_anchor', '1'); } catch(e){}
                 const u = FocusStorage.getUser();
                 const completed = u && ((u.flags && u.flags.profileCompleted) || u.profileCompleted);
                 const hasFields = u && u.name && u.assistantName && u.birthDate;
@@ -671,8 +681,9 @@
         // ждём восстановления сессии Firebase
         if (window.FB_AUTH_READY) checkSession();
         else window.addEventListener('fb-auth-ready', checkSession);
-        // подстраховка через момент (сессия может восстановиться с задержкой)
-        setTimeout(checkSession, 1500);
+        // подстраховка (сессия может восстановиться с задержкой)
+        setTimeout(checkSession, 800);
+        setTimeout(checkSession, 2000);
     })();
 </script>
 <script>

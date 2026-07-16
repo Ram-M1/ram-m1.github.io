@@ -2,7 +2,7 @@
   "name": "FOCUS — управляй своей жизнью",
   "short_name": "FOCUS",
   "description": "6 сфер твоей жизни в одном приложении",
-  "start_url": "./landing.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0d0d12",
   "theme_color": "#0a0a0f",

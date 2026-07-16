@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v188 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v192 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -1008,6 +1008,12 @@ window._focusUnlockAudio = function(){
             var ok = completed || hasFields;
             var logged = _u && ((_u.flags && (_u.flags.loggedIn || _u.flags.demoMode || _u.flags.profileCompleted)) || _u.email || _u.name);
 
+            // ЯКОРЬ ВХОДА: durable-флаг, который переживает любое обновление приложения.
+            // Ставится один раз при успешном входе. Пока он есть — юзер остаётся в аккаунте,
+            // логин только при явном выходе или смене устройства (где этого флага нет).
+            var loginAnchor = localStorage.getItem('focus_login_anchor') === '1';
+            if (ok && !loginAnchor) { try { localStorage.setItem('focus_login_anchor', '1'); } catch(e){} loginAnchor = true; }
+
             if (!_u || (!logged && !_u.email && !_u.name)) {
                 // ЛОКАЛЬНЫХ ДАННЫХ НЕТ — но сессия могла остаться жива (например, телефон почистил
                 // хранилище сайта). Раньше мы сразу выкидывали на лендинг — юзер «вылетал из аккаунта».
@@ -1023,7 +1029,12 @@ window._focusUnlockAudio = function(){
                     if (offline) { _stay(); return; }
 
                     var fu = window.fbCurrentUser();
-                    if (!fu) { location.replace('landing.html'); return; }   // сети нет проблем, сессии реально нет → регистрация
+                    // сессии нет, НО если раньше был вход на этом устройстве (якорь) — ждём Firebase ещё,
+                    // не выкидываем сразу (сессия могла не успеть подняться после обновления)
+                    if (!fu) {
+                        if (loginAnchor) { _stay(); return; }   // был вход на устройстве → остаёмся, Firebase поднимется
+                        location.replace('landing.html'); return;   // реально новое устройство → регистрация
+                    }
 
                     // сессия жива — тянем данные из облака
                     (window.fbLoadUserData ? window.fbLoadUserData() : Promise.resolve(null))
@@ -1031,11 +1042,12 @@ window._focusUnlockAudio = function(){
                             try {
                                 if (cloud && window.FocusStorage) FocusStorage.applyCloudData(cloud);
                                 if (window.FocusStorage) FocusStorage.saveUser({ email: (fu.email || (cloud && cloud.email) || ''), flags: { loggedIn: true } });
+                                localStorage.setItem('focus_login_anchor', '1');
                             } catch(e){}
                             var u2 = window.FocusStorage ? FocusStorage.getUser() : {};
                             var done2 = (u2.flags && u2.flags.profileCompleted) || u2.profileCompleted || (u2.name && u2.assistantName && u2.birthDate);
                             if (!done2) location.replace('profile-form.html');
-                            else { _stay(); location.reload(); }
+                            else { _stay(); }   // остаёмся без reload (reload вызывал лишнее мелькание/перезаход)
                         })
                         .catch(function(){ _stay(); });   // облако недоступно — остаёмся в приложении, НЕ выкидываем
                 }
@@ -2688,7 +2700,7 @@ window._focusUnlockAudio = function(){
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=188').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=192').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -3196,6 +3208,9 @@ window._focusUnlockAudio = function(){
                 ov.style.transition = '';                // вернуть плавность для дальнейшего
                 document.documentElement.classList.remove('booting');
                 var pc=document.getElementById('preGreetCover'); if(pc){ pc.style.opacity='0'; setTimeout(function(){ pc.remove(); },400); }
+                // ГУЛ ЗАРОЖДЕНИЯ ОРБА — с самого первого момента заставки
+                try{ if(window._focusUnlockAudio) window._focusUnlockAudio(); }catch(e){}
+                _coreHum(2600);
             });
 
             // ===== МОЛНИИ (выжигание текста + переходы) =====
@@ -3251,18 +3266,45 @@ window._focusUnlockAudio = function(){
                 var ac=_audio(); if(!ac) return;
                 try {
                     var t=ac.currentTime, dur=durMs/1000;
-                    // два осциллятора: глубокий бас + гармоника, нарастают и уходят
-                    var o1=ac.createOscillator(), o2=ac.createOscillator(), g=ac.createGain(), flt=ac.createBiquadFilter();
-                    o1.type='sine'; o2.type='triangle';
-                    o1.frequency.setValueAtTime(42, t); o1.frequency.exponentialRampToValueAtTime(88, t+dur*0.7);
-                    o2.frequency.setValueAtTime(84, t); o2.frequency.exponentialRampToValueAtTime(176, t+dur*0.7);
-                    flt.type='lowpass'; flt.frequency.setValueAtTime(200, t); flt.frequency.linearRampToValueAtTime(900, t+dur);
+                    // ГЛУБОКИЙ нарастающий космический гул: суб-бас + гармоники + лёгкое биение
+                    var o1=ac.createOscillator(), o2=ac.createOscillator(), o3=ac.createOscillator(), g=ac.createGain(), flt=ac.createBiquadFilter();
+                    o1.type='sine'; o2.type='sine'; o3.type='triangle';
+                    // нарастание частоты — будто энергия набирает силу
+                    o1.frequency.setValueAtTime(32, t); o1.frequency.exponentialRampToValueAtTime(65, t+dur*0.85);
+                    o2.frequency.setValueAtTime(48, t); o2.frequency.exponentialRampToValueAtTime(98, t+dur*0.85);   // квинта
+                    o3.frequency.setValueAtTime(96, t); o3.frequency.exponentialRampToValueAtTime(196, t+dur*0.85);  // октава-гармоника
+                    flt.type='lowpass'; flt.frequency.setValueAtTime(150, t); flt.frequency.linearRampToValueAtTime(1200, t+dur);
+                    flt.Q.value=2;
                     g.gain.setValueAtTime(0, t);
-                    g.gain.linearRampToValueAtTime(0.16, t+dur*0.45);   // нарастание
-                    g.gain.linearRampToValueAtTime(0.10, t+dur*0.8);
-                    g.gain.linearRampToValueAtTime(0, t+dur);           // затухание
-                    o1.connect(flt); o2.connect(flt); flt.connect(g); g.connect(ac.destination);
-                    o1.start(t); o2.start(t); o1.stop(t+dur); o2.stop(t+dur);
+                    g.gain.linearRampToValueAtTime(0.22, t+dur*0.55);   // плавное нарастание
+                    g.gain.linearRampToValueAtTime(0.16, t+dur*0.85);
+                    g.gain.exponentialRampToValueAtTime(0.001, t+dur);  // мягкое затухание в момент рождения
+                    o1.connect(flt); o2.connect(flt); o3.connect(flt); flt.connect(g); g.connect(ac.destination);
+                    o1.start(t); o2.start(t); o3.start(t); o1.stop(t+dur); o2.stop(t+dur); o3.stop(t+dur);
+                } catch(e){}
+            }
+
+            // ЗВУК ВЫЖИГАНИЯ СЛОВ молнией — потрескивающий электро-шелест (пока проявляются буквы)
+            function _burnSound(durMs){
+                var ac=_audio(); if(!ac) return;
+                try {
+                    var t=ac.currentTime, dur=(durMs||900)/1000;
+                    // непрерывный потрескивающий шум — как электричество бежит по буквам
+                    var len=Math.floor(ac.sampleRate*dur), buf=ac.createBuffer(1,len,ac.sampleRate), d=buf.getChannelData(0);
+                    for(var i=0;i<len;i++){
+                        // редкие всплески-искры на фоне тихого шипения
+                        var spark = Math.random()<0.06 ? (Math.random()*2-1) : (Math.random()*2-1)*0.15;
+                        d[i]=spark;
+                    }
+                    var src=ac.createBufferSource(); src.buffer=buf;
+                    var flt=ac.createBiquadFilter(); flt.type='bandpass'; flt.frequency.value=3200; flt.Q.value=0.8;
+                    var g=ac.createGain();
+                    g.gain.setValueAtTime(0.001, t);
+                    g.gain.linearRampToValueAtTime(0.14, t+0.05);
+                    g.gain.setValueAtTime(0.14, t+dur*0.7);
+                    g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+                    src.connect(flt); flt.connect(g); g.connect(ac.destination);
+                    src.start(t);
                 } catch(e){}
             }
             // РАЗРЯД молнии — резкий электрический треск (шум + быстрый спад)
@@ -3270,18 +3312,24 @@ window._focusUnlockAudio = function(){
                 var ac=_audio(); if(!ac) return;
                 try {
                     var t=ac.currentTime;
-                    // белый шум через буфер
-                    var len=Math.floor(ac.sampleRate*0.18), buf=ac.createBuffer(1,len,ac.sampleRate), d=buf.getChannelData(0);
-                    for(var i=0;i<len;i++){ d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.5); }  // затухающий шум
+                    // РЕАЛЬНЫЙ треск молнии: мощный шумовой удар с быстрой атакой и раскатом
+                    var len=Math.floor(ac.sampleRate*0.35), buf=ac.createBuffer(1,len,ac.sampleRate), d=buf.getChannelData(0);
+                    for(var i=0;i<len;i++){
+                        var env = i<len*0.02 ? (i/(len*0.02)) : Math.pow(1-(i-len*0.02)/(len*0.98), 1.8);  // резкая атака + раскат
+                        d[i]=(Math.random()*2-1)*env;
+                    }
                     var src=ac.createBufferSource(); src.buffer=buf;
-                    var flt=ac.createBiquadFilter(); flt.type='bandpass'; flt.frequency.value=2200; flt.Q.value=0.7;
-                    var g=ac.createGain(); g.gain.setValueAtTime(0.28, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.18);
-                    // + короткий тональный «щелчок» сверху
-                    var o=ac.createOscillator(); o.type='square'; o.frequency.setValueAtTime(1400,t); o.frequency.exponentialRampToValueAtTime(300,t+0.08);
-                    var og=ac.createGain(); og.gain.setValueAtTime(0.12,t); og.gain.exponentialRampToValueAtTime(0.001,t+0.09);
+                    // фильтр: низ = грохот, верх = треск. Свипаем вниз (как настоящий разряд)
+                    var flt=ac.createBiquadFilter(); flt.type='lowpass';
+                    flt.frequency.setValueAtTime(6000, t); flt.frequency.exponentialRampToValueAtTime(500, t+0.3);
+                    flt.Q.value=1.2;
+                    var g=ac.createGain(); g.gain.setValueAtTime(0.38, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.35);
+                    // суб-бас удара (глубокий «бум» снизу)
+                    var sub=ac.createOscillator(); sub.type='sine'; sub.frequency.setValueAtTime(90, t); sub.frequency.exponentialRampToValueAtTime(38, t+0.18);
+                    var sg=ac.createGain(); sg.gain.setValueAtTime(0.3, t); sg.gain.exponentialRampToValueAtTime(0.001, t+0.22);
                     src.connect(flt); flt.connect(g); g.connect(ac.destination);
-                    o.connect(og); og.connect(ac.destination);
-                    src.start(t); o.start(t); o.stop(t+0.1);
+                    sub.connect(sg); sg.connect(ac.destination);
+                    src.start(t); sub.start(t); sub.stop(t+0.25);
                 } catch(e){}
             }
             // УДАР: тряска экрана (Mortal Kombat) + вибро телефона + звук разряда
@@ -3306,7 +3354,6 @@ window._focusUnlockAudio = function(){
                 // ЗВУК зарождения ядра — глубокий нарастающий гул (первые ~2с)
                 try { var _a=_audio(); if(_a && _a.state==='suspended') _a.resume(); } catch(e){}
                 // небольшая задержка — даём контексту проснуться после resume (иначе первый звук глохнет)
-                setTimeout(function(){ _coreHum(2000); }, 60);
                 var ph = document.querySelector('.phone'); var PWc = ph?ph.clientWidth:375, PHc = ph?ph.clientHeight:700;
                 bcv.width = PWc*2; bcv.height = PHc*2; bcv.style.width = PWc+'px'; bcv.style.height = PHc+'px'; bx.setTransform(2,0,0,2,0,0);
                 var R = 70;                      // радиус крупной формы рождения
@@ -3416,6 +3463,8 @@ window._focusUnlockAudio = function(){
             function burnEl(el, done){
                 if(!el){ if(done)done(); return; }
                 if(writeTimer){ clearTimeout(writeTimer); writeTimer=null; }
+                // ЗВУК выжигания слов молнией — потрескивание пока буквы проявляются
+                try { var _txt=(el.getAttribute('data-full')||el.textContent||''); _burnSound(Math.min(2200, 400+_txt.length*28)); } catch(e){}
                 var full = el.getAttribute('data-full') || el.innerHTML;
                 var tmp = document.createElement('div'); tmp.innerHTML = full;
                 var chars = []; (function walk(node){ node.childNodes.forEach(function(n){
@@ -3434,19 +3483,23 @@ window._focusUnlockAudio = function(){
             }
             function burnText(el){ burnEl(el); }
             // залп молний из орба в точку (несколько разрядов)
-            function boltBurst(tx,ty,count){ var oc=orbCenter(); var n=0; var iv=setInterval(function(){ fxBolt(oc.x,oc.y,tx,ty,false); n++; if(n>=(count||5)) clearInterval(iv); }, 70);
-                // ЭФФЕКТЫ на реальный удар: тряска (Mortal Kombat) + вибро + звук разряда
-                _focusStrike();
-                // МОЛНИИ ОТ КРАЁВ ЭКРАНА в орб (со всех 4 сторон, включая низ) — на полноэкранном fxCv
+            // КРУТЫЕ молнии от краёв экрана в орб (те же, что в шагах — чёткие, добивают до низа)
+            function edgeBolts(cnt){
+                var oc=orbCenter();
                 var ph=document.querySelector('.phone'); var EW=ph?ph.clientWidth:375, EH=ph?ph.clientHeight:700;
-                for(var eb=0; eb<2; eb++){
+                for(var eb=0; eb<(cnt||2); eb++){
                     var edge=Math.floor(Math.random()*4), ex, ey;
                     if(edge===0){ ex=Math.random()*EW; ey=2; }              // верх
                     else if(edge===1){ ex=EW-2; ey=Math.random()*EH; }      // право
-                    else if(edge===2){ ex=Math.random()*EW; ey=EH-2; }      // низ (до самого края экрана)
+                    else if(edge===2){ ex=Math.random()*EW; ey=EH-2; }      // низ (до края)
                     else { ex=2; ey=Math.random()*EH; }                     // лево
-                    fxBolt(ex, ey, oc.x, oc.y, false);  // от края экрана к орбу (толстые/чёткие как основные)
+                    fxBolt(ex, ey, oc.x, oc.y, false);   // чёткие, как основные
                 }
+                _focusStrike();   // тряска + вибро + звук разряда
+            }
+
+            function boltBurst(tx,ty,count){ var oc=orbCenter(); var n=0; var iv=setInterval(function(){ fxBolt(oc.x,oc.y,tx,ty,false); n++; if(n>=(count||5)) clearInterval(iv); }, 70);
+                edgeBolts(2);   // + крутые молнии от краёв (тряска/вибро/звук внутри)
             }
 
             var idx = 0;
@@ -3563,11 +3616,14 @@ window._focusUnlockAudio = function(){
 
                 if(idx===0){
                     var gb0=document.getElementById('greetBox'); if(gb0){ gb0.style.transition='opacity .5s'; gb0.style.opacity='0'; }
+                    // КРУТЫЕ МОЛНИИ ОТ КРАЁВ во время зарождения орба (вместо старых стрёмных)
+                    var birthZap = setInterval(function(){ edgeBolts(2); }, 380);
+                    setTimeout(function(){ clearInterval(birthZap); }, 8400);   // молнии весь период рождения
                     setTimeout(function(){
                         var orb0=document.getElementById('greetOrbFree');
                         if(orb0){ orb0.style.width='230px'; orb0.style.height='409px'; orb0.style.top='155px'; orb0.style.left='50%'; }
                         if(gb0){ gb0.style.width='calc(100% - 40px)'; gb0.style.left='50%'; gb0.style.top='340px'; }
-                        setTimeout(function(){ if(gb0) gb0.style.opacity='1'; var oc=orbCenter(); try{ if(window._focusUnlockAudio) window._focusUnlockAudio(); }catch(e){} _coreHum(2000); sequence(oc.x, oc.y+120); }, 1550);
+                        setTimeout(function(){ if(gb0) gb0.style.opacity='1'; var oc=orbCenter(); sequence(oc.x, oc.y+120); }, 1550);
                     }, 8600);
                 } else if(step.target){
                     setTimeout(function(){
