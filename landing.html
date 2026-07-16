@@ -658,9 +658,13 @@
         // сразу ведём в приложение. Приложение само восстановит данные/сессию.
         try {
             var anchor = localStorage.getItem('focus_login_anchor') === '1';
+            var loggedOut = localStorage.getItem('focus_logged_out') === '1';
             var u0 = FocusStorage.getUser();
-            var has0 = u0 && ((u0.flags && (u0.flags.profileCompleted || u0.loggedIn)) || (u0.name && u0.assistantName));
-            if (anchor || has0) { location.replace('index.html'); return; }
+            // Пускаем в аккаунт автоматом ТОЛЬКО если явно залогинен (флаг loggedIn или якорь).
+            // Раньше пускало по одному наличию имени (u0.name) — из-за этого после «Выйти»
+            // сразу кидало обратно (данные-то остались). Теперь наличие имени НЕ считается входом.
+            var reallyLogged = u0 && u0.flags && (u0.flags.loggedIn || u0.flags.profileCompleted);
+            if (!loggedOut && (anchor || reallyLogged)) { location.replace('index.html'); return; }
         } catch(e){}
 
         function checkSession(){

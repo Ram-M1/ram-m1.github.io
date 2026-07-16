@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v197 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v200 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -1011,6 +1011,8 @@ window._focusUnlockAudio = function(){
             // ЯКОРЬ ВХОДА: durable-флаг, который переживает любое обновление приложения.
             // Ставится один раз при успешном входе. Пока он есть — юзер остаётся в аккаунте,
             // логин только при явном выходе или смене устройства (где этого флага нет).
+            // если юзер явно вышел — не держим в аккаунте
+            if (localStorage.getItem('focus_logged_out') === '1') { location.replace('landing.html'); return; }
             var loginAnchor = localStorage.getItem('focus_login_anchor') === '1';
             if (ok && !loginAnchor) { try { localStorage.setItem('focus_login_anchor', '1'); } catch(e){} loginAnchor = true; }
 
@@ -2700,7 +2702,7 @@ window._focusUnlockAudio = function(){
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=197').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=200').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -3277,43 +3279,48 @@ window._focusUnlockAudio = function(){
                 try { window._focusAudioCtx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){ window._focusAudioCtx=null; }
                 return window._focusAudioCtx;
             }
+            // РЕВЕРБ (эхо-пространство) — для космического звучания гула и молний
+            var _reverbBuf = null;
+            function _buildReverb(ac){
+                if(_reverbBuf) return _reverbBuf;
+                try {
+                    var len = Math.floor(ac.sampleRate * 2.5);
+                    _reverbBuf = ac.createBuffer(2, len, ac.sampleRate);
+                    for(var ch=0; ch<2; ch++){
+                        var d = _reverbBuf.getChannelData(ch);
+                        for(var i=0;i<len;i++){ d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 2.8); }
+                    }
+                } catch(e){}
+                return _reverbBuf;
+            }
+            function _reverb(ac, input, wet){
+                try {
+                    var buf = _buildReverb(ac); if(!buf) return;
+                    var conv = ac.createConvolver(); conv.buffer = buf;
+                    var wetG = ac.createGain(); wetG.gain.value = wet;
+                    input.connect(conv); conv.connect(wetG); wetG.connect(ac.destination);
+                } catch(e){}
+            }
             // (разблокировка звука теперь глобальная — в начале страницы)
             // ГУЛ зарождающегося ядра — низкая нарастающая волна (космический гул)
             function _coreHum(durMs){
                 var ac=_audio(); if(!ac) return;
                 try {
-                    var t=ac.currentTime, dur=durMs/1000;
-                    // ЭПИЧНЫЙ гул зарождения — «запуск реактора»: суб-бас + растущие гармоники + гул-свип
-                    var o1=ac.createOscillator(), o2=ac.createOscillator(), o3=ac.createOscillator(), o4=ac.createOscillator();
-                    var g=ac.createGain(), flt=ac.createBiquadFilter();
-                    o1.type='sine'; o2.type='sine'; o3.type='sawtooth'; o4.type='triangle';
-                    // мощное нарастание — энергия копится к моменту рождения
-                    o1.frequency.setValueAtTime(28, t); o1.frequency.exponentialRampToValueAtTime(72, t+dur*0.9);   // суб-бас
-                    o2.frequency.setValueAtTime(42, t); o2.frequency.exponentialRampToValueAtTime(108, t+dur*0.9);  // квинта
-                    o3.frequency.setValueAtTime(84, t); o3.frequency.exponentialRampToValueAtTime(216, t+dur*0.9);  // пила (рёв)
-                    o4.frequency.setValueAtTime(126, t); o4.frequency.exponentialRampToValueAtTime(324, t+dur*0.9); // верхняя гармоника
-                    // фильтр открывается — звук «распахивается» к рождению
-                    flt.type='lowpass'; flt.frequency.setValueAtTime(120, t); flt.frequency.exponentialRampToValueAtTime(2400, t+dur*0.92);
-                    flt.Q.value=3.5;
-                    // громкость: мощное нарастание + всплеск в момент рождения
-                    g.gain.setValueAtTime(0.0001, t);
-                    g.gain.exponentialRampToValueAtTime(0.28, t+dur*0.6);
-                    g.gain.linearRampToValueAtTime(0.34, t+dur*0.88);   // пик — момент рождения
-                    g.gain.exponentialRampToValueAtTime(0.001, t+dur);
-                    // пила потише (чтоб рёв не резал ухо)
-                    var g3=ac.createGain(); g3.gain.value=0.4;
-                    o1.connect(flt); o2.connect(flt); o4.connect(flt); o3.connect(g3); g3.connect(flt);
-                    flt.connect(g); g.connect(ac.destination);
-                    o1.start(t); o2.start(t); o3.start(t); o4.start(t);
-                    o1.stop(t+dur); o2.stop(t+dur); o3.stop(t+dur); o4.stop(t+dur);
-                    // финальный «удар» рождения — глубокий бум в конце
-                    var boom=ac.createOscillator(), bg=ac.createGain();
-                    boom.type='sine'; boom.frequency.setValueAtTime(140, t+dur*0.86); boom.frequency.exponentialRampToValueAtTime(45, t+dur+0.15);
-                    bg.gain.setValueAtTime(0.0001, t+dur*0.86); bg.gain.exponentialRampToValueAtTime(0.4, t+dur*0.92); bg.gain.exponentialRampToValueAtTime(0.001, t+dur+0.2);
-                    boom.connect(bg); bg.connect(ac.destination); boom.start(t+dur*0.86); boom.stop(t+dur+0.25);
+                    // Г3 «Глубокая медитация» — поющая чаша: чистый низкий тон + квинта, с эхом
+                    var t=ac.currentTime, dur=(durMs/1000);
+                    var o1=ac.createOscillator(), o2=ac.createOscillator(), g=ac.createGain();
+                    o1.type='sine'; o2.type='sine';
+                    o1.frequency.setValueAtTime(96,t); o1.frequency.linearRampToValueAtTime(110,t+dur);
+                    o2.frequency.setValueAtTime(144,t); o2.frequency.linearRampToValueAtTime(165,t+dur);  // квинта — звук чаши
+                    g.gain.setValueAtTime(0.0001,t);
+                    g.gain.linearRampToValueAtTime(0.28,t+dur*0.4);
+                    g.gain.linearRampToValueAtTime(0.2,t+dur*0.8);
+                    g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+                    o1.connect(g); o2.connect(g); g.connect(ac.destination);
+                    _reverb(ac, g, 0.55);   // большое эхо — космос/медитация
+                    o1.start(t); o2.start(t); o1.stop(t+dur); o2.stop(t+dur);
                 } catch(e){}
             }
-
             // ЗВУК ВЫЖИГАНИЯ СЛОВ молнией — потрескивающий электро-шелест (пока проявляются буквы)
             function _burnSound(durMs){
                 var ac=_audio(); if(!ac) return;
@@ -3331,7 +3338,7 @@ window._focusUnlockAudio = function(){
                     var g=ac.createGain();
                     g.gain.setValueAtTime(0.001, t);
                     g.gain.linearRampToValueAtTime(0.14, t+0.05);
-                    g.gain.setValueAtTime(0.14, t+dur*0.7);
+                    g.gain.setValueAtTime(0.14, t+dur*0.9);       // держим громкость почти до конца выжигания
                     g.gain.exponentialRampToValueAtTime(0.001, t+dur);
                     src.connect(flt); flt.connect(g); g.connect(ac.destination);
                     src.start(t);
@@ -3341,42 +3348,27 @@ window._focusUnlockAudio = function(){
             function _zap(){
                 var ac=_audio(); if(!ac) return;
                 try {
+                    // М4 «Эфирная вспышка» — воздушный мягкий разряд с длинным космическим эхом
                     var t=ac.currentTime;
-                    // МОЩНЫЙ удар молнии: резкий треск + раскат грома + глубокий суб-бас
-                    // 1) резкий ТРЕСК (высокочастотный, короткий)
-                    var len1=Math.floor(ac.sampleRate*0.12), b1=ac.createBuffer(1,len1,ac.sampleRate), d1=b1.getChannelData(0);
-                    for(var i=0;i<len1;i++){ d1[i]=(Math.random()*2-1)*Math.pow(1-i/len1, 1.2); }
-                    var s1=ac.createBufferSource(); s1.buffer=b1;
-                    var f1=ac.createBiquadFilter(); f1.type='highpass'; f1.frequency.value=1800;
-                    var g1=ac.createGain(); g1.gain.setValueAtTime(0.5, t); g1.gain.exponentialRampToValueAtTime(0.001, t+0.12);
-                    s1.connect(f1); f1.connect(g1); g1.connect(ac.destination);
-                    // 2) РАСКАТ грома (длинный, низкий, шумовой)
-                    var len2=Math.floor(ac.sampleRate*0.6), b2=ac.createBuffer(1,len2,ac.sampleRate), d2=b2.getChannelData(0);
-                    for(var j=0;j<len2;j++){
-                        var env = j<len2*0.03 ? (j/(len2*0.03)) : Math.pow(1-(j-len2*0.03)/(len2*0.97), 1.5);
-                        d2[j]=(Math.random()*2-1)*env;
-                    }
-                    var s2=ac.createBufferSource(); s2.buffer=b2;
-                    var f2=ac.createBiquadFilter(); f2.type='lowpass';
-                    f2.frequency.setValueAtTime(3500, t); f2.frequency.exponentialRampToValueAtTime(300, t+0.6); f2.Q.value=1.5;
-                    var g2=ac.createGain(); g2.gain.setValueAtTime(0.45, t); g2.gain.exponentialRampToValueAtTime(0.001, t+0.6);
-                    s2.connect(f2); f2.connect(g2); g2.connect(ac.destination);
-                    // 3) глубокий СУБ-БАС удара (физический «бум» в грудь)
+                    // воздушный шум (мягкая огибающая — без резкого удара)
+                    var len=Math.floor(ac.sampleRate*0.4), buf=ac.createBuffer(1,len,ac.sampleRate), d=buf.getChannelData(0);
+                    for(var i=0;i<len;i++){ d[i]=(Math.random()*2-1)*Math.sin(Math.PI*i/len); }  // плавная волна
+                    var s2=ac.createBufferSource(); s2.buffer=buf;
+                    var f=ac.createBiquadFilter(); f.type='bandpass';
+                    f.frequency.setValueAtTime(1900,t); f.frequency.exponentialRampToValueAtTime(650,t+0.4); f.Q.value=0.5;
+                    var g=ac.createGain();
+                    g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.16,t+0.05); g.gain.exponentialRampToValueAtTime(0.001,t+0.4);
+                    s2.connect(f); f.connect(g); g.connect(ac.destination);
+                    _reverb(ac, g, 0.8);   // самое большое эхо — эфирность, уходит в даль
+                    // мягкий глубокий суб-бас (лёгкий, не бьёт)
                     var sub=ac.createOscillator(); sub.type='sine';
-                    sub.frequency.setValueAtTime(110, t); sub.frequency.exponentialRampToValueAtTime(32, t+0.3);
-                    var sg=ac.createGain(); sg.gain.setValueAtTime(0.55, t); sg.gain.exponentialRampToValueAtTime(0.001, t+0.32);
+                    sub.frequency.setValueAtTime(64,t); sub.frequency.exponentialRampToValueAtTime(40,t+0.3);
+                    var sg=ac.createGain(); sg.gain.setValueAtTime(0.16,t); sg.gain.exponentialRampToValueAtTime(0.001,t+0.32);
                     sub.connect(sg); sg.connect(ac.destination);
-                    // 4) электрический «зуммер» (характерное потрескивание разряда)
-                    var buzz=ac.createOscillator(); buzz.type='sawtooth';
-                    buzz.frequency.setValueAtTime(220, t); buzz.frequency.exponentialRampToValueAtTime(60, t+0.15);
-                    var bzg=ac.createGain(); bzg.gain.setValueAtTime(0.12, t); bzg.gain.exponentialRampToValueAtTime(0.001, t+0.16);
-                    buzz.connect(bzg); bzg.connect(ac.destination);
-                    s1.start(t); s2.start(t); sub.start(t); buzz.start(t);
-                    sub.stop(t+0.35); buzz.stop(t+0.18);
+                    _reverb(ac, sg, 0.4);
+                    s2.start(t); sub.start(t); sub.stop(t+0.35);
                 } catch(e){}
             }
-            // УДАР: тряска экрана (Mortal Kombat) + вибро телефона + звук разряда
-            var _lastStrike=0;
             function _focusStrike(){
                 var now=Date.now();
                 if(now-_lastStrike < 140) return;   // не чаще ~7 раз/сек, чтоб не тряслось безумно
@@ -3506,8 +3498,13 @@ window._focusUnlockAudio = function(){
             function burnEl(el, done){
                 if(!el){ if(done)done(); return; }
                 if(writeTimer){ clearTimeout(writeTimer); writeTimer=null; }
-                // ЗВУК выжигания слов молнией — потрескивание пока буквы проявляются
-                try { var _txt=(el.getAttribute('data-full')||el.textContent||''); _burnSound(Math.min(2200, 400+_txt.length*28)); } catch(e){}
+                // ЗВУК выжигания слов — длится РОВНО пока буквы проявляются (кол-во букв × скорость)
+                try {
+                    var _tmp2 = document.createElement('div'); _tmp2.innerHTML = (el.getAttribute('data-full')||el.innerHTML||'');
+                    var _charCount = (_tmp2.textContent||'').length;
+                    var _burnMs = _charCount * 22;   // 22мс на букву = скорость анимации (SLOW), точное совпадение
+                    if (_burnMs > 200) _burnSound(_burnMs);
+                } catch(e){}
                 var full = el.getAttribute('data-full') || el.innerHTML;
                 var tmp = document.createElement('div'); tmp.innerHTML = full;
                 var chars = []; (function walk(node){ node.childNodes.forEach(function(n){

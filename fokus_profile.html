@@ -609,7 +609,19 @@ initAtmosphere(canvasId) {
         document.getElementById('confirmModal').style.display = 'none';
     });
     document.getElementById('confirmOk').addEventListener('click', () => {
-        FocusStorage.saveUser({ flags: { loggedIn: false } });
+        // ПОЛНЫЙ выход: убираем якорь + метки + ставим флаг «вышел»
+        try { localStorage.removeItem('focus_login_anchor'); } catch(e){}
+        try { localStorage.setItem('focus_logged_out', '1'); } catch(e){}
+        try {
+            var u = FocusStorage.getUser() || {};
+            u.flags = u.flags || {};
+            u.flags.loggedIn = false;
+            u.flags.profileCompleted = false;
+            u.isAdmin = false;
+            u.emailVerified = false;
+            FocusStorage.saveUser(u);
+        } catch(e){}
+        try { if (window.fbLogout) window.fbLogout(); } catch(e){}
         window.location.href = 'landing.html';
     });
     document.getElementById('confirmModal').addEventListener('click', (e) => {

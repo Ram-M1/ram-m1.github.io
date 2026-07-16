@@ -517,6 +517,7 @@
                     flags: { loggedIn: true, profileCompleted: true }
                 });
                 localStorage.setItem('focus_login_anchor', '1');
+                localStorage.removeItem('focus_logged_out');
             } catch(e){}
             // пробуем подтянуть облачные данные (если сеть есть), но вход НЕ зависит от этого
             document.getElementById('loginBtnText').innerText = 'Входим...';
@@ -543,6 +544,7 @@
             ce.style.display = 'block';
             return;
         }
+        try { localStorage.removeItem('focus_logged_out'); } catch(e){}
         try { FocusStorage.saveUser({ email: email, emailVerified: true, flags: { loggedIn: true } }); } catch(e){}
         if (window.fbLoadUserData) {
             window.fbLoadUserData().then(function(data){
