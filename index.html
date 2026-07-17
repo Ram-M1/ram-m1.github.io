@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v203 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v204 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -2702,7 +2702,7 @@ window._focusUnlockAudio = function(){
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=203').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=204').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -3224,7 +3224,7 @@ window._focusUnlockAudio = function(){
                 // Аудио уже разблокировано в кнопке «Войти» (нажатие = user gesture),
                 // поэтому звук играет без дополнительных тапов.
                 try{ if(window._focusUnlockAudio) window._focusUnlockAudio(); }catch(e){}
-                _coreHum(2600);
+                try{ _coreHum(2600); }catch(e){}
             });
 
             // ===== МОЛНИИ (выжигание текста + переходы) =====
@@ -3454,7 +3454,7 @@ window._focusUnlockAudio = function(){
                         else { ex=-4; ey=Math.random()*PHc; }                  // лево
                         // disp больше (размах молнии шире на длинной дистанции)
                         addBolt(ex, ey, cx, cy, 40, 2.6, 1);
-                        _focusStrike();   // УДАР: тряска экрана (как в Mortal Kombat) + вибро + звук
+                        try{ _focusStrike(); }catch(e){}   // УДАР: тряска + вибро + звук
                     }
                     // СЕТКА ТКЁТСЯ МОЛНИЯМИ (узлы раскрываются, дуги-молнии по рёбрам)
                     if(revealN>0){
@@ -3490,7 +3490,7 @@ window._focusUnlockAudio = function(){
                     var _tmp2 = document.createElement('div'); _tmp2.innerHTML = (el.getAttribute('data-full')||el.innerHTML||'');
                     var _charCount = (_tmp2.textContent||'').length;
                     var _burnMs = _charCount * 22;   // 22мс на букву = скорость анимации (SLOW), точное совпадение
-                    if (_burnMs > 200) _burnSound(_burnMs);
+                    if (_burnMs > 200) { try{ _burnSound(_burnMs); }catch(e){} }
                 } catch(e){}
                 var full = el.getAttribute('data-full') || el.innerHTML;
                 var tmp = document.createElement('div'); tmp.innerHTML = full;
@@ -3522,11 +3522,11 @@ window._focusUnlockAudio = function(){
                     else { ex=2; ey=Math.random()*EH; }                     // лево
                     fxBolt(ex, ey, oc.x, oc.y, false);   // чёткие, как основные
                 }
-                _focusStrike();   // тряска + вибро + звук разряда
+                try{ _focusStrike(); }catch(e){}   // тряска + вибро + звук разряда (защита от падения)
             }
 
             function boltBurst(tx,ty,count){ var oc=orbCenter(); var n=0; var iv=setInterval(function(){ fxBolt(oc.x,oc.y,tx,ty,false); n++; if(n>=(count||5)) clearInterval(iv); }, 70);
-                edgeBolts(2);   // + крутые молнии от краёв (тряска/вибро/звук внутри)
+                edgeBolts(3);   // + крутые молнии от краёв (насыщеннее)
             }
 
             var idx = 0;
@@ -3644,7 +3644,7 @@ window._focusUnlockAudio = function(){
                 if(idx===0){
                     var gb0=document.getElementById('greetBox'); if(gb0){ gb0.style.transition='opacity .5s'; gb0.style.opacity='0'; }
                     // КРУТЫЕ МОЛНИИ ОТ КРАЁВ во время зарождения орба (вместо старых стрёмных)
-                    var birthZap = setInterval(function(){ edgeBolts(2); }, 380);
+                    var birthZap = setInterval(function(){ edgeBolts(3); }, 260);
                     setTimeout(function(){ clearInterval(birthZap); }, 8400);   // молнии весь период рождения
                     setTimeout(function(){
                         var orb0=document.getElementById('greetOrbFree');
