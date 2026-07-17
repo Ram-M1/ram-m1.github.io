@@ -654,23 +654,25 @@
     // Автовход: если сессия Firebase восстановилась (юзер уже входил и подтвердил почту)
     // — сразу пускаем в приложение, минуя landing (не надо вводить пароль каждый раз)
     (function(){
+        // Если идёт РЕГИСТРАЦИЯ (юзер только ввёл код, заполняет профиль) — landing НЕ вмешивается,
+        // иначе получается петля: сессия есть, профиля нет → landing шлёт на profile → мелькание.
+        try { if (localStorage.getItem('focus_registering') === '1') { return; } } catch(e){}
+
         // МГНОВЕННО: если на этом устройстве уже был вход (якорь) — не показываем лендинг,
         // сразу ведём в приложение. Приложение само восстановит данные/сессию.
         try {
             var anchor = localStorage.getItem('focus_login_anchor') === '1';
             var loggedOut = localStorage.getItem('focus_logged_out') === '1';
             var u0 = FocusStorage.getUser();
-            // Пускаем в аккаунт автоматом ТОЛЬКО если явно залогинен (флаг loggedIn или якорь).
-            // Раньше пускало по одному наличию имени (u0.name) — из-за этого после «Выйти»
-            // сразу кидало обратно (данные-то остались). Теперь наличие имени НЕ считается входом.
             var reallyLogged = u0 && u0.flags && (u0.flags.loggedIn || u0.flags.profileCompleted);
             if (!loggedOut && (anchor || reallyLogged)) { location.replace('index.html'); return; }
         } catch(e){}
 
         function checkSession(){
+            // во время регистрации не вмешиваемся
+            try { if (localStorage.getItem('focus_registering') === '1') return; } catch(e){}
             const user = window.fbCurrentUser && window.fbCurrentUser();
             if (user && user.emailVerified) {
-                // юзер вошёл (в т.ч. в браузере) — ставим якорь и ведём в приложение
                 try { localStorage.setItem('focus_login_anchor', '1'); } catch(e){}
                 const u = FocusStorage.getUser();
                 const completed = u && ((u.flags && u.flags.profileCompleted) || u.profileCompleted);

@@ -815,6 +815,14 @@
             // ПЕРЕХОД (что бы ни случилось выше)
             // друг заполнил анкету → он «активный», пригласившему +1 (путь A)
             try { if (window.fbMarkReferralActive) window.fbMarkReferralActive(); } catch(e){}
+            // регистрация завершена — снимаем флаг, ставим якорь входа, помечаем профиль заполненным
+            try {
+                localStorage.removeItem('focus_registering');
+                localStorage.removeItem('focus_logged_out');
+                localStorage.setItem('focus_login_anchor', '1');
+                var _fu = FocusStorage.getUser() || {}; _fu.flags = _fu.flags || {}; _fu.flags.profileCompleted = true; _fu.flags.loggedIn = true;
+                FocusStorage.saveUser(_fu);
+            } catch(e){}
             window.location.href = 'index.html';
         })();
     });

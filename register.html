@@ -447,6 +447,8 @@
             try {
                 FocusStorage.saveUser({ email: email, emailVerified: true, flags: { loggedIn: true, emailConfirmed: true } });
                 if (window.fbSaveUserData) fbSaveUserData({ email: email, emailVerified: true, createdAt: Date.now() });
+                localStorage.setItem('focus_registering', '1');   // идёт регистрация — landing не вмешивается
+                localStorage.removeItem('focus_logged_out');
             } catch(e){}
             // привязываем пригласившего (если пришли по ссылке друга)
             try {

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v211 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v213 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -996,71 +996,66 @@ window._focusUnlockAudio = function(){
 <script src="focus-core.js"></script>
 <script src="focus-orb.js"></script>
 <script>
-    // ГАРД входа: совсем новый посетитель → landing (регистрация/вход);
-    //            вошёл, но анкета не заполнена → анкета.
+    // ГАРД входа (переписан начисто — детерминированный, без петель и мельтешения):
+    //   1. Есть заполненный профиль (name+assistant+birthDate или флаг) → ОСТАЁМСЯ. Точка.
+    //   2. Явно вышел (focus_logged_out) → landing.
+    //   3. Идёт регистрация (focus_registering) → НЕ трогаем (профиль ещё заполняется).
+    //   4. Ничего нет + нет якоря + нет сессии → landing (новый посетитель).
+    //   5. Якорь есть, но данных нет → ждём Firebase ОДИН раз, тянем облако, решаем.
     (function(){
         try {
             var _raw = localStorage.getItem('focus_user');
             var _u = _raw ? (JSON.parse(_raw) || {}) : null;
-            // анкета считается заполненной если стоит флаг profileCompleted ИЛИ есть ключевые поля
-            var completed = _u && ((_u.flags && _u.flags.profileCompleted) || _u.profileCompleted);
-            var hasFields = _u && _u.name && _u.assistantName && _u.birthDate;
-            var ok = completed || hasFields;
-            var logged = _u && ((_u.flags && (_u.flags.loggedIn || _u.flags.demoMode || _u.flags.profileCompleted)) || _u.email || _u.name);
+            var hasProfile = _u && ((_u.flags && _u.flags.profileCompleted) || _u.profileCompleted || (_u.name && _u.assistantName && _u.birthDate));
+            var anchor = localStorage.getItem('focus_login_anchor') === '1';
+            var loggedOut = localStorage.getItem('focus_logged_out') === '1';
+            var registering = localStorage.getItem('focus_registering') === '1';
 
-            // ЯКОРЬ ВХОДА: durable-флаг, который переживает любое обновление приложения.
-            // Ставится один раз при успешном входе. Пока он есть — юзер остаётся в аккаунте,
-            // логин только при явном выходе или смене устройства (где этого флага нет).
-            // если юзер явно вышел — не держим в аккаунте
-            if (localStorage.getItem('focus_logged_out') === '1') { location.replace('landing.html'); return; }
-            var loginAnchor = localStorage.getItem('focus_login_anchor') === '1';
-            if (ok && !loginAnchor) { try { localStorage.setItem('focus_login_anchor', '1'); } catch(e){} loginAnchor = true; }
+            // (3) во время регистрации index не вмешивается вообще
+            if (registering) return;
 
-            if (!_u || (!logged && !_u.email && !_u.name)) {
-                // ЛОКАЛЬНЫХ ДАННЫХ НЕТ — но сессия могла остаться жива (например, телефон почистил
-                // хранилище сайта). Раньше мы сразу выкидывали на лендинг — юзер «вылетал из аккаунта».
-                // Теперь: ждём Firebase. Есть сессия → тихо восстанавливаем данные из облака и остаёмся.
-                document.documentElement.classList.add('booting');
-                var _decided = false;
-                function _stay(){ document.documentElement.classList.remove('booting'); }
-                function _decide(){
-                    if (_decided) return; _decided = true;
-                    // НЕТ СЕТИ или Firebase не загрузился → НИКОГДА не выкидываем на регистрацию.
-                    // Работаем офлайн с тем, что есть. Юзер не должен логиниться заново из-за пропавшего интернета.
-                    var offline = (navigator.onLine === false) || !window.fbCurrentUser;
-                    if (offline) { _stay(); return; }
+            // (1) профиль заполнен → остаёмся в приложении. Ставим якорь если ещё нет.
+            if (hasProfile && !loggedOut) {
+                if (!anchor) { try { localStorage.setItem('focus_login_anchor', '1'); } catch(e){} }
+                return;   // ← ОСТАЁМСЯ. Никаких редиректов. Это убирает мельтешение под админом.
+            }
 
-                    var fu = window.fbCurrentUser();
-                    // сессии нет, НО если раньше был вход на этом устройстве (якорь) — ждём Firebase ещё,
-                    // не выкидываем сразу (сессия могла не успеть подняться после обновления)
-                    if (!fu) {
-                        if (loginAnchor) { _stay(); return; }   // был вход на устройстве → остаёмся, Firebase поднимется
-                        location.replace('landing.html'); return;   // реально новое устройство → регистрация
-                    }
+            // (2) явный выход → landing
+            if (loggedOut) { location.replace('landing.html'); return; }
 
-                    // сессия жива — тянем данные из облака
+            // (4) совсем новый (нет профиля, нет якоря) → ждём Firebase кратко, потом landing
+            document.documentElement.classList.add('booting');
+            var _done = false;
+            function _finish(dest){
+                if (_done) return; _done = true;
+                document.documentElement.classList.remove('booting');
+                if (dest) location.replace(dest);
+            }
+            function _decide(){
+                if (_done) return;
+                var fu = window.fbCurrentUser && window.fbCurrentUser();
+                if (fu) {
+                    // сессия жива → тянем облако, решаем куда
                     (window.fbLoadUserData ? window.fbLoadUserData() : Promise.resolve(null))
                         .then(function(cloud){
                             try {
                                 if (cloud && window.FocusStorage) FocusStorage.applyCloudData(cloud);
-                                if (window.FocusStorage) FocusStorage.saveUser({ email: (fu.email || (cloud && cloud.email) || ''), flags: { loggedIn: true } });
+                                if (window.FocusStorage) FocusStorage.saveUser({ email:(fu.email||(cloud&&cloud.email)||''), flags:{ loggedIn:true } });
                                 localStorage.setItem('focus_login_anchor', '1');
                             } catch(e){}
                             var u2 = window.FocusStorage ? FocusStorage.getUser() : {};
-                            var done2 = (u2.flags && u2.flags.profileCompleted) || u2.profileCompleted || (u2.name && u2.assistantName && u2.birthDate);
-                            if (!done2) location.replace('profile-form.html');
-                            else { _stay(); }   // остаёмся без reload (reload вызывал лишнее мелькание/перезаход)
+                            var done2 = u2 && ((u2.flags && u2.flags.profileCompleted) || u2.profileCompleted || (u2.name && u2.assistantName && u2.birthDate));
+                            _finish(done2 ? null : 'profile-form.html');
                         })
-                        .catch(function(){ _stay(); });   // облако недоступно — остаёмся в приложении, НЕ выкидываем
+                        .catch(function(){ _finish(null); });   // облако молчит → остаёмся, не выкидываем
+                } else if (anchor) {
+                    _finish(null);   // был вход на устройстве, сессия ещё поднимается → остаёмся
+                } else {
+                    _finish('landing.html');   // реально новый → регистрация
                 }
-                if (window.FB_AUTH_READY) _decide();
-                else {
-                    window.addEventListener('fb-auth-ready', _decide);
-                    setTimeout(_decide, 4000);   // сеть молчит — решаем сами (и остаёмся, а не выкидываем)
-                }
-            } else if (logged && !ok) {
-                location.replace('profile-form.html');
             }
+            if (window.FB_AUTH_READY) _decide();
+            else { window.addEventListener('fb-auth-ready', _decide); setTimeout(_decide, 3500); }
         } catch(e){}
     })();
 </script>
@@ -2702,7 +2697,7 @@ window._focusUnlockAudio = function(){
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=211').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=213').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
