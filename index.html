@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v210 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v211 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -2702,7 +2702,7 @@ window._focusUnlockAudio = function(){
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=210').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=211').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -3208,14 +3208,22 @@ window._focusUnlockAudio = function(){
             ov.classList.add('show');                    // opacity:1 мгновенно
             // СТРАХОВКА: если заставка почему-то застряла (не дошла до конца за 16 сек) —
             // принудительно убираем overlay и показываем интерфейс, чтоб юзер не завис на орбе.
-            var _greetFailsafe = setTimeout(function(){
-                try {
-                    var ovx = document.getElementById('greetOverlay');
-                    if (ovx) { ovx.classList.remove('show'); setTimeout(function(){ if(ovx.parentNode) ovx.remove(); }, 300); }
-                    localStorage.setItem('focus_greeted', '1');
-                    document.documentElement.classList.remove('booting');
-                } catch(e){}
-            }, 45000);   // 45с — БОЛЬШЕ всей заставки (была 16с и срабатывала на середине текста, показывая сферы поверх)
+            // Failsafe СБРАСЫВАЕТСЯ на каждом шаге (armFailsafe вызывается в renderStep).
+            // Раньше он считался ОДИН раз от старта и рубил заставку на середине —
+            // на каком шаге юзер окажется через 16с, там и обрывало. Теперь считает от шага.
+            window._greetFailsafe = null;
+            window._armGreetFailsafe = function(){
+                try { if (window._greetFailsafe) clearTimeout(window._greetFailsafe); } catch(e){}
+                window._greetFailsafe = setTimeout(function(){
+                    try {
+                        var ovx = document.getElementById('greetOverlay');
+                        if (ovx) { ovx.classList.remove('show'); setTimeout(function(){ if(ovx.parentNode) ovx.remove(); }, 300); }
+                        localStorage.setItem('focus_greeted', '1');
+                        document.documentElement.classList.remove('booting');
+                    } catch(e){}
+                }, 30000);   // 30с БЕЗ активности на ОДНОМ шаге = только если реально завис
+            };
+            window._armGreetFailsafe();   // 45с — БОЛЬШЕ всей заставки (была 16с и срабатывала на середине текста, показывая сферы поверх)
             requestAnimationFrame(function(){
                 ov.style.transition = '';                // вернуть плавность для дальнейшего
                 document.documentElement.classList.remove('booting');
@@ -3542,6 +3550,7 @@ window._focusUnlockAudio = function(){
 
             function renderStep(){
                 var step = steps[idx];
+                try { if (window._armGreetFailsafe) window._armGreetFailsafe(); } catch(e){}   // сброс страховки на новом шаге
                 var titleEl = document.getElementById('greetTitle');
                 titleEl.setAttribute('data-full', step.title); titleEl.innerHTML = '';   // название скрыто до удара
                 var txtEl = document.getElementById('greetTextEl');
@@ -3625,7 +3634,7 @@ window._focusUnlockAudio = function(){
                     ov.classList.remove('show'); setTimeout(function(){ ov.remove(); }, 300);
                 }
                 localStorage.setItem('focus_greeted', '1');
-                try { clearTimeout(_greetFailsafe); } catch(e){}
+                try { clearTimeout(window._greetFailsafe); } catch(e){}
             }
 
             document.getElementById('greetNext').addEventListener('click', nextStep);
