@@ -478,6 +478,16 @@
     }
 
     document.getElementById('loginBtn').addEventListener('click', async function() {
+        // разблокируем звук заранее (нажатие = user gesture), чтоб в приветствии гул играл сразу
+        try {
+            if (!window._focusPreAudio) {
+                window._focusPreAudio = new (window.AudioContext||window.webkitAudioContext)();
+                var b = window._focusPreAudio.createBuffer(1,1,22050), s = window._focusPreAudio.createBufferSource();
+                s.buffer = b; s.connect(window._focusPreAudio.destination); s.start(0);
+            }
+            if (window._focusPreAudio.state === 'suspended') window._focusPreAudio.resume();
+            localStorage.setItem('focus_audio_ok', '1');   // метка: звук разрешён юзером
+        } catch(e){}
         const btn = this;
         const emailErr = document.getElementById('emailError');
         emailErr.style.display = 'none';
