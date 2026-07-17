@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v202 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v200 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -2702,7 +2702,7 @@ window._focusUnlockAudio = function(){
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=202').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=200').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -3206,25 +3206,30 @@ window._focusUnlockAudio = function(){
             ov.classList.add('darkbg');                 // сразу чёрный фон (рождение — тёмное)
             ov.style.transition = 'none';
             ov.classList.add('show');                    // opacity:1 мгновенно
-            // СТРАХОВКА: если заставка почему-то застряла (не дошла до конца за 16 сек) —
-            // принудительно убираем overlay и показываем интерфейс, чтоб юзер не завис на орбе.
-            var _greetFailsafe = setTimeout(function(){
-                try {
-                    var ovx = document.getElementById('greetOverlay');
-                    if (ovx) { ovx.classList.remove('show'); setTimeout(function(){ if(ovx.parentNode) ovx.remove(); }, 300); }
-                    localStorage.setItem('focus_greeted', '1');
-                    document.documentElement.classList.remove('booting');
-                } catch(e){}
-            }, 16000);
             requestAnimationFrame(function(){
                 ov.style.transition = '';                // вернуть плавность для дальнейшего
                 document.documentElement.classList.remove('booting');
                 var pc=document.getElementById('preGreetCover'); if(pc){ pc.style.opacity='0'; setTimeout(function(){ pc.remove(); },400); }
-                // ГУЛ ЗАРОЖДЕНИЯ — сразу с первого момента заставки.
-                // Аудио уже разблокировано в кнопке «Войти» (нажатие = user gesture),
-                // поэтому звук играет без дополнительных тапов.
+                // ГУЛ ЗАРОЖДЕНИЯ ОРБА — с самого первого момента заставки.
+                // Если аудио ещё заблокировано (заставка стартовала сразу после перезагрузки,
+                // без касания) — запустим гул при ПЕРВОМ касании, чтоб он не «пропал».
                 try{ if(window._focusUnlockAudio) window._focusUnlockAudio(); }catch(e){}
-                _coreHum(2600);
+                var _humStarted=false;
+                function _startHum(){ if(_humStarted) return; _humStarted=true; _coreHum(2600); }
+                var ac0 = (window._focusAudioCtx);
+                if(ac0 && ac0.state==='running'){ _startHum(); }
+                else {
+                    // контекст спит — ждём касание, тогда разблокируем и запускаем гул с начала
+                    var kick=function(){ try{ if(window._focusUnlockAudio) window._focusUnlockAudio(); }catch(e){}
+                        var a=window._focusAudioCtx; if(a){ try{ a.resume(); }catch(e){} } _startHum();
+                        document.removeEventListener('touchstart',kick); document.removeEventListener('pointerdown',kick); document.removeEventListener('click',kick);
+                    };
+                    document.addEventListener('touchstart',kick,{passive:true,once:true});
+                    document.addEventListener('pointerdown',kick,{passive:true,once:true});
+                    document.addEventListener('click',kick,{once:true});
+                    // и всё равно пробуем сразу (вдруг уже можно)
+                    setTimeout(_startHum, 50);
+                }
             });
 
             // ===== МОЛНИИ (выжигание текста + переходы) =====
@@ -3274,17 +3279,26 @@ window._focusUnlockAudio = function(){
                 try { window._focusAudioCtx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){ window._focusAudioCtx=null; }
                 return window._focusAudioCtx;
             }
-            // ЭХО через delay — лёгкое, не грузит движок (convolver вешал заставку при частых молниях)
+            // РЕВЕРБ (эхо-пространство) — для космического звучания гула и молний
+            var _reverbBuf = null;
+            function _buildReverb(ac){
+                if(_reverbBuf) return _reverbBuf;
+                try {
+                    var len = Math.floor(ac.sampleRate * 2.5);
+                    _reverbBuf = ac.createBuffer(2, len, ac.sampleRate);
+                    for(var ch=0; ch<2; ch++){
+                        var d = _reverbBuf.getChannelData(ch);
+                        for(var i=0;i<len;i++){ d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 2.8); }
+                    }
+                } catch(e){}
+                return _reverbBuf;
+            }
             function _reverb(ac, input, wet){
                 try {
-                    var dly = ac.createDelay(1.0); dly.delayTime.value = 0.11;
-                    var fb = ac.createGain(); fb.gain.value = 0.33;         // затухающий хвост
-                    var wetG = ac.createGain(); wetG.gain.value = wet * 0.55;
-                    input.connect(dly); dly.connect(fb); fb.connect(dly);
-                    dly.connect(wetG); wetG.connect(ac.destination);
-                    var dly2 = ac.createDelay(1.0); dly2.delayTime.value = 0.22;
-                    var wetG2 = ac.createGain(); wetG2.gain.value = wet * 0.3;
-                    input.connect(dly2); dly2.connect(wetG2); wetG2.connect(ac.destination);
+                    var buf = _buildReverb(ac); if(!buf) return;
+                    var conv = ac.createConvolver(); conv.buffer = buf;
+                    var wetG = ac.createGain(); wetG.gain.value = wet;
+                    input.connect(conv); conv.connect(wetG); wetG.connect(ac.destination);
                 } catch(e){}
             }
             // (разблокировка звука теперь глобальная — в начале страницы)
@@ -3692,7 +3706,6 @@ window._focusUnlockAudio = function(){
                     ov.classList.remove('show'); setTimeout(function(){ ov.remove(); }, 300);
                 }
                 localStorage.setItem('focus_greeted', '1');
-                try { clearTimeout(_greetFailsafe); } catch(e){}
             }
 
             document.getElementById('greetNext').addEventListener('click', nextStep);

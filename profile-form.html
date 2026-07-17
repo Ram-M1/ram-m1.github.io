@@ -769,16 +769,6 @@
         try { localStorage.removeItem('focus_greeted'); } catch(e){}
         // разблокируем звук ПРЯМО СЕЙЧАС (здесь есть касание) — чтобы в приветствии сыграл гул/молнии
         try { if (window._focusUnlockAudio) window._focusUnlockAudio(); } catch(e){}
-        // метка + разогрев звука (нажатие = gesture), чтоб в приветствии гул сыграл сразу
-        try {
-            localStorage.setItem('focus_audio_ok', '1');
-            if (!window._focusPreAudio) {
-                window._focusPreAudio = new (window.AudioContext||window.webkitAudioContext)();
-                var _b = window._focusPreAudio.createBuffer(1,1,22050), _s = window._focusPreAudio.createBufferSource();
-                _s.buffer = _b; _s.connect(window._focusPreAudio.destination); _s.start(0);
-            }
-            if (window._focusPreAudio.state === 'suspended') window._focusPreAudio.resume();
-        } catch(e){}
 
         // сохраняем ВСЁ (в try чтобы ничего не прервало переход)
         try { FocusStorage.saveUser(updates); } catch(e){}
