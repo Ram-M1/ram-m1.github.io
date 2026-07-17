@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v201 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v202 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -2702,7 +2702,7 @@ window._focusUnlockAudio = function(){
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=201').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=202').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -3220,26 +3220,11 @@ window._focusUnlockAudio = function(){
                 ov.style.transition = '';                // вернуть плавность для дальнейшего
                 document.documentElement.classList.remove('booting');
                 var pc=document.getElementById('preGreetCover'); if(pc){ pc.style.opacity='0'; setTimeout(function(){ pc.remove(); },400); }
-                // ГУЛ ЗАРОЖДЕНИЯ ОРБА — с самого первого момента заставки.
-                // Если аудио ещё заблокировано (заставка стартовала сразу после перезагрузки,
-                // без касания) — запустим гул при ПЕРВОМ касании, чтоб он не «пропал».
+                // ГУЛ ЗАРОЖДЕНИЯ — сразу с первого момента заставки.
+                // Аудио уже разблокировано в кнопке «Войти» (нажатие = user gesture),
+                // поэтому звук играет без дополнительных тапов.
                 try{ if(window._focusUnlockAudio) window._focusUnlockAudio(); }catch(e){}
-                var _humStarted=false;
-                function _startHum(){ if(_humStarted) return; _humStarted=true; _coreHum(2600); }
-                var ac0 = (window._focusAudioCtx);
-                if(ac0 && ac0.state==='running'){ _startHum(); }
-                else {
-                    // контекст спит — ждём касание, тогда разблокируем и запускаем гул с начала
-                    var kick=function(){ try{ if(window._focusUnlockAudio) window._focusUnlockAudio(); }catch(e){}
-                        var a=window._focusAudioCtx; if(a){ try{ a.resume(); }catch(e){} } _startHum();
-                        document.removeEventListener('touchstart',kick); document.removeEventListener('pointerdown',kick); document.removeEventListener('click',kick);
-                    };
-                    document.addEventListener('touchstart',kick,{passive:true,once:true});
-                    document.addEventListener('pointerdown',kick,{passive:true,once:true});
-                    document.addEventListener('click',kick,{once:true});
-                    // и всё равно пробуем сразу (вдруг уже можно)
-                    setTimeout(_startHum, 50);
-                }
+                _coreHum(2600);
             });
 
             // ===== МОЛНИИ (выжигание текста + переходы) =====
