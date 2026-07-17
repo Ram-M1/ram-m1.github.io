@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v208 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v209 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -2702,7 +2702,7 @@ window._focusUnlockAudio = function(){
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=208').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=209').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -3624,14 +3624,10 @@ window._focusUnlockAudio = function(){
                 // ПОСЛЕДОВАТЕЛЬНОСТЬ 3 УДАРОВ: НАЗВАНИЕ → (пауза) ТЕКСТ → (пауза) КНОПКИ
                 function sequence(tx,ty){
                     boltBurst(tx,ty,4);                                  // удар 1
-                    setTimeout(function(){
-                        try{ var tt=(titleEl.getAttribute('data-full')||'').length; _burnSound(Math.min(1600, Math.max(700, tt*45))); }catch(e){}
-                        burnEl(titleEl, function(){    // выжигаем название
+                    setTimeout(function(){ burnEl(titleEl, function(){    // выжигаем название
                         setTimeout(function(){                           // пауза — прочувствовать
                             boltBurst(tx,ty,5);                         // удар 2
-                            setTimeout(function(){
-                                try{ var xt=(txtEl.getAttribute('data-full')||'').replace(/<[^>]*>/g,'').length; _burnSound(Math.min(2200, Math.max(700, xt*22))); }catch(e){}
-                                burnEl(txtEl, function(){  // выжигаем текст
+                            setTimeout(function(){ burnEl(txtEl, function(){  // выжигаем текст
                                 setTimeout(revealButtons, 850);          // пауза → удар 3 (кнопки)
                             }); }, 220);
                         }, 850);
