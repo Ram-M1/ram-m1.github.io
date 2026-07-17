@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v209 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v210 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -2702,7 +2702,7 @@ window._focusUnlockAudio = function(){
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=209').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=210').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -3289,72 +3289,11 @@ window._focusUnlockAudio = function(){
             }
             // (разблокировка звука теперь глобальная — в начале страницы)
             // ГУЛ зарождающегося ядра — низкая нарастающая волна (космический гул)
-            function _coreHum(durMs){
-                var ac=_audio(); if(!ac) return;
-                try {
-                    // Г3 «Глубокая медитация» — поющая чаша: чистый низкий тон + квинта, с эхом
-                    var t=ac.currentTime, dur=(durMs/1000);
-                    var o1=ac.createOscillator(), o2=ac.createOscillator(), g=ac.createGain();
-                    o1.type='sine'; o2.type='sine';
-                    o1.frequency.setValueAtTime(96,t); o1.frequency.linearRampToValueAtTime(110,t+dur);
-                    o2.frequency.setValueAtTime(144,t); o2.frequency.linearRampToValueAtTime(165,t+dur);  // квинта — звук чаши
-                    g.gain.setValueAtTime(0.0001,t);
-                    g.gain.linearRampToValueAtTime(0.28,t+dur*0.4);
-                    g.gain.linearRampToValueAtTime(0.2,t+dur*0.8);
-                    g.gain.exponentialRampToValueAtTime(0.001,t+dur);
-                    o1.connect(g); o2.connect(g); g.connect(ac.destination);
-                    _reverb(ac, g, 0.55);   // большое эхо — космос/медитация
-                    o1.start(t); o2.start(t); o1.stop(t+dur); o2.stop(t+dur);
-                } catch(e){}
-            }
+            function _coreHum(durMs){ return; /* звук отключён */ }
             // ЗВУК ВЫЖИГАНИЯ СЛОВ молнией — потрескивающий электро-шелест (пока проявляются буквы)
-            function _burnSound(durMs){
-                var ac=_audio(); if(!ac) return;
-                try {
-                    var t=ac.currentTime, dur=(durMs||900)/1000;
-                    // КОРОТКИЙ буфер (0.3с) который ЗАЦИКЛИваем — не создаём гигантский буфер
-                    // на длинный текст (это подвешивало браузер на середине выжигания).
-                    var seg=Math.floor(ac.sampleRate*0.3), buf=ac.createBuffer(1,seg,ac.sampleRate), d=buf.getChannelData(0);
-                    for(var i=0;i<seg;i++){
-                        var spark = Math.random()<0.06 ? (Math.random()*2-1) : (Math.random()*2-1)*0.15;
-                        d[i]=spark;
-                    }
-                    var src=ac.createBufferSource(); src.buffer=buf; src.loop=true;   // зацикливаем
-                    var flt=ac.createBiquadFilter(); flt.type='bandpass'; flt.frequency.value=3200; flt.Q.value=0.8;
-                    var g=ac.createGain();
-                    g.gain.setValueAtTime(0.001, t);
-                    g.gain.linearRampToValueAtTime(0.14, t+0.05);
-                    g.gain.setValueAtTime(0.14, t+dur*0.9);
-                    g.gain.exponentialRampToValueAtTime(0.001, t+dur);
-                    src.connect(flt); flt.connect(g); g.connect(ac.destination);
-                    src.start(t); src.stop(t+dur);   // играем нужную длительность, буфер маленький
-                } catch(e){}
-            }
+            function _burnSound(durMs){ return; /* звук отключён */ }
             // РАЗРЯД молнии — резкий электрический треск (шум + быстрый спад)
-            function _zap(){
-                var ac=_audio(); if(!ac) return;
-                try {
-                    // М4 «Эфирная вспышка» — воздушный мягкий разряд с длинным космическим эхом
-                    var t=ac.currentTime;
-                    // воздушный шум (мягкая огибающая — без резкого удара)
-                    var len=Math.floor(ac.sampleRate*0.4), buf=ac.createBuffer(1,len,ac.sampleRate), d=buf.getChannelData(0);
-                    for(var i=0;i<len;i++){ d[i]=(Math.random()*2-1)*Math.sin(Math.PI*i/len); }  // плавная волна
-                    var s2=ac.createBufferSource(); s2.buffer=buf;
-                    var f=ac.createBiquadFilter(); f.type='bandpass';
-                    f.frequency.setValueAtTime(1900,t); f.frequency.exponentialRampToValueAtTime(650,t+0.4); f.Q.value=0.5;
-                    var g=ac.createGain();
-                    g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.16,t+0.05); g.gain.exponentialRampToValueAtTime(0.001,t+0.4);
-                    s2.connect(f); f.connect(g); g.connect(ac.destination);
-                    _reverb(ac, g, 0.8);   // самое большое эхо — эфирность, уходит в даль
-                    // мягкий глубокий суб-бас (лёгкий, не бьёт)
-                    var sub=ac.createOscillator(); sub.type='sine';
-                    sub.frequency.setValueAtTime(64,t); sub.frequency.exponentialRampToValueAtTime(40,t+0.3);
-                    var sg=ac.createGain(); sg.gain.setValueAtTime(0.16,t); sg.gain.exponentialRampToValueAtTime(0.001,t+0.32);
-                    sub.connect(sg); sg.connect(ac.destination);
-                    _reverb(ac, sg, 0.4);
-                    s2.start(t); sub.start(t); sub.stop(t+0.35);
-                } catch(e){}
-            }
+            function _zap(){ return; /* звук отключён */ }
             var _lastStrike = 0;   // троттлинг ударов (было потеряно — из-за этого заставка падала)
             function _focusStrike(){
                 var now=Date.now();
