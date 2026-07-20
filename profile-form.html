@@ -722,15 +722,43 @@
         const name = document.getElementById('name').value.trim();
         const birthDate = document.getElementById('birthDate').value;
         const city = document.getElementById('city').value.trim();
-        const phone = document.getElementById('phone').value.trim();
+        let phone = document.getElementById('phone').value.trim();
+
+        // ── ПРОВЕРКИ: каждое поле принимает только то, что подходит по смыслу ──
+        var LETTERS = /^[А-Яа-яЁёA-Za-z][А-Яа-яЁёA-Za-z\s\-']*$/;
 
         if (!name) { showToast('Введите ваше имя'); return; }
+        if (!LETTERS.test(name) || name.length < 2) { showToast('Имя — только буквы (без цифр и символов)'); return; }
+
         if (!birthDate) { showToast('Укажите дату рождения'); return; }
+        // возраст строго 5–200 лет
+        var _age = null;
+        try {
+            var _b = new Date(birthDate + 'T00:00:00');
+            if (isNaN(_b.getTime())) { showToast('Некорректная дата рождения'); return; }
+            var _n = new Date();
+            _age = _n.getFullYear() - _b.getFullYear() - ((_n.getMonth() < _b.getMonth() || (_n.getMonth() === _b.getMonth() && _n.getDate() < _b.getDate())) ? 1 : 0);
+        } catch(e) { showToast('Некорректная дата рождения'); return; }
+        if (_b > new Date()) { showToast('Дата рождения не может быть в будущем'); return; }
+        if (_age < 5 || _age > 200) { showToast('Возраст должен быть от 5 до 200 лет'); return; }
+
         if (!city) { showToast('Введите город'); return; }
+        if (!LETTERS.test(city) || city.length < 2) { showToast('Город — только буквы'); return; }
+
         if (!phone) { showToast('Введите номер телефона'); return; }
+        // телефон строго российский: +7XXXXXXXXXX или 8XXXXXXXXXX (11 цифр)
+        var _d = phone.replace(/\D/g, '');
+        if (_d.length === 11 && _d[0] === '8') _d = '7' + _d.slice(1);
+        if (_d.length !== 11 || _d[0] !== '7' || !/^[3489]/.test(_d[1])) {
+            showToast('Телефон только российский: +7 XXX XXX-XX-XX'); return;
+        }
+        phone = '+' + _d;   // нормализуем к единому виду
+        document.getElementById('phone').value = phone;
+
         if (!window._selectedGender && !savedUser.gender) { showToast('Укажите пол'); return; }
         const assistantName = document.getElementById('assistantName').value.trim();
         if (!assistantName) { showToast('Придумай имя своему ассистенту ✨'); return; }
+        if (!LETTERS.test(assistantName) || assistantName.length < 2) { showToast('Имя ассистента — только буквы'); return; }
 
         // вычисляем возраст из даты рождения
         let age = '';
@@ -847,5 +875,6 @@
     }
 </script>
     <div id="toast" style="position:absolute;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,0.9);border:1px solid var(--accent,#FFD966);border-radius:20px;padding:11px 20px;color:var(--accent,#FFD966);font-size:12px;font-weight:600;z-index:600;opacity:0;transition:0.3s ease;pointer-events:none;max-width:300px;text-align:center;line-height:1.4;"></div>
+<script src="focus-reminders.js"></script>
 </body>
 </html>

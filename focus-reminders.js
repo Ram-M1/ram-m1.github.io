@@ -119,37 +119,107 @@
     setTimeout(() => fire(item), delay);
   }
 
+  /** Показать уведомление НАДЁЖНО.
+      В Chrome на Android и в установленном PWA `new Notification()` запрещён
+      («Illegal constructor») — показывать можно только через служебный воркер.
+      Плюс всегда даём видимую плашку внутри приложения, чтобы юзер точно увидел. */
+  function notify(title, body, tag) {
+    var shown = false;
+    try {
+      if (('Notification' in window) && Notification.permission === 'granted' &&
+          navigator.serviceWorker && navigator.serviceWorker.ready) {
+        navigator.serviceWorker.ready.then(function (reg) {
+          try {
+            reg.showNotification(title, {
+              body: body, tag: tag, icon: 'icon-192.png', badge: 'icon-192.png',
+              vibrate: [200, 100, 200], requireInteraction: false
+            });
+          } catch (e) {}
+        }).catch(function () {});
+        shown = true;
+      }
+    } catch (e) {}
+    // запасной путь для десктопных браузеров
+    if (!shown) {
+      try {
+        if (('Notification' in window) && Notification.permission === 'granted') {
+          new Notification(title, { body: body, tag: tag });
+        }
+      } catch (e) {}
+    }
+    banner(body);
+  }
+
+  /** Видимая плашка в самом приложении (не зависит от внешних функций). */
+  function banner(text) {
+    try {
+      if (!document.body) return;
+      var d = document.createElement('div');
+      d.textContent = '⏰ ' + text;
+      d.style.cssText = 'position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:99999;' +
+        'background:rgba(10,10,15,0.96);color:#FFD966;border:1px solid rgba(255,217,102,0.5);' +
+        'border-radius:14px;padding:12px 18px;font-size:14px;font-weight:600;max-width:86%;' +
+        'box-shadow:0 10px 30px rgba(0,0,0,0.5);font-family:inherit;text-align:center;';
+      document.body.appendChild(d);
+      setTimeout(function () { d.style.transition = 'opacity .4s'; d.style.opacity = '0'; }, 6000);
+      setTimeout(function () { if (d.parentNode) d.remove(); }, 6600);
+    } catch (e) {}
+  }
+
   function fire(item) {
     const list = readAll();
     const rec = list.find(r => r.id === item.id);
     if (!rec || rec.fired) return;
     rec.fired = true; writeAll(list);
-    if (('Notification' in window) && Notification.permission === 'granted') {
-      try { new Notification('FOCUS ✦', { body: rec.text, tag: 'focus-' + rec.id }); } catch (e) {}
-    }
-    // если приложение открыто — покажем и внутренний тост
-    try { if (window.focusToast) window.focusToast('⏰ ' + rec.text); } catch (e) {}
+    notify('FOCUS ✦', rec.text, 'focus-' + rec.id);
   }
 
-  /** При загрузке: перезавести таймеры на ближайшие сутки, показать просроченные. */
+  /** При загрузке: перезавести таймеры, ПОКАЗАТЬ пропущенные (раньше они молча съедались). */
   function boot() {
     const list = readAll();
     const now = Date.now();
     let changed = false;
+    const missed = [];
     list.forEach(item => {
       if (item.fired) return;
       const at = new Date(item.at).getTime();
-      if (at <= now) { item.fired = true; changed = true; } // просрочено — пометим
-      else armTimer(item);
+      if (at <= now) {
+        item.fired = true; changed = true;
+        // показываем только свежие пропуски (за сутки), чтобы не сыпать старьём
+        if (now - at < 24 * 3600 * 1000) missed.push(item);
+      } else armTimer(item);
     });
     if (changed) writeAll(list);
+    missed.forEach(function (m, i) {
+      setTimeout(function () { notify('FOCUS ✦ пропущено', m.text, 'focus-miss-' + m.id); }, 800 + i * 900);
+    });
   }
 
   /** Список активных напоминаний (для показа юзеру). */
   function active() { return readAll().filter(r => !r.fired); }
   function remove(id) { writeAll(readAll().filter(r => r.id !== id)); }
 
-  window.FocusReminders = { schedule, parseWhen, parse: parseWhen, active, list: active, remove, cancel: remove, ensurePermission };
+  /** Подстраховка: браузер может «придушить» setTimeout (фоновая вкладка, экономия батареи).
+      Поэтому раз в 20 секунд сами проверяем, не наступило ли время. */
+  function tick() {
+    try {
+      const list = readAll();
+      const now = Date.now();
+      let changed = false;
+      list.forEach(function (item) {
+        if (item.fired) return;
+        if (new Date(item.at).getTime() <= now) {
+          item.fired = true; changed = true;
+          notify('FOCUS ✦', item.text, 'focus-' + item.id);
+        }
+      });
+      if (changed) writeAll(list);
+    } catch (e) {}
+  }
+
+  window.FocusReminders = { schedule, parseWhen, parse: parseWhen, active, list: active, remove, cancel: remove, ensurePermission, notify };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
+  setInterval(tick, 20000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) tick(); });
 })();

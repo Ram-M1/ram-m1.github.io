@@ -244,6 +244,7 @@
 
         <div class="sub-tabs">
             <div class="sub-tab active" data-pane="prayers">📿 Молитвы</div>
+            <div class="sub-tab" data-pane="scripture">📖 Писание</div>
             <div class="sub-tab" data-pane="temple">🏛 Храм</div>
         </div>
 
@@ -259,6 +260,16 @@
                 <div class="add-prayer-btn" id="addPrayerBtn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
                     Добавить молитву
+                </div>
+            </div>
+
+            <!-- Писание -->
+            <div class="sub-pane" id="pane-scripture">
+                <div class="section-label"><span>Священные тексты</span><span class="cnt" id="bookCnt">0</span></div>
+                <div id="booksList"></div>
+                <div class="add-prayer-btn" id="addBookBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                    Добавить книгу
                 </div>
             </div>
 
@@ -299,6 +310,20 @@
             <div class="modal-btns" style="margin-top:12px;">
                 <button class="modal-btn cancel" id="cancelPrayer">Отмена</button>
                 <button class="modal-btn save" id="savePrayer">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="bookModal">
+        <div class="modal-box">
+            <div class="modal-title">📖 Добавить книгу</div>
+            <div class="field-label">Название</div>
+            <input type="text" id="bookName" placeholder="Например: Псалтирь">
+            <div class="field-label">Ссылка на текст</div>
+            <input type="text" id="bookUrl" placeholder="https://..." inputmode="url" autocomplete="off">
+            <div class="modal-btns" style="margin-top:12px;">
+                <button class="modal-btn cancel" id="cancelBook">Отмена</button>
+                <button class="modal-btn save" id="saveBook">Сохранить</button>
             </div>
         </div>
     </div>
@@ -488,52 +513,62 @@ initAtmosphere(canvasId) {
     }
 
     // Данные религий: молитвы (названия, время по канону, тексты в общ. достоянии)
+    /* МОЛИТВЫ ПО КАНОНУ.
+       Формат каждой: сверху русский текст, ниже — оригинал в произношении русскими буквами.
+       Время и структура прежние; юзер может стереть текст и вписать свой. */
+    const ORIG = '\n\n— Оригинал (произношение русскими буквами) —\n';
     const RELIGIONS = {
         orthodox: {
             name: 'Православие', icon: '☦️', templeName: 'храма',
             prayers: [
-                { name: 'Утреннее правило', time: '07:00', text: 'Отче наш, Иже еси на небесех! Да святится имя Твое, да приидет Царствие Твое, да будет воля Твоя, яко на небеси и на земли. Хлеб наш насущный даждь нам днесь; и остави нам долги наша, якоже и мы оставляем должником нашим; и не введи нас во искушение, но избави нас от лукаваго. Аминь.' },
-                { name: 'Молитва Иисусова', time: '', text: 'Господи Иисусе Христе, Сыне Божий, помилуй мя грешнаго.' },
-                { name: 'Вечернее правило', time: '21:00', text: '' }
+                { name: 'Утреннее правило · Отче наш', time: '07:00', text: 'Отче наш, Иже еси на небесех! Да святится имя Твое, да приидет Царствие Твое, да будет воля Твоя, яко на небеси и на земли. Хлеб наш насущный даждь нам днесь; и остави нам долги наша, якоже и мы оставляем должником нашим; и не введи нас во искушение, но избави нас от лукаваго. Аминь.' + ORIG + 'Патэр имон, о эн тис уранис, агиасфито то онома су; элфэто и василиа су; генифито то фелима су, ос эн урано ке эпи тис гис. Тон артон имон тон эпиусион дос имин симерон; ке афэс имин та офилимата имон, ос ке имис афиэмэн тис офилэтэс имон; ке ми исэнэнкис имас ис пирасмон, алла рисэ имас апо ту пониру. Амин.' },
+                { name: 'Молитва Иисусова', time: '', text: 'Господи Иисусе Христе, Сыне Божий, помилуй мя грешнаго.' + ORIG + 'Кирие Иису Христэ, Иэ ту Фэу, элэисон мэ тон амартолон.' },
+                { name: 'Символ веры', time: '', text: 'Верую во единаго Бога Отца, Вседержителя, Творца небу и земли, видимым же всем и невидимым. И во единаго Господа Иисуса Христа, Сына Божия, Единороднаго, Иже от Отца рожденнаго прежде всех век. Света от Света, Бога истинна от Бога истинна, рожденна, несотворенна, единосущна Отцу, Имже вся быша.' + ORIG + 'Пистэво ис эна Фэон, Патэра, Пантократора, пиитин урану ке гис, оратон тэ пантон ке аоратон. Ке ис эна Кирион Иисун Христон, тон Иион ту Фэу тон моногени.' },
+                { name: 'Вечернее правило', time: '21:00', text: 'Господи Боже наш, еже согреших во дни сем словом, делом и помышлением, яко Благ и Человеколюбец прости ми. Мирен сон и безмятежен даруй ми. Ангела Твоего хранителя посли, покрывающа и соблюдающа мя от всякаго зла. Яко Ты еси хранитель душам и телесем нашим, и Тебе славу возсылаем, Отцу и Сыну и Святому Духу, ныне и присно и во веки веков. Аминь.' + ORIG + 'Кирие о Фэос имон, о ти имэра тавти амартиса логон, эрго ке диании, ос агафос ке филантропос синхорисон ми. Ипнон иринион ке атарахон дорисэ ми. Амин.' }
             ]
         },
         catholic: {
             name: 'Католицизм', icon: '✝️', templeName: 'костёла',
             prayers: [
-                { name: 'Pater Noster (Отче наш)', time: '07:00', text: 'Отче наш, сущий на небесах! Да святится имя Твоё; да придёт Царствие Твоё; да будет воля Твоя и на земле, как на небе; хлеб наш насущный дай нам на сей день; и прости нам долги наши, как и мы прощаем должникам нашим; и не введи нас в искушение, но избавь нас от лукавого. Аминь.' },
-                { name: 'Ave Maria (Радуйся, Мария)', time: '', text: 'Радуйся, Мария, благодати полная! Господь с Тобою; благословенна Ты между жёнами, и благословен плод чрева Твоего Иисус. Святая Мария, Матерь Божия, молись о нас, грешных, ныне и в час смерти нашей. Аминь.' },
-                { name: 'Вечерняя молитва', time: '21:00', text: '' }
+                { name: 'Pater Noster (Отче наш)', time: '07:00', text: 'Отче наш, сущий на небесах! Да святится имя Твоё; да придёт Царствие Твоё; да будет воля Твоя и на земле, как на небе; хлеб наш насущный дай нам на сей день; и прости нам долги наши, как и мы прощаем должникам нашим; и не введи нас в искушение, но избавь нас от лукавого. Аминь.' + ORIG + 'Патэр ностэр, кви эс ин цэлис, санктифицэтур номэн туум. Адвэниат рэгнум туум. Фиат волюнтас туа, сикут ин цэло эт ин тэрра. Панэм нострум котидианум да нобис ходиэ, эт димиттэ нобис дэбита ностра, сикут эт нос димиттимус дэбиторибус нострис. Эт нэ нос индукас ин тэнтационэм, сэд либера нос а мало. Амэн.' },
+                { name: 'Ave Maria (Радуйся, Мария)', time: '', text: 'Радуйся, Мария, благодати полная! Господь с Тобою; благословенна Ты между жёнами, и благословен плод чрева Твоего Иисус. Святая Мария, Матерь Божия, молись о нас, грешных, ныне и в час смерти нашей. Аминь.' + ORIG + 'Авэ Мария, грациа плена, Доминус тэкум. Бэнэдикта ту ин мулиэрибус, эт бэнэдиктус фруктус вэнтрис туи, Иэзус. Санкта Мария, Матэр Дэи, ора про нобис пэккаторибус, нунк эт ин хора мортис нострэ. Амэн.' },
+                { name: 'Gloria Patri (Слава Отцу)', time: '', text: 'Слава Отцу и Сыну и Святому Духу, и ныне и присно и во веки веков. Аминь.' + ORIG + 'Глориа Патри, эт Филио, эт Спиритуи Санкто. Сикут эрат ин принципио, эт нунк, эт сэмпэр, эт ин сэкула сэкулорум. Амэн.' },
+                { name: 'Вечерняя молитва', time: '21:00', text: 'Господи, благодарю Тебя за прошедший день. Прости мне всё, чем я согрешил делом, словом и помышлением. Огради меня во сне и дай встретить новый день с чистым сердцем. Аминь.' + ORIG + 'Ин манус туас, Домине, коммэндо спиритум мэум. Амэн.' }
             ]
         },
         islam: {
             name: 'Ислам', icon: '☪️', templeName: 'мечети',
             prayers: [
-                { name: 'Фаджр (рассветный) · Аль-Фатиха', time: '05:00', text: 'Во имя Аллаха, Милостивого, Милосердного. Хвала Аллаху, Господу миров, Милостивому, Милосердному, Властелину Дня воздаяния! Тебе одному мы поклоняемся и Тебя одного молим о помощи. Веди нас прямым путём, путём тех, кого Ты облагодетельствовал, не тех, на кого пал гнев, и не заблудших. Амин.' },
-                { name: 'Зухр (полуденный)', time: '13:00', text: '' },
-                { name: 'Аср (послеполуденный)', time: '16:30', text: '' },
-                { name: 'Магриб (закатный)', time: '19:00', text: '' },
-                { name: 'Иша (ночной)', time: '21:00', text: '' }
+                { name: 'Фаджр (рассветный намаз, 2 ракята)', time: '05:00', text: 'В каждом ракяте читается сура «Аль-Фатиха»:\nВо имя Аллаха, Милостивого, Милосердного. Хвала Аллаху, Господу миров, Милостивому, Милосердному, Властелину Дня воздаяния! Тебе одному мы поклоняемся и Тебя одного молим о помощи. Веди нас прямым путём, путём тех, кого Ты облагодетельствовал, не тех, на кого пал гнев, и не заблудших. Амин.' + ORIG + 'Бисмилляхи-р-Рахмани-р-Рахим. Аль-хамду лилляхи Раббиль-‘алямин. Ар-Рахмани-р-Рахим. Малики яумиддин. Иййака на‘буду ва иййака наста‘ин. Ихдина-с-сыраталь-мустакым. Сыраталлязина ан‘амта ‘алейхим, гайриль-магдуби ‘алейхим ва ляд-даллин. Амин.' },
+                { name: 'Зухр (полуденный намаз, 4 ракята)', time: '13:00', text: 'В каждом ракяте читается сура «Аль-Фатиха»:\nВо имя Аллаха, Милостивого, Милосердного. Хвала Аллаху, Господу миров, Милостивому, Милосердному, Властелину Дня воздаяния! Тебе одному мы поклоняемся и Тебя одного молим о помощи. Веди нас прямым путём, путём тех, кого Ты облагодетельствовал, не тех, на кого пал гнев, и не заблудших. Амин.' + ORIG + 'Бисмилляхи-р-Рахмани-р-Рахим. Аль-хамду лилляхи Раббиль-‘алямин. Ар-Рахмани-р-Рахим. Малики яумиддин. Иййака на‘буду ва иййака наста‘ин. Ихдина-с-сыраталь-мустакым. Сыраталлязина ан‘амта ‘алейхим, гайриль-магдуби ‘алейхим ва ляд-даллин. Амин.' },
+                { name: 'Аср (послеполуденный намаз, 4 ракята)', time: '16:30', text: 'В каждом ракяте читается сура «Аль-Фатиха»:\nВо имя Аллаха, Милостивого, Милосердного. Хвала Аллаху, Господу миров, Милостивому, Милосердному, Властелину Дня воздаяния! Тебе одному мы поклоняемся и Тебя одного молим о помощи. Веди нас прямым путём, путём тех, кого Ты облагодетельствовал, не тех, на кого пал гнев, и не заблудших. Амин.' + ORIG + 'Бисмилляхи-р-Рахмани-р-Рахим. Аль-хамду лилляхи Раббиль-‘алямин. Ар-Рахмани-р-Рахим. Малики яумиддин. Иййака на‘буду ва иййака наста‘ин. Ихдина-с-сыраталь-мустакым. Сыраталлязина ан‘амта ‘алейхим, гайриль-магдуби ‘алейхим ва ляд-даллин. Амин.' },
+                { name: 'Магриб (закатный намаз, 3 ракята)', time: '19:00', text: 'В каждом ракяте читается сура «Аль-Фатиха»:\nВо имя Аллаха, Милостивого, Милосердного. Хвала Аллаху, Господу миров, Милостивому, Милосердному, Властелину Дня воздаяния! Тебе одному мы поклоняемся и Тебя одного молим о помощи. Веди нас прямым путём, путём тех, кого Ты облагодетельствовал, не тех, на кого пал гнев, и не заблудших. Амин.' + ORIG + 'Бисмилляхи-р-Рахмани-р-Рахим. Аль-хамду лилляхи Раббиль-‘алямин. Ар-Рахмани-р-Рахим. Малики яумиддин. Иййака на‘буду ва иййака наста‘ин. Ихдина-с-сыраталь-мустакым. Сыраталлязина ан‘амта ‘алейхим, гайриль-магдуби ‘алейхим ва ляд-даллин. Амин.' },
+                { name: 'Иша (ночной намаз, 4 ракята)', time: '21:00', text: 'В каждом ракяте читается сура «Аль-Фатиха»:\nВо имя Аллаха, Милостивого, Милосердного. Хвала Аллаху, Господу миров, Милостивому, Милосердному, Властелину Дня воздаяния! Тебе одному мы поклоняемся и Тебя одного молим о помощи. Веди нас прямым путём, путём тех, кого Ты облагодетельствовал, не тех, на кого пал гнев, и не заблудших. Амин.' + ORIG + 'Бисмилляхи-р-Рахмани-р-Рахим. Аль-хамду лилляхи Раббиль-‘алямин. Ар-Рахмани-р-Рахим. Малики яумиддин. Иййака на‘буду ва иййака наста‘ин. Ихдина-с-сыраталь-мустакым. Сыраталлязина ан‘амта ‘алейхим, гайриль-магдуби ‘алейхим ва ляд-даллин. Амин.' }
             ]
         },
         judaism: {
             name: 'Иудаизм', icon: '✡️', templeName: 'синагоги',
             prayers: [
-                { name: 'Шахарит (утренняя) · Шма Исраэль', time: '07:00', text: 'Шма Исраэль, Адонай Элогейну, Адонай Эхад. (Слушай, Израиль: Господь — Бог наш, Господь един.) И люби Господа, Бога твоего, всем сердцем твоим, и всей душою твоей, и всеми силами твоими.' },
-                { name: 'Минха (дневная)', time: '14:00', text: '' },
-                { name: 'Маарив (вечерняя)', time: '20:00', text: '' }
+                { name: 'Шахарит (утренняя) · Шма Исраэль', time: '07:00', text: 'Слушай, Израиль: Господь — Бог наш, Господь един. Благословенно имя славы царства Его во веки веков. И люби Господа, Бога твоего, всем сердцем твоим, и всей душою твоей, и всеми силами твоими.' + ORIG + 'Шма Исраэль, Адонай Элоѓэйну, Адонай эхад. Барух шем квод малхуто ле-олам ваэд. Ве-аѓавта эт Адонай Элоѓэха, бе-холь левавха, у-в-холь нафшеха, у-в-холь меодэха.' },
+                { name: 'Минха (дневная) · Ашрей', time: '14:00', text: 'Счастливы пребывающие в доме Твоём, вовеки они будут восхвалять Тебя. Счастлив народ, чей удел таков, счастлив народ, чей Бог — Господь.' + ORIG + 'Ашрей йошвей вейтэха, од йеѓалелуха сэла. Ашрей ѓа-ам ше-каха ло, ашрей ѓа-ам ше-Адонай Элоѓав.' },
+                { name: 'Маарив (вечерняя) · Ѓашкивейну', time: '20:00', text: 'Уложи нас, Господь, Бог наш, с миром и подними нас, Владыка наш, к жизни доброй и мирной. Раскрой над нами шатёр мира Твоего и храни нас.' + ORIG + 'Ѓашкивейну Адонай Элоѓэйну ле-шалом, ве-ѓаамидэну Малкейну ле-хаим товим у-ле-шалом. У-фрос алейну сукат шломэха.' }
             ]
         },
         buddhism: {
             name: 'Буддизм', icon: '☸️', templeName: 'храма/дацана',
             prayers: [
-                { name: 'Прибежище (Три драгоценности)', time: '06:00', text: 'Я принимаю прибежище в Будде. Я принимаю прибежище в Дхарме. Я принимаю прибежище в Сангхе. (Буддам шаранам гаччхами. Дхаммам шаранам гаччхами. Сангхам шаранам гаччхами.)' },
-                { name: 'Утренняя медитация', time: '', text: '' },
-                { name: 'Вечерняя медитация', time: '20:00', text: '' }
+                { name: 'Прибежище (Три драгоценности)', time: '06:00', text: 'Я принимаю прибежище в Будде. Я принимаю прибежище в Дхарме. Я принимаю прибежище в Сангхе.' + ORIG + 'Буддхам саранам гаччхами. Дхаммам саранам гаччхами. Сангхам саранам гаччхами.' },
+                { name: 'Метта (пожелание блага всем существам)', time: '', text: 'Пусть все существа будут счастливы. Пусть все существа будут свободны от страдания. Пусть все существа обретут покой.' + ORIG + 'Сабе сатта сукхи хонту. Сабе сатта авера хонту. Сабе сатта абьяпаджджха хонту.' },
+                { name: 'Вечернее посвящение заслуг', time: '20:00', text: 'Пусть заслуга, накопленная мной, станет причиной блага для всех живых существ. Пусть все обретут мир и освобождение.' + ORIG + 'Идам мэ пуннам сабба саттанам бхавату. Сабе сатта сукхи хонту.' }
             ]
         },
         other: {
             name: 'Своя духовная практика', icon: '🕉️', templeName: 'места силы',
-            prayers: []
+            prayers: [
+                { name: 'Утренняя практика', time: '07:00', text: '' },
+                { name: 'Дневная практика', time: '14:00', text: '' },
+                { name: 'Вечерняя практика', time: '21:00', text: '' }
+            ]
         }
     };
     FocusCore.applyStoredTheme();
@@ -546,6 +581,89 @@ initAtmosphere(canvasId) {
     }
     function escapeHtml(s){ const d=document.createElement('div'); d.innerText=String(s==null?'':s); return d.innerHTML; }
     const today = new Date().toISOString().slice(0,10);
+
+    /* ═══ ПИСАНИЕ ═══
+       Священные тексты под выбранную религию — ТОЛЬКО на русском, открываются по ссылке.
+       Плюс юзер может добавить свои книги для чтения. Молитвы/время/дизайн не затронуты. */
+    const BOOKS_KEY = 'faith_user_books';   // [{id,name,url}]
+    const SCRIPTURES = {
+        orthodox: [
+            { name: 'Библия · Синодальный перевод', url: 'https://azbyka.ru/biblia/' },
+            { name: 'Новый Завет', url: 'https://azbyka.ru/biblia/?Mf' },
+            { name: 'Псалтирь', url: 'https://azbyka.ru/biblia/?Ps' }
+        ],
+        catholic: [
+            { name: 'Библия · Синодальный перевод', url: 'https://azbyka.ru/biblia/' },
+            { name: 'Новый Завет', url: 'https://azbyka.ru/biblia/?Mf' }
+        ],
+        islam: [
+            { name: 'Коран · перевод на русский', url: 'https://quran.com/ru' },
+            { name: 'Коран · перевод Э. Кулиева', url: 'https://falaq.ru/quran/kuli' }
+        ],
+        judaism: [
+            { name: 'Тора (Пятикнижие) на русском', url: 'https://toldot.com/limud/library/humash/' },
+            { name: 'Танах на русском', url: 'https://ru.chabad.org/library/' }
+        ],
+        buddhism: [
+            { name: 'Дхаммапада на русском', url: 'https://www.theravada.ru/Teaching/Canon/Suttanta/dhammapada.htm' },
+            { name: 'Палийский канон на русском', url: 'https://www.theravada.ru/Teaching/Canon/canon.htm' }
+        ],
+        other: []
+    };
+    let userBooks = [];
+    try { userBooks = JSON.parse(localStorage.getItem(BOOKS_KEY)) || []; } catch(e){ userBooks = []; }
+    function saveBooks(){ localStorage.setItem(BOOKS_KEY, JSON.stringify(userBooks)); }
+
+    function renderBooks(){
+        const list = document.getElementById('booksList');
+        if (!list) return;
+        const base = (religionId && SCRIPTURES[religionId]) ? SCRIPTURES[religionId] : [];
+        const all = base.map(b => ({ ...b, base: true })).concat(userBooks);
+        const cnt = document.getElementById('bookCnt');
+        if (cnt) cnt.innerText = all.length;
+        if (!religionId) { list.innerHTML = '<div class="prayer-text-empty" style="padding:14px 2px;">Сначала выбери религию — подставлю священные тексты.</div>'; return; }
+        if (!all.length) { list.innerHTML = '<div class="prayer-text-empty" style="padding:14px 2px;">Книг пока нет. Добавь свою по ссылке.</div>'; return; }
+        list.innerHTML = all.map(b => `
+            <div class="prayer-item">
+                <div class="prayer-icon">📖</div>
+                <div class="prayer-info">
+                    <div class="prayer-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(b.name)}</div>
+                    <div class="prayer-sched" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(b.url)}</div>
+                </div>
+                <div class="modal-btn save" style="padding:7px 12px; font-size:11.5px;" data-open="${escapeHtml(b.url)}">Читать</div>
+                ${b.base ? '' : `<div class="prayer-del" data-delbook="${b.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></div>`}
+            </div>`).join('');
+        list.querySelectorAll('[data-open]').forEach(el => {
+            el.addEventListener('click', () => window.open(el.dataset.open, '_blank', 'noopener'));
+        });
+        list.querySelectorAll('[data-delbook]').forEach(el => {
+            el.addEventListener('click', () => {
+                userBooks = userBooks.filter(b => String(b.id) !== String(el.dataset.delbook));
+                saveBooks(); renderBooks(); toast('Книга удалена');
+            });
+        });
+    }
+
+    (function(){
+        const bModal = document.getElementById('bookModal');
+        const openBtn = document.getElementById('addBookBtn');
+        if (!bModal || !openBtn) return;
+        openBtn.addEventListener('click', () => {
+            document.getElementById('bookName').value = '';
+            document.getElementById('bookUrl').value = '';
+            bModal.classList.add('show');
+        });
+        document.getElementById('cancelBook').addEventListener('click', () => bModal.classList.remove('show'));
+        document.getElementById('saveBook').addEventListener('click', () => {
+            const name = document.getElementById('bookName').value.trim();
+            let url = document.getElementById('bookUrl').value.trim();
+            if (!name) { toast('Введите название'); return; }
+            if (!url) { toast('Вставьте ссылку'); return; }
+            if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+            userBooks.push({ id: Date.now(), name, url });
+            saveBooks(); bModal.classList.remove('show'); renderBooks(); toast('Книга добавлена');
+        });
+    })();
 
     // ===== Состояние религии =====
     const REL_KEY = 'faith_religion';          // id выбранной религии
@@ -572,9 +690,33 @@ initAtmosphere(canvasId) {
             prayers = autoPrayers.concat(personal);
             savePrayers();
         }
-        renderPrayers(); renderStats();
+        renderPrayers(); renderStats(); renderBooks();   // писание тоже обновляем под религию
     }
-    function savePrayers(){ localStorage.setItem(PRAYERS_KEY, JSON.stringify(prayers)); }
+    /* НАПОМИНАНИЯ НА МОЛИТВЫ. Раньше время у молитвы было просто текстом («🔔 07:00»),
+       уведомление не ставилось. Теперь на каждую молитву со временем ставим напоминание
+       на сегодня (и на завтра, если время уже прошло). Повторно за день не дублируем. */
+    function schedulePrayerReminders(){
+        try {
+            if (!window.FocusReminders || !FocusReminders.schedule) return;
+            var mark = 'faith_prayer_rem_' + today;
+            var doneList = [];
+            try { doneList = JSON.parse(localStorage.getItem(mark)) || []; } catch(e){ doneList = []; }
+            var now = new Date();
+            (prayers || []).forEach(function(p){
+                if (!p || !p.time || !/^\d{1,2}:\d{2}$/.test(String(p.time))) return;
+                var key = String(p.name || '') + '@' + p.time;
+                if (doneList.indexOf(key) !== -1) return;
+                var hm = String(p.time).split(':');
+                var at = new Date(); at.setHours(parseInt(hm[0],10), parseInt(hm[1],10), 0, 0);
+                if (at.getTime() <= now.getTime()) at.setDate(at.getDate() + 1);   // время прошло → на завтра
+                FocusReminders.schedule('🕌 ' + (p.name || 'Молитва'), at);
+                doneList.push(key);
+            });
+            localStorage.setItem(mark, JSON.stringify(doneList));
+        } catch(e){}
+    }
+
+    function savePrayers(){ localStorage.setItem(PRAYERS_KEY, JSON.stringify(prayers)); schedulePrayerReminders(); }
 
     // Сетка выбора религий
     const grid = document.getElementById('religionGrid');
@@ -606,6 +748,7 @@ initAtmosphere(canvasId) {
             document.querySelectorAll('.sub-pane').forEach(p => p.classList.remove('active'));
             tab.classList.add('active');
             document.getElementById('pane-' + tab.dataset.pane).classList.add('active');
+            if (tab.dataset.pane === 'scripture') renderBooks();
         });
     });
 
@@ -760,6 +903,7 @@ initAtmosphere(canvasId) {
     // ===== Инициализация =====
     if (religionId && RELIGIONS[religionId]) applyReligion(religionId, false);
     else { renderPrayers(); renderStats(); }
+    schedulePrayerReminders();   // напоминания на молитвы при открытии раздела
     renderTemple();
 </script>
 <script>
@@ -768,5 +912,6 @@ initAtmosphere(canvasId) {
     }
 </script>
     <script src="focus-chat-fab.js"></script>
+<script src="focus-reminders.js"></script>
 </body>
 </html>

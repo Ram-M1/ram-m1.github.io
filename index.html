@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v215 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v225 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -1020,13 +1020,19 @@ window._focusUnlockAudio = function(){
                 return;   // ← ОСТАЁМСЯ. Никаких редиректов. Это убирает мельтешение под админом.
             }
 
-            // (2) явный выход → landing. БОЛЬШЕ index НИКУДА не редиректит сам —
-            // решение о показе landing принимает только landing.html. Так петля index↔landing
-            // физически невозможна (только одна сторона редиректит).
+            // (2) явный выход → landing
             if (loggedOut) { location.replace('landing.html'); return; }
 
-            // Всё остальное — ОСТАЁМСЯ в приложении. Если профиля нет и юзер реально новый,
-            // его сюда и не пустит landing (он редиректит на регистрацию до захода на index).
+            // (4) ЕДИНЫЙ КРИТЕРИЙ «ВОШЁЛ» — точно такая же формула в landing.html.
+            // Условия строго противоположные → пинг-понг index↔landing невозможен.
+            // Не вошёл (нет подтверждённой почты / нет анкеты) → на лендинг.
+            var entered = anchor
+                || (_u && _u.flags && (_u.flags.loggedIn || _u.flags.profileCompleted))
+                || (_u && _u.name && _u.assistantName && _u.birthDate);
+            if (!entered) { location.replace('landing.html'); return; }
+
+            // вошёл, но анкета не заполнена → анкета (она обязательная)
+            if (!hasProfile) { location.replace('profile-form.html'); return; }
             return;
         } catch(e){}
     })();
@@ -2669,7 +2675,7 @@ window._focusUnlockAudio = function(){
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=215').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=225').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -2739,8 +2745,14 @@ window._focusUnlockAudio = function(){
         '{"reply":"короткий тёплый текст пользователю","actions":[...]}\n' +
         'actions — массив ВСЕХ действий, которые нужно выполнить. Виды:\n' +
         '  {"type":"fill","section":"<id раздела>","data":"<что записать>"} — заполнить раздел НОВЫМИ данными\n' +
+        '  {"type":"plan","section":"braindump","data":"<дело>","column":"plan|now|inbox","deadline":"<срок: 2026-07-25 или «25 июля»/«завтра»>"} — создать дело СРАЗУ в нужной колонке ИЛИ перенести существующее и поставить срок\n' +
         '  {"type":"done","section":"braindump","id":<НОМЕР дела из справки>} — отметить СУЩЕСТВУЮЩЕЕ дело выполненным\n' +
         '  {"type":"remind","data":"<о чём>","when":"<когда, напр. завтра в 10:00>"} — поставить напоминание\n' +
+        'ВЫПОЛНЯЙ КОМАНДУ ЦЕЛИКОМ. Если в просьбе несколько шагов — верни ВСЕ действия сразу, а не первое.\n' +
+        'Пример: «создай задачу отправить КП, перенеси в план на 25 июля и напомни в 10:00» →\n' +
+        '  "actions":[{"type":"plan","section":"braindump","data":"Отправить КП","column":"plan","deadline":"25 июля"},\n' +
+        '             {"type":"remind","data":"Отправить КП","when":"25 июля в 10:00"}]\n' +
+        'Для дел ВСЕГДА используй "plan" (а не "fill"), если указана колонка или срок — иначе дело упадёт во «Входящие».\n' +
         'ПРАВИЛО ОТМЕТКИ (важно!): в СПРАВКЕ у каждого дела есть номер вида [#1752...]. Когда юзер говорит\n' +
         '«отметь что купил уголки» / «сделал X» — НАЙДИ это дело в справке по смыслу и верни его НОМЕР в "id".\n' +
         'НИКОГДА не создавай новое дело через fill, чтобы потом его закрыть — это дублирует задачи.\n' +
@@ -2749,6 +2761,21 @@ window._focusUnlockAudio = function(){
         'указывай, где дело лежит — «Сделать сейчас» / «Запланировано» / «Входящие». Группируй по этим разделам.\n' +
         'ВЫПОЛНЕННЫЕ дела (архив) НИКОГДА не перечисляй — их в справке нет, и вспоминать их из переписки НЕЛЬЗЯ.\n' +
         'КРИТИЧНО: если пользователь попросил НЕСКОЛЬКО вещей — положи в actions КАЖДУЮ (три просьбы = три действия).\n' +
+        '  {"type":"create","section":"<id ЛЮБОГО раздела>","name":"<что создать>", ...} — СОЗДАТЬ новое в любом разделе.\n' +
+        '     Примеры: {"type":"create","section":"medications","name":"Витамин D","dosage":"2000 МЕ","perDay":2}\n' +
+        '               {"type":"create","section":"supplements","name":"Омега-3","perDay":1}\n' +
+        '               {"type":"create","section":"training","name":"Грудь","exercises":["жим лёжа 4х8 80кг"]}\n' +
+        '               {"type":"create","section":"workout","name":"планка 3х60"}\n' +
+        '               {"type":"create","section":"finance","name":"На отпуск","target":100000} — КОПИЛКА (цель накопления)\n' +
+        '     ФИНАНСЫ: копилка и трата — РАЗНОЕ. Копить/отложить/цель → "create" с "target".\n' +
+        '     Потратил/купил/доход/зарплата → {"type":"fill","section":"finance","data":"потратил 500 на продукты"}.\n' +
+        '  {"type":"uncheck","section":"<id>","data":"<что>"} — СНЯТЬ отметку/галочку (обратное к done)\n' +
+        '  {"type":"endday"} — ЗАВЕРШИТЬ ДЕНЬ (подвести итог дня)\n' +
+        'ТЫ УМЕЕШЬ ВСЁ, ЧТО УМЕЕТ ПОЛЬЗОВАТЕЛЬ: создавать и заполнять в ЛЮБОМ разделе, ставить и снимать\n' +
+        'галочки, создавать тренировки и упражнения, лекарства и БАДы, задачи, сроки, напоминания,\n' +
+        'копилки, желания, финансы, завершать день. НИКОГДА не отправляй юзера делать это руками —\n' +
+        'если чего-то ещё нет в списке, создай это действием "create" сам.\n' +
+        'Если команда непонятна — задай РОВНО ОДИН короткий вежливый уточняющий вопрос, грамотно и без напора.\n' +
         'Если действий нет — "actions":[]. В "reply" НИКОГДА не пиши JSON, теги или служебные слова.';
 
     /** Выполнить действия из JSON-ответа. Возвращает список сообщений о сделанном. */
@@ -2760,8 +2787,39 @@ window._focusUnlockAudio = function(){
         // Иначе модель могла сперва создать дубль дела, а потом «закрыть» его —
         // и получалось «создал новую задачу и сразу отправил в архив».
         var dones = list.filter(function(a){ return String(a.type).toLowerCase() === 'done'; });
+        var creates = list.filter(function(a){ var t=String(a.type).toLowerCase(); return t === 'create' || t === 'createtraining'; });
+        var unchecks = list.filter(function(a){ var t=String(a.type).toLowerCase(); return t === 'uncheck' || t === 'undone'; });
+        var enddays = list.filter(function(a){ var t=String(a.type).toLowerCase(); return t === 'endday' || t === 'end_day'; });
+        var plans = list.filter(function(a){ var t = String(a.type).toLowerCase(); return t === 'plan' || t === 'move'; });
         var fills = list.filter(function(a){ return String(a.type).toLowerCase() === 'fill'; });
         var rems  = list.filter(function(a){ return String(a.type).toLowerCase() === 'remind'; });
+
+        // СОЗДАНИЕ в ЛЮБОМ разделе (лекарство, БАД, упражнение, тренировка, копилка, задача, желание)
+        creates.forEach(function(a){
+            try {
+                if (!window.FocusSections || !FocusSections.create) return;
+                var sec = String(a.section || '').toLowerCase();
+                if (!sec) return;
+                var m = FocusSections.create(sec, {
+                    name: a.name || a.data || '',
+                    dosage: a.dosage, perDay: a.perDay || a.timesPerDay || a.count,
+                    times: a.times, sets: a.sets, reps: a.reps,
+                    exercises: a.exercises || a.items,
+                    target: a.target || a.amount, emoji: a.emoji,
+                    column: a.column, deadline: a.deadline
+                });
+                if (m) { msgs.push(m); if (typeof addFilled === 'function') addFilled(m); }
+            } catch(e){}
+        });
+
+        // СНЯТЬ ГАЛОЧКУ
+        unchecks.forEach(function(a){
+            try {
+                if (!window.FocusSections || !FocusSections.uncheck) return;
+                var m = FocusSections.uncheck(String(a.section || '').toLowerCase(), String(a.data || ''));
+                if (m) msgs.push(m);
+            } catch(e){}
+        });
 
         var closedTexts = [];
         dones.forEach(function(a){
@@ -2777,6 +2835,31 @@ window._focusUnlockAudio = function(){
             } catch(e){}
         });
 
+        /* ПЛАН/ПЕРЕНОС: создать дело сразу в нужной колонке («план», «сейчас») и поставить срок.
+           Выполняем ДО fill, чтобы не создавалось два одинаковых дела. */
+        var plannedTexts = [];
+        plans.forEach(function(a){
+            try {
+                if (!window.FocusSections || !FocusSections.planTask) return;
+                var txt = String(a.data || a.text || '').trim();
+                if (!txt) return;
+                // срок: принимаем и «2026-07-25», и «25 июля», и «завтра»
+                var dl = String(a.deadline || a.date || a.when || '').trim();
+                var iso = null;
+                if (dl) {
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(dl)) iso = dl;
+                    else if (window.FocusReminders && FocusReminders.parse) {
+                        var d = FocusReminders.parse(dl);
+                        if (d) {
+                            iso = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+                        }
+                    }
+                }
+                var m = FocusSections.planTask(String(a.section || 'braindump').toLowerCase(), txt, a.column || a.to || 'plan', iso);
+                if (m) { msgs.push(m); plannedTexts.push(txt.toLowerCase()); if (typeof addFilled === 'function') addFilled(m); }
+            } catch(e){}
+        });
+
         fills.forEach(function(a){
             try {
                 if (!a.section || !window.FocusSections) return;
@@ -2787,6 +2870,12 @@ window._focusUnlockAudio = function(){
                     return d.indexOf(c) !== -1 || c.indexOf(d) !== -1;
                 });
                 if (dup) return;
+                // и не дублируем то, что уже создано действием plan
+                var dup2 = plannedTexts.some(function(p){
+                    if (!p || !d) return false;
+                    return d.indexOf(p) !== -1 || p.indexOf(d) !== -1;
+                });
+                if (dup2) return;
                 var m = FocusSections.fill(String(a.section).toLowerCase(), String(a.data || ''));
                 if (m && m.indexOf('__NEEDCREATE__') !== 0) msgs.push(m);
             } catch(e){}
@@ -2809,6 +2898,11 @@ window._focusUnlockAudio = function(){
                 FocusReminders.schedule(txt, whn);
                 msgs.push('Напомню: ' + txt + ' — ' + at.toLocaleString('ru-RU', { day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' }));
             } catch(e){}
+        });
+
+        // ЗАВЕРШИТЬ ДЕНЬ — выполняем последним, когда всё остальное уже записано
+        enddays.forEach(function(){
+            try { if (window.FocusSections && FocusSections.endDay) { var m = FocusSections.endDay(); if (m) msgs.push(m); } } catch(e){}
         });
 
         return msgs;
@@ -3229,14 +3323,22 @@ window._focusUnlockAudio = function(){
                     if(b.fr%2===0||!b.shape) b.shape=buildBolt(b.x1,b.y1,b.x2,b.y2,b.fast); b.fr++;
                     var flick=0.8+Math.random()*0.2; var o=b.life*flick, w=b.fast?0.9:1.4;
                     fxCtx.lineCap='round'; fxCtx.lineJoin='round'; fxCtx.globalCompositeOperation='lighter';
-                    // ветки — тонкие
-                    for(var br=0;br<b.shape.branches.length;br++){ var bp=b.shape.branches[br];
-                        strokePath(bp,w*1.6,'150,205,255',0.32*o); strokePath(bp,w*0.6,'235,248,255',0.85*o); }
-                    // основной разряд — ореол → тело → белое ядро (тонко)
+                    // ОБЪЁМНЫЙ РАЗРЯД (как на шаге «В путь»): широкое свечение → ореол → тело → белое ядро.
+                    // Размеры/геометрия НЕ меняются — меняется только вид.
+                    // Объём даём СЛОЯМИ (дёшево), размытие — только на ядре, чтобы не грузить телефон.
                     var M=b.shape.main;
-                    strokePath(M,w*3,'127,208,255',0.12*o);
-                    strokePath(M,w*1.5,'180,225,255',0.45*o);
-                    strokePath(M,w*0.7,'245,252,255',0.95*o);
+                    for(var br=0;br<b.shape.branches.length;br++){ var bp=b.shape.branches[br];
+                        strokePath(bp,w*2.4,'110,180,255',0.14*o);
+                        strokePath(bp,w*1.2,'165,215,255',0.40*o);
+                        strokePath(bp,w*0.5,'250,253,255',0.92*o); }
+                    strokePath(M,w*8,'70,150,255',0.05*o);      // дальнее свечение — даёт объём
+                    strokePath(M,w*5,'100,180,255',0.10*o);
+                    strokePath(M,w*3,'140,205,255',0.20*o);     // мягкий ореол
+                    strokePath(M,w*1.8,'180,225,255',0.42*o);   // тело разряда
+                    strokePath(M,w*1.1,'220,242,255',0.70*o);   // внутренний слой
+                    fxCtx.shadowColor='rgba(200,235,255,'+(0.8*o)+')'; fxCtx.shadowBlur=8;
+                    strokePath(M,w*0.6,'255,255,255',1.0*o);    // раскалённое ядро с лёгким ореолом
+                    fxCtx.shadowBlur=0; fxCtx.shadowColor='transparent';
                     fxCtx.globalCompositeOperation='source-over';
                     b.life-=b.fast?0.4:0.2; if(b.life<=0) fxBolts.splice(i,1); }
             })();
@@ -3674,5 +3776,25 @@ window._focusUnlockAudio = function(){
         setTimeout(function(){ if (window.FocusOrb) window.FocusOrb.autoMount(); }, 300);
     })();
     </script>
+<script>
+/* АВТО-РЕГИСТРАЦИЯ ПУШЕЙ: раньше fbEnablePush не вызывался НИГДЕ, поэтому сервер
+   не знал, куда слать уведомления при закрытом приложении. Теперь включаем сами,
+   если юзер уже дал разрешение (новых запросов не показываем). */
+(function(){
+    function tryEnable(){
+        try {
+            if (!('Notification' in window) || Notification.permission !== 'granted') return;
+            if (!window.fbEnablePush || !window.fbCurrentUser || !window.fbCurrentUser()) return;
+            if (sessionStorage.getItem('focus_push_done') === '1') return;
+            sessionStorage.setItem('focus_push_done','1');
+            window.fbEnablePush().then(function(r){
+                console.log('[FOCUS] пуш-токен:', r && r.ok ? 'зарегистрирован ✓' : ('не вышло: ' + (r && r.error)));
+            }).catch(function(){});
+        } catch(e){}
+    }
+    if (window.FB_AUTH_READY) setTimeout(tryEnable, 1200);
+    else window.addEventListener('fb-auth-ready', function(){ setTimeout(tryEnable, 1200); });
+})();
+</script>
 </body>
 </html>

@@ -662,8 +662,12 @@
             var anchor = localStorage.getItem('focus_login_anchor') === '1';
             var loggedOut = localStorage.getItem('focus_logged_out') === '1';
             var u0 = FocusStorage.getUser();
-            var reallyLogged = u0 && u0.flags && (u0.flags.loggedIn || u0.flags.profileCompleted);
-            if (!loggedOut && (anchor || reallyLogged)) { location.replace('index.html'); return; }
+            // ЕДИНЫЙ КРИТЕРИЙ «ВОШЁЛ» — точно такая же формула, как в index.html.
+            // Одинаковая формула = обе страницы всегда согласны = мельтешения нет.
+            var entered = anchor
+                || (u0 && u0.flags && (u0.flags.loggedIn || u0.flags.profileCompleted))
+                || (u0 && u0.name && u0.assistantName && u0.birthDate);
+            if (!loggedOut && entered) { location.replace('index.html'); return; }
         } catch(e){}
 
         function checkSession(){
@@ -707,5 +711,6 @@
 })();
 </script>
 
+<script src="focus-reminders.js"></script>
 </body>
 </html>

@@ -239,6 +239,14 @@
                     <option value="as_needed">По необходимости</option>
                 </select>
             </div>
+            <div class="field">
+                <label>Приёмов в день</label>
+                <input type="number" id="medPerDay" min="1" max="12" step="1" value="1" inputmode="numeric">
+            </div>
+            <div class="field" id="medTimesField">
+                <label>Время каждого приёма</label>
+                <div id="medTimesWrap" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+            </div>
             <div class="modal-btns">
                 <button class="modal-btn cancel" id="cancelMed">Отмена</button>
                 <button class="modal-btn save" id="saveMed">Сохранить</button>
@@ -341,7 +349,8 @@ initAtmosphere(canvasId) {
         }
         list.innerHTML = '';
         meds.forEach(med => {
-            const times = FREQ_TIMES[med.freq] || 1;
+            // сколько приёмов сегодня: из личного списка времён юзера, иначе из пресета
+            const times = (Array.isArray(med.times) && med.times.length) ? med.times.length : (FREQ_TIMES[med.freq] || 1);
             const takenArr = Array.isArray(taken[med.id]) ? taken[med.id] : [];
             const takenCount = takenArr.length;
             const allTaken = takenCount >= times;
@@ -362,7 +371,7 @@ initAtmosphere(canvasId) {
                         <div class="med-name ${allTaken?'taken':''}">${escapeHtml(med.name)}</div>
                         <div class="med-meta">
                             ${med.dosage ? `<span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5 3.5 13.5a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7Z"/></svg>${escapeHtml(med.dosage)}</span>` : ''}
-                            <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>${med.time || '—'}</span>
+                            <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>${(Array.isArray(med.times) && med.times.length) ? med.times.join(', ') : (med.time || '—')}</span>
                             <span class="chip">${FREQ_LABELS[med.freq] || ''}</span>
                         </div>
                     </div>
@@ -409,7 +418,7 @@ initAtmosphere(canvasId) {
     function updateDayCard(){
         let total = 0, t = 0;
         meds.forEach(m => {
-            const times = FREQ_TIMES[m.freq] || 1;
+            const times = (Array.isArray(m.times) && m.times.length) ? m.times.length : (FREQ_TIMES[m.freq] || 1);
             total += times;
             const arr = Array.isArray(taken[m.id]) ? taken[m.id] : [];
             t += Math.min(arr.length, times);
@@ -423,6 +432,48 @@ initAtmosphere(canvasId) {
 
     // ===== Модалка =====
     const modal = document.getElementById('medModal');
+
+    /* ПРИЁМЫ В ДЕНЬ: юзер задаёт любое количество, под каждый приём — своё время.
+       Времена подставляются автоматически (равномерно по дню), но их можно поправить. */
+    function defaultTimes(n){
+        const out = [];
+        const startH = 9, endH = 21;               // разумное окно приёма
+        if (n <= 1) return ['09:00'];
+        const step = (endH - startH) / (n - 1);
+        for (let i = 0; i < n; i++) {
+            const h = Math.round(startH + step * i);
+            out.push(String(Math.min(23, h)).padStart(2,'0') + ':00');
+        }
+        return out;
+    }
+    function renderTimeInputs(n, times){
+        const wrap = document.getElementById('medTimesWrap');
+        if (!wrap) return;
+        const base = (Array.isArray(times) && times.length) ? times : defaultTimes(n);
+        let html = '';
+        for (let i = 0; i < n; i++) {
+            const v = base[i] || defaultTimes(n)[i] || '09:00';
+            html += `<input type="time" class="med-time-slot" data-i="${i}" value="${v}" style="flex:1 1 84px; min-width:84px;">`;
+        }
+        wrap.innerHTML = html;
+    }
+    function currentTimes(){
+        return Array.from(document.querySelectorAll('.med-time-slot')).map(el => el.value || '09:00');
+    }
+    // пресеты частоты задают количество приёмов, но юзер может вписать своё
+    const FREQ_TO_N = { once:1, twice:2, thrice:3, weekly:1, as_needed:1 };
+    document.getElementById('medFreq').addEventListener('change', function(){
+        const n = FREQ_TO_N[this.value] || 1;
+        document.getElementById('medPerDay').value = n;
+        renderTimeInputs(n, null);
+    });
+    document.getElementById('medPerDay').addEventListener('input', function(){
+        let n = parseInt(this.value, 10);
+        if (!n || n < 1) n = 1;
+        if (n > 12) { n = 12; this.value = 12; }
+        renderTimeInputs(n, currentTimes());
+    });
+
     function openModal(id){
         editId = id || null;
         const med = id ? meds.find(m => m.id === id) : null;
@@ -431,6 +482,12 @@ initAtmosphere(canvasId) {
         document.getElementById('medDosage').value = med ? (med.dosage||'') : '';
         document.getElementById('medTime').value = med ? (med.time||'09:00') : '09:00';
         document.getElementById('medFreq').value = med ? (med.freq||'daily') : 'daily';
+        // количество приёмов: из сохранённого списка времён, иначе из пресета частоты
+        const n = (med && Array.isArray(med.times) && med.times.length)
+            ? med.times.length
+            : (med ? (FREQ_TO_N[med.freq] || 1) : 1);
+        document.getElementById('medPerDay').value = n;
+        renderTimeInputs(n, med && med.times ? med.times : (med && med.time ? [med.time] : null));
         modal.classList.add('show');
         setTimeout(()=>document.getElementById('medName').focus(), 100);
     }
@@ -441,10 +498,12 @@ initAtmosphere(canvasId) {
     document.getElementById('saveMed').addEventListener('click', () => {
         const name = document.getElementById('medName').value.trim();
         if (!name) { toast('Введите название'); return; }
+        const times = currentTimes();
         const data = {
             name,
             dosage: document.getElementById('medDosage').value.trim(),
-            time: document.getElementById('medTime').value,
+            time: times[0] || document.getElementById('medTime').value,   // совместимость со старым форматом
+            times: times,                                                 // все приёмы за день
             freq: document.getElementById('medFreq').value
         };
         if (editId) {
@@ -467,5 +526,6 @@ initAtmosphere(canvasId) {
     }
 </script>
     <script src="focus-chat-fab.js"></script>
+<script src="focus-reminders.js"></script>
 </body>
 </html>

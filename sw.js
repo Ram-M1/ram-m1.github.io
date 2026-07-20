@@ -10,7 +10,7 @@
      и ускоряем загрузку — что особенно важно при слабом интернете)
 */
 
-const CACHE_NAME = 'focus-cache-v215';
+const CACHE_NAME = 'focus-cache-v225';
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
@@ -91,4 +91,30 @@ self.addEventListener('fetch', (event) => {
                 .catch(() => caches.open(CACHE_NAME).then((cache) => cache.match(request)))
         );
     }
+});
+
+
+/* ПОКАЗ ПУШЕЙ ОТ СЕРВЕРА (работает и когда приложение закрыто) */
+self.addEventListener('push', (event) => {
+    let data = {};
+    try { data = event.data ? event.data.json() : {}; } catch (e) { data = { body: event.data ? event.data.text() : '' }; }
+    const n = data.notification || data;
+    const title = n.title || 'FOCUS ✦';
+    const body = n.body || 'Напоминание';
+    event.waitUntil(self.registration.showNotification(title, {
+        body: body,
+        icon: 'icon-192.png',
+        badge: 'icon-192.png',
+        vibrate: [200, 100, 200],
+        data: { url: (data.data && data.data.url) || n.url || './index.html' }
+    }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const url = (event.notification.data && event.notification.data.url) || './index.html';
+    event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+        for (const c of list) { if ('focus' in c) return c.focus(); }
+        return clients.openWindow(url);
+    }));
 });

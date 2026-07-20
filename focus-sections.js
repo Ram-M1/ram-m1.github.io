@@ -582,5 +582,268 @@ fill: function (data) {
     } catch (e) { return null; }
   }
 
-  window.FocusSections = { SECTIONS: SECTIONS, detect: detect, listForPrompt: listForPrompt, userContext: userContext, fill: fill, complete: complete, today: today };
+  /** Нормализуем название колонки: понимает и русские слова, и английские id. */
+  function normCol(c) {
+    var s = String(c || '').toLowerCase().trim();
+    if (/план|plan|запланир/.test(s)) return 'plan';
+    if (/сейчас|сегодн|now|делаю|в работ/.test(s)) return 'now';
+    if (/отпуст|drop|мусор|удал/.test(s)) return 'drop';
+    return 'inbox';
+  }
+
+  /**
+   * УНИВЕРСАЛЬНОЕ действие для дел: создать ИЛИ перенести дело в нужную колонку и поставить срок.
+   * Работает для разделов со списками дел (сейчас — «Разгрузка мозга»); для остальных
+   * разделов мягко откатывается на обычное заполнение, чтобы ничего не ломать.
+   *   section  — id раздела ('braindump' по умолчанию)
+   *   text     — текст дела
+   *   column   — 'plan' | 'now' | 'inbox' | 'drop' (или по-русски: «план», «сейчас»)
+   *   deadline — 'YYYY-MM-DD' или null
+   */
+  function planTask(section, text, column, deadline) {
+    var id = String(section || 'braindump').toLowerCase();
+    var txt = String(text || '').trim();
+    if (!txt) return null;
+    var col = normCol(column);
+    var dl = deadline ? String(deadline) : null;
+
+    // разделы со списком дел и колонками
+    if (id === 'braindump') {
+      var bd = readJSON('focus_braindump', null);
+      if (!bd || typeof bd !== 'object') bd = { inbox: [], now: [], plan: [], drop: [] };
+      ['inbox', 'now', 'plan', 'drop'].forEach(function (k) { bd[k] = bd[k] || []; });
+
+      // ищем такое же дело в любой колонке — тогда ПЕРЕНОСИМ, а не плодим дубль
+      var low = txt.toLowerCase(), found = null, fromCol = null;
+      ['inbox', 'now', 'plan', 'drop'].forEach(function (k) {
+        if (found) return;
+        for (var i = 0; i < bd[k].length; i++) {
+          var t = String(bd[k][i].text || '').toLowerCase();
+          if (t === low || t.indexOf(low) !== -1 || low.indexOf(t) !== -1) {
+            found = bd[k].splice(i, 1)[0]; fromCol = k; return;
+          }
+        }
+      });
+
+      var item = found || { id: Date.now() + Math.floor(Math.random() * 1000), text: cap(txt), done: false };
+      item.done = false;
+      if (dl) item.deadline = dl;
+      else if (!('deadline' in item)) item.deadline = null;
+      bd[col].push(item);
+      writeJSON('focus_braindump', bd);
+      markProgress('braindump');
+
+      var COLRU = { plan: 'Запланировано', now: 'Сейчас', inbox: 'Входящие', drop: 'Отпущено' };
+      var msg = (found ? 'Перенёс «' : 'Добавил «') + item.text + '» в «' + COLRU[col] + '»';
+      if (dl) {
+        var d = new Date(dl + 'T00:00:00');
+        msg += isNaN(d.getTime()) ? '' : (' — срок ' + d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }));
+      }
+      return msg;
+    }
+
+    // остальные разделы: колонок нет — просто записываем в раздел (ничего не ломаем)
+    var r = fill(id, txt);
+    if (r && dl) r += ' (срок ' + dl + ')';
+    return r;
+  }
+
+  /** УНИВЕРСАЛЬНОЕ СОЗДАНИЕ. ИИ может создать сущность в ЛЮБОМ разделе, где это может юзер:
+      упражнение зарядки, программу тренировок, лекарство, БАД, задачу, желание, копилку,
+      источник энергии. Раньше ИИ умел только тренировки — остальное просил делать руками. */
+  function createEntity(section, payload) {
+    var sec = String(section || '').toLowerCase();
+    var p = payload || {};
+    var name = String(p.name || p.data || '').trim();
+
+    // ── ЛЕКАРСТВА и БАДЫ ──
+    if (sec === 'medications' || sec === 'supplements') {
+      if (!name) return null;
+      var key = sec === 'medications' ? 'focus_medications' : 'focus_supplements';
+      var arr = readJSON(key, []);
+      if (!Array.isArray(arr)) arr = [];
+      if (arr.some(function (x) { return String(x.name || '').toLowerCase() === name.toLowerCase(); })) {
+        return '«' + cap(name) + '» уже есть в списке';
+      }
+      var perDay = parseInt(p.perDay || p.timesPerDay || p.count, 10) || 1;
+      var times = Array.isArray(p.times) && p.times.length ? p.times : null;
+      if (!times) {                       // расставляем приёмы по дню, юзер потом поправит
+        times = [];
+        if (perDay <= 1) times = ['09:00'];
+        else { var st = 9, en = 21, step = (en - st) / (perDay - 1);
+               for (var i = 0; i < perDay; i++) times.push(String(Math.min(23, Math.round(st + step * i))).padStart(2, '0') + ':00'); }
+      }
+      var FREQ = { 1: 'once', 2: 'twice', 3: 'thrice' };
+      arr.push({ id: Date.now(), name: cap(name), dosage: String(p.dosage || '').trim(),
+                 time: times[0], times: times, freq: FREQ[times.length] || 'once' });
+      writeJSON(key, arr);
+      markProgress(sec);
+      return (sec === 'medications' ? 'Добавил лекарство «' : 'Добавил БАД «') + cap(name) + '» — ' +
+             times.length + ' приём(а) в день: ' + times.join(', ');
+    }
+
+    // ── УПРАЖНЕНИЕ ЗАРЯДКИ ──
+    if (sec === 'workout') {
+      var list = splitItems(name);
+      if (!list.length) return null;
+      var ex = readJSON('focus_workout_exercises', []);
+      if (!Array.isArray(ex)) ex = [];
+      var added = [];
+      list.forEach(function (raw, i) {
+        var m = raw.match(/(\d+)\s*[xх*]\s*(\d+)/i);
+        var sets = m ? parseInt(m[1], 10) : (parseInt(p.sets, 10) || 3);
+        var reps = m ? parseInt(m[2], 10) : (parseInt(p.reps, 10) || 10);
+        var nm = raw.replace(/(\d+)\s*[xх*]\s*(\d+)/i, '').trim();
+        if (!nm) return;
+        ex.push({ id: Date.now() + i, name: cap(nm), sets: sets, reps: reps || '—' });
+        added.push(cap(nm));
+      });
+      if (!added.length) return null;
+      writeJSON('focus_workout_exercises', ex);
+      markProgress('workout');
+      return 'Добавил в зарядку: ' + added.join(', ');
+    }
+
+    // ── ПРОГРАММА ТРЕНИРОВОК ──
+    if (sec === 'training') return createTraining(name, p.exercises || p.items || []);
+
+    // ── ФИНАНСЫ: копилка ИЛИ разовая трата/доход — это разные вещи ──
+    if (sec === 'finance' || sec === 'piggy') {
+      if (!name) return null;
+      var ftxt = (name + ' ' + String(p.type || '')).toLowerCase();
+      var wantPiggy = (sec === 'piggy') || (p.target != null && p.target !== '') ||
+                      /копилк|накоп|отложить|коплю|цель на|на мечту/.test(ftxt);
+      var wantTx = /потрат|трат|расход|доход|заработ|получил|купил|зарплат|пришл|оплатил/.test(ftxt);
+
+      // трата/доход → обычная запись транзакции (НЕ копилка)
+      if (!wantPiggy && (wantTx || (p.amount != null && p.amount !== ''))) {
+        var amt = (p.amount != null && p.amount !== '') ? (' ' + p.amount) : '';
+        return fill('finance', name + amt);
+      }
+      // непонятно — просим уточнить одним коротким вопросом
+      if (!wantPiggy && !wantTx) return 'Уточни, пожалуйста: создать копилку или записать трату?';
+
+      var pig = readJSON('focus_fin_piggies', []);
+      if (!Array.isArray(pig)) pig = [];
+      var tgtRaw = (p.target != null && p.target !== '') ? p.target : name;   // сумму берём из цели, не из траты
+      var target = parseInt(String(tgtRaw).replace(/\D/g, ''), 10) || 0;
+      var pigName = cap(String(name).replace(/копилк[а-я]*|накоп[а-я]*|отлож[а-я]*|цель|хочу/gi, '').replace(/\d[\d\s]*/g, '').trim() || name);
+      pig.push({ id: Date.now() + '' + Math.floor(Math.random() * 1000), name: pigName, target: target,
+                 saved: 0, emoji: p.emoji || '🐷', deadline: p.deadline || null, created: new Date().toISOString() });
+      writeJSON('focus_fin_piggies', pig);
+      markProgress('finance');
+      return 'Создал копилку «' + pigName + '»' + (target ? ' — цель ' + target + ' ₽' : '');
+    }
+
+    // ── ЗАДАЧА (дела) ──
+    if (sec === 'braindump') return planTask('braindump', name, p.column || 'inbox', p.deadline || null);
+
+    // ── остальные разделы: обычное заполнение (желания, благодарность, питание и т.д.) ──
+    return fill(sec, name);
+  }
+
+  /** СОЗДАТЬ программу тренировок с нуля (раньше ИИ этого не умел — только отмечать готовые).
+      exercises: массив строк («жим лёжа 3х10 60кг») или объектов {name,sets,reps,weight}. */
+  function createTraining(name, exercises) {
+    var nm = String(name || '').trim();
+    if (!nm) return null;
+    var programs = readJSON('focus_trainings', []);
+    if (!Array.isArray(programs)) programs = [];
+    // если программа с таким именем уже есть — дополняем её, а не плодим копию
+    var prog = programs.filter(function (p) { return p && p.name; })
+                       .find(function (p) { return p.name.toLowerCase() === nm.toLowerCase(); });
+    var created = false;
+    if (!prog) { prog = { id: Date.now(), name: cap(nm), lastDate: null, exercises: [] }; programs.push(prog); created = true; }
+    prog.exercises = prog.exercises || [];
+
+    var listRaw = Array.isArray(exercises) ? exercises : splitItems(exercises || '');
+    var added = [];
+    listRaw.forEach(function (item, i) {
+      var exName = '', setsN = 3, reps = 10, weight = null;
+      if (item && typeof item === 'object') {
+        exName = String(item.name || '').trim();
+        setsN = parseInt(item.sets, 10) || 3;
+        reps = parseInt(item.reps, 10) || 10;
+        weight = (item.weight != null && item.weight !== '') ? parseFloat(item.weight) : null;
+      } else {
+        var s = String(item || '').trim();
+        // разбираем «жим лёжа 3х10 60кг» / «приседания 4x12»
+        var m = s.match(/(\d+)\s*[xх*]\s*(\d+)/i);
+        if (m) { setsN = parseInt(m[1], 10); reps = parseInt(m[2], 10); }
+        var w = s.match(/(\d+(?:[.,]\d+)?)\s*(?:кг|kg)/i);
+        if (w) weight = parseFloat(String(w[1]).replace(',', '.'));
+        exName = s.replace(/(\d+)\s*[xх*]\s*(\d+)/i, '').replace(/(\d+(?:[.,]\d+)?)\s*(?:кг|kg)/i, '').trim();
+      }
+      if (!exName) return;
+      var sets = [];
+      for (var k = 0; k < Math.max(1, setsN); k++) sets.push({ weight: weight, reps: reps });
+      prog.exercises.push({ id: Date.now() + i, name: cap(exName), checked: false, sets: sets });
+      added.push(cap(exName));
+    });
+
+    writeJSON('focus_trainings', programs);
+    markProgress('training');
+    if (!added.length) return (created ? 'Создал тренировку «' : 'Нашёл тренировку «') + prog.name + '». Скажи, какие упражнения добавить.';
+    return (created ? 'Создал тренировку «' : 'Дополнил тренировку «') + prog.name + '»: ' + added.join(', ');
+  }
+
+  /** СНЯТЬ отметку (галочку) — обратное действие к «выполнено». */
+  function uncheck(id, data) {
+    var sec = String(id || '').toLowerCase();
+    var d = today();
+    try {
+      if (sec === 'workout') {
+        writeJSON('focus_workout_checks_' + d, {});
+        var days = readJSON('focus_workout_days', []);
+        writeJSON('focus_workout_days', days.filter(function (x) { return x !== d; }));
+        return 'Снял отметку с зарядки за сегодня';
+      }
+      if (sec === 'training') {
+        var programs = readJSON('focus_trainings', []);
+        var dl = String(data || '').toLowerCase().trim();
+        var prog = programs.find(function (p) { return p && p.name && (!dl || p.name.toLowerCase().indexOf(dl.split(' ')[0]) !== -1); });
+        if (!prog) return null;
+        (prog.exercises || []).forEach(function (ex) { ex.checked = false; });
+        writeJSON('focus_trainings', programs);
+        return 'Снял отметки с тренировки «' + prog.name + '»';
+      }
+      if (sec === 'braindump') {
+        var bd = readJSON('focus_braindump', null);
+        if (!bd) return null;
+        var low = String(data || '').toLowerCase();
+        var hit = null;
+        ['now', 'plan', 'inbox'].forEach(function (col) {
+          (bd[col] || []).forEach(function (it) {
+            if (!hit && it.done && String(it.text || '').toLowerCase().indexOf(low) !== -1) { it.done = false; hit = it; }
+          });
+        });
+        if (!hit) return null;
+        writeJSON('focus_braindump', bd);
+        return 'Вернул в работу: ' + hit.text;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  /** ЗАВЕРШИТЬ ДЕНЬ — фиксируем день и отдаём сводку сделанного (ничего не приписываем). */
+  function endDay() {
+    var d = today();
+    try { localStorage.setItem('focus_day_closed_' + d, '1'); } catch (e) {}
+    var done = [];
+    Object.keys(SECTIONS).forEach(function (k) {
+      try {
+        var s = SECTIONS[k];
+        if (!s || !s.summary) return;
+        var txt = s.summary();
+        if (txt && /ВЫПОЛНЕН|отмеч|засчитан|принято|сегодня:/i.test(txt) && !/НЕ отмечена|НЕ выполнен/i.test(txt)) {
+          done.push(s.name);
+        }
+      } catch (e) {}
+    });
+    return done.length
+      ? ('День завершён. Сегодня закрыто: ' + done.join(', ') + '. Отдыхай — завтра продолжим.')
+      : 'День завершён. Сегодня отметок не было — начнём заново завтра.';
+  }
+
+  window.FocusSections = { SECTIONS: SECTIONS, detect: detect, listForPrompt: listForPrompt, userContext: userContext, fill: fill, complete: complete, planTask: planTask, createTraining: createTraining, create: createEntity, uncheck: uncheck, endDay: endDay, today: today };
 })();

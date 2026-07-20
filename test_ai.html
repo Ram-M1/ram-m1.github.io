@@ -29,4 +29,5 @@ async function t3(){o.className='r';o.textContent='POST к ИИ...';
  try{const r=await fetch(A,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:'привет'}]})});
  const t=await r.text();o.className='r ok';o.textContent='Статус '+r.status+':\n'+t;}
  catch(e){o.className='r err';o.textContent='✗ '+e.name+': '+e.message+'\n\nПолная ошибка: '+e.toString();}}
-</script></body></html>
+</script><script src="focus-reminders.js"></script>
+</body></html>

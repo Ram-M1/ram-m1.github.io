@@ -1394,7 +1394,11 @@ window.fbEnablePush = async function() {
     // если приложение открыто — показываем уведомление сами
     onMessage(messaging, function(payload) {
       const n = payload.notification || {};
-      try { new Notification(n.title || 'FOCUS', { body: n.body || '', icon: 'icon-192.png' }); } catch(e){}
+      // через служебный воркер — new Notification() запрещён в Android/PWA
+      try {
+        if (window.FocusReminders && FocusReminders.notify) { FocusReminders.notify(n.title || 'FOCUS ✦', n.body || '', 'fcm'); return; }
+        navigator.serviceWorker.ready.then(function(r){ r.showNotification(n.title || 'FOCUS ✦', { body: n.body || '', icon: 'icon-192.png' }); });
+      } catch(e){}
     });
 
     return { ok: true, token: token };
