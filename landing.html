@@ -654,12 +654,10 @@
     // Автовход: если сессия Firebase восстановилась (юзер уже входил и подтвердил почту)
     // — сразу пускаем в приложение, минуя landing (не надо вводить пароль каждый раз)
     (function(){
-        // Если идёт РЕГИСТРАЦИЯ (юзер только ввёл код, заполняет профиль) — landing НЕ вмешивается,
-        // иначе получается петля: сессия есть, профиля нет → landing шлёт на profile → мелькание.
+        // Если идёт РЕГИСТРАЦИЯ — landing НЕ вмешивается
         try { if (localStorage.getItem('focus_registering') === '1') { return; } } catch(e){}
 
-        // МГНОВЕННО: если на этом устройстве уже был вход (якорь) — не показываем лендинг,
-        // сразу ведём в приложение. Приложение само восстановит данные/сессию.
+        // МГНОВЕННО: если на этом устройстве уже был вход (якорь) — сразу в приложение
         try {
             var anchor = localStorage.getItem('focus_login_anchor') === '1';
             var loggedOut = localStorage.getItem('focus_logged_out') === '1';
@@ -669,7 +667,6 @@
         } catch(e){}
 
         function checkSession(){
-            // во время регистрации не вмешиваемся
             try { if (localStorage.getItem('focus_registering') === '1') return; } catch(e){}
             const user = window.fbCurrentUser && window.fbCurrentUser();
             if (user && user.emailVerified) {
@@ -684,10 +681,8 @@
                 }
             }
         }
-        // ждём восстановления сессии Firebase
         if (window.FB_AUTH_READY) checkSession();
         else window.addEventListener('fb-auth-ready', checkSession);
-        // подстраховка (сессия может восстановиться с задержкой)
         setTimeout(checkSession, 800);
         setTimeout(checkSession, 2000);
     })();

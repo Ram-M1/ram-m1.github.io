@@ -1739,10 +1739,15 @@ window.fbAdminStats = async function() {
 
 // проверка: текущий юзер — админ (по роли в Firestore)
 window.fbIsAdmin = async function() {
-  const user = _currentUser || auth.currentUser;
-  if (!user) return false;
-  // ВЛАДЕЛЕЦ — всегда админ (по email), не зависит от данных в Firestore
   var ADMIN_EMAILS = ['moorsalimov@mail.ru', 'playing.life.rama@gmail.com'];
+  const user = _currentUser || auth.currentUser;
+  // проверяем по локальной почте тоже (админ мог войти client-bypass без Firebase-сессии),
+  // но это лишь для UI-подсказок — реальный доступ в админку защищён отдельно кодом 467046.
+  try {
+    var lu = (window.FocusStorage && FocusStorage.getUser) ? FocusStorage.getUser() : null;
+    if (lu && lu.email && ADMIN_EMAILS.indexOf(String(lu.email).toLowerCase()) !== -1) return true;
+  } catch (e) {}
+  if (!user) return false;
   if (user.email && ADMIN_EMAILS.indexOf(user.email.toLowerCase()) !== -1) return true;
   try {
     const s = await getDoc(doc(db, 'users', user.uid));

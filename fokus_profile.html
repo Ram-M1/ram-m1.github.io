@@ -358,6 +358,18 @@
             </div>
         </div>
     </div>
+
+    <div class="hidden-link-modal" id="adminCodeModal">
+        <div class="hidden-link-box">
+            <div class="hidden-link-title">Вход в админку</div>
+            <div class="hidden-link-hint">Введите мастер-код администратора.</div>
+            <input type="tel" inputmode="numeric" id="adminCodeInput" placeholder="Код" maxlength="6" autocomplete="off">
+            <div class="hidden-link-btns">
+                <button class="hl-cancel" id="acCancel">Отмена</button>
+                <button class="hl-link" id="acEnter">Войти</button>
+            </div>
+        </div>
+    </div>
     <div class="avatar-modal" id="avatarModal">
         <div class="avatar-modal-content">
             <div class="avatar-modal-title">Выбери аватар</div>
@@ -639,27 +651,29 @@ initAtmosphere(canvasId) {
         let holdProgress = null;
         function startPress(){
             // сначала проверяем: если это админ — весь жест только под админку (без родит.контроля)
-            if (window.fbIsAdmin) {
-                window.fbIsAdmin().then(function(isAdmin){
-                    if (isAdmin) {
-                        // показываем прогресс удержания (визуальный намёк)
-                        nameEl.style.transition = 'opacity 2.5s linear';
-                        nameEl.style.opacity = '0.4';
-                        adminTimer = setTimeout(function(){
-                            location.href = 'admin.html';
-                        }, 2500);
-                    } else {
-                        // обычный юзер — родительский контроль на 1.5 сек
-                        pressTimer = setTimeout(() => {
-                            document.getElementById('hiddenParentCode').value = '';
-                            modal.classList.add('show');
-                        }, 1500);
-                    }
-                }).catch(function(){
-                    pressTimer = setTimeout(() => { document.getElementById('hiddenParentCode').value = ''; modal.classList.add('show'); }, 1500);
-                });
+            // БЕЗОПАСНО: админка только с АДМИНСКОЙ ПОЧТЫ и только по КОДУ.
+            // Проверяем почту из данных юзера. Даже если кто-то подделает почту локально —
+            // без кода 467046 в админку не войдёт. Обычная почта → сразу родительский контроль.
+            var ADMIN_EMAILS = ['moorsalimov@mail.ru', 'playing.life.rama@gmail.com'];
+            var _cu = (window.FocusStorage && FocusStorage.getUser) ? FocusStorage.getUser() : {};
+            var _email = String((_cu && _cu.email) || '').toLowerCase();
+            var _isAdminEmail = ADMIN_EMAILS.indexOf(_email) !== -1;
+            if (_isAdminEmail) {
+                // админская почта → показать окно кода (визуальный намёк удержанием)
+                nameEl.style.transition = 'opacity 2.5s linear';
+                nameEl.style.opacity = '0.4';
+                adminTimer = setTimeout(function(){
+                    nameEl.style.opacity = '1';
+                    var acInput = document.getElementById('adminCodeInput');
+                    if (acInput) acInput.value = '';
+                    document.getElementById('adminCodeModal').classList.add('show');
+                }, 2500);
             } else {
-                pressTimer = setTimeout(() => { document.getElementById('hiddenParentCode').value = ''; modal.classList.add('show'); }, 1500);
+                // обычная почта → родительский контроль на 1.5 сек (как было)
+                pressTimer = setTimeout(() => {
+                    document.getElementById('hiddenParentCode').value = '';
+                    modal.classList.add('show');
+                }, 1500);
             }
         }
         function cancelPress(){
@@ -676,6 +690,34 @@ initAtmosphere(canvasId) {
         nameEl.addEventListener('touchmove', cancelPress);
 
         document.getElementById('hlCancel').addEventListener('click', () => modal.classList.remove('show'));
+
+        // ── Окно кода админки: проверка мастер-кода 467046 (только с админской почты) ──
+        (function(){
+            var acModal = document.getElementById('adminCodeModal');
+            var acCancel = document.getElementById('acCancel');
+            var acEnter = document.getElementById('acEnter');
+            var acInput = document.getElementById('adminCodeInput');
+            if (!acModal || !acEnter) return;
+            var ADMIN_MASTER = '467046';
+            var ADMIN_EMAILS = ['moorsalimov@mail.ru', 'playing.life.rama@gmail.com'];
+            function tryEnter(){
+                // повторно проверяем почту (двойная защита) + код
+                var cu = (window.FocusStorage && FocusStorage.getUser) ? FocusStorage.getUser() : {};
+                var email = String((cu && cu.email) || '').toLowerCase();
+                if (ADMIN_EMAILS.indexOf(email) === -1) { acModal.classList.remove('show'); return; }
+                var code = (acInput.value || '').trim();
+                if (code === ADMIN_MASTER) {
+                    acModal.classList.remove('show');
+                    location.href = 'admin.html';
+                } else {
+                    if (window.toast) toast('Неверный код'); else alert('Неверный код');
+                    acInput.value = '';
+                }
+            }
+            acCancel && acCancel.addEventListener('click', () => acModal.classList.remove('show'));
+            acEnter.addEventListener('click', tryEnter);
+            acInput && acInput.addEventListener('keydown', function(e){ if (e.key === 'Enter') tryEnter(); });
+        })();
         document.getElementById('hlLink').addEventListener('click', async () => {
             const code = document.getElementById('hiddenParentCode').value.trim().toUpperCase();
             if (!code) { toast('Введите код'); return; }

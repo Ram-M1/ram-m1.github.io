@@ -513,33 +513,64 @@
         // Работает всегда — не зависит от VPN, лимитов, деплоя worker.
         var ADMINS = ['moorsalimov@mail.ru', 'playing.life.rama@gmail.com'];
         if (ADMINS.indexOf(String(email).trim().toLowerCase()) !== -1 && code === '467046') {
-            try {
-                // ставим данные админа + якорь входа → приложение пустит без проверок
-                var existing = {};
-                try { existing = FocusStorage.getUser() || {}; } catch(e){}
-                FocusStorage.saveUser({
-                    email: email,
-                    name: existing.name || 'Рамиль',
-                    assistantName: existing.assistantName || 'Пятница',
-                    birthDate: existing.birthDate || '1990-01-01',
-                    emailVerified: true,
-                    isAdmin: true,
-                    flags: { loggedIn: true, profileCompleted: true }
-                });
-                localStorage.setItem('focus_login_anchor', '1');
-                localStorage.removeItem('focus_logged_out');
-            } catch(e){}
-            // пробуем подтянуть облачные данные (если сеть есть), но вход НЕ зависит от этого
             document.getElementById('loginBtnText').innerText = 'Входим...';
             btn.disabled = true;
-            if (window.fbLoadUserData) {
-                var _went = false;
-                var _go = function(){ if(_went) return; _went = true; window.location.href = 'index.html'; };
-                window.fbLoadUserData().then(function(data){ try{ if (data) FocusStorage.applyCloudData(data); }catch(e){} _go(); }).catch(_go);
-                setTimeout(_go, 1500);   // не ждём сервер дольше 1.5с — всё равно заходим
-            } else {
-                window.location.href = 'index.html';
+
+            // локальные данные админа (ставим в любом случае — чтобы вход не сорвался)
+            function _setAdminLocal(){
+                try {
+                    var existing = {};
+                    try { existing = FocusStorage.getUser() || {}; } catch(e){}
+                    FocusStorage.saveUser({
+                        email: email,
+                        name: existing.name || 'Рамиль',
+                        assistantName: existing.assistantName || 'Пятница',
+                        birthDate: existing.birthDate || '1990-01-01',
+                        emailVerified: true,
+                        isAdmin: true,
+                        flags: { loggedIn: true, profileCompleted: true }
+                    });
+                    localStorage.setItem('focus_login_anchor', '1');
+                    localStorage.removeItem('focus_logged_out');
+                } catch(e){}
             }
+
+            var _went = false;
+            function _go(){ if (_went) return; _went = true; window.location.href = 'index.html'; }
+
+            // ГЛАВНЫЙ ПУТЬ: получаем НАСТОЯЩУЮ Firebase-сессию через worker (обход 467046).
+            // Сессия нужна, чтобы работала облачная синхронизация — иначе данные админа
+            // (тренировки, задачи, разделы) никуда не сохраняются и теряются при чистке.
+            (async function(){
+                var gotSession = false;
+                try {
+                    if (window.fbVerifyCode) {
+                        var res = await Promise.race([
+                            window.fbVerifyCode(email, code),
+                            new Promise(function(r){ setTimeout(function(){ r({ ok:false, error:'timeout' }); }, 6000); })
+                        ]);
+                        gotSession = !!(res && res.ok);
+                    }
+                } catch(e){}
+
+                _setAdminLocal();   // локальные данные — и при сессии, и без неё
+
+                if (!gotSession) {
+                    // ЗАПАСНОЙ ПУТЬ: worker недоступен (VPN / старый worker) — заходим локально.
+                    // Вход не блокируем, но облачный синк в этом режиме не работает.
+                    try { localStorage.setItem('focus_admin_local_only', '1'); } catch(e){}
+                    _go(); return;
+                }
+                try { localStorage.removeItem('focus_admin_local_only'); } catch(e){}
+
+                // сессия есть → подтягиваем облачные данные и заходим
+                if (window.fbLoadUserData) {
+                    window.fbLoadUserData()
+                        .then(function(data){ try { if (data) FocusStorage.applyCloudData(data); } catch(e){} _go(); })
+                        .catch(_go);
+                    setTimeout(_go, 2500);
+                } else { _go(); }
+            })();
             return;
         }
 

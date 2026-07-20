@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v213 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v215 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -1020,42 +1020,14 @@ window._focusUnlockAudio = function(){
                 return;   // ← ОСТАЁМСЯ. Никаких редиректов. Это убирает мельтешение под админом.
             }
 
-            // (2) явный выход → landing
+            // (2) явный выход → landing. БОЛЬШЕ index НИКУДА не редиректит сам —
+            // решение о показе landing принимает только landing.html. Так петля index↔landing
+            // физически невозможна (только одна сторона редиректит).
             if (loggedOut) { location.replace('landing.html'); return; }
 
-            // (4) совсем новый (нет профиля, нет якоря) → ждём Firebase кратко, потом landing
-            document.documentElement.classList.add('booting');
-            var _done = false;
-            function _finish(dest){
-                if (_done) return; _done = true;
-                document.documentElement.classList.remove('booting');
-                if (dest) location.replace(dest);
-            }
-            function _decide(){
-                if (_done) return;
-                var fu = window.fbCurrentUser && window.fbCurrentUser();
-                if (fu) {
-                    // сессия жива → тянем облако, решаем куда
-                    (window.fbLoadUserData ? window.fbLoadUserData() : Promise.resolve(null))
-                        .then(function(cloud){
-                            try {
-                                if (cloud && window.FocusStorage) FocusStorage.applyCloudData(cloud);
-                                if (window.FocusStorage) FocusStorage.saveUser({ email:(fu.email||(cloud&&cloud.email)||''), flags:{ loggedIn:true } });
-                                localStorage.setItem('focus_login_anchor', '1');
-                            } catch(e){}
-                            var u2 = window.FocusStorage ? FocusStorage.getUser() : {};
-                            var done2 = u2 && ((u2.flags && u2.flags.profileCompleted) || u2.profileCompleted || (u2.name && u2.assistantName && u2.birthDate));
-                            _finish(done2 ? null : 'profile-form.html');
-                        })
-                        .catch(function(){ _finish(null); });   // облако молчит → остаёмся, не выкидываем
-                } else if (anchor) {
-                    _finish(null);   // был вход на устройстве, сессия ещё поднимается → остаёмся
-                } else {
-                    _finish('landing.html');   // реально новый → регистрация
-                }
-            }
-            if (window.FB_AUTH_READY) _decide();
-            else { window.addEventListener('fb-auth-ready', _decide); setTimeout(_decide, 3500); }
+            // Всё остальное — ОСТАЁМСЯ в приложении. Если профиля нет и юзер реально новый,
+            // его сюда и не пустит landing (он редиректит на регистрацию до захода на index).
+            return;
         } catch(e){}
     })();
 </script>
@@ -2697,7 +2669,7 @@ window._focusUnlockAudio = function(){
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=213').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=215').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
