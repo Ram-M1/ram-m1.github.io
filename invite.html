@@ -427,7 +427,7 @@
     const inviteLink = `https://focus-one.ru/landing.html?ref=${encodeURIComponent(code)}`;
 
     document.getElementById('friendCode').innerText = code;
-    document.getElementById('inviteLink').innerText = 'https://focus-one.ru/register.html?ref=' + code;
+    document.getElementById('inviteLink').innerText = inviteLink;   // показываем РОВНО ту ссылку, которая копируется
 
     // Статистика приглашений
     const user = FocusStorage.getUser();

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v225 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v228 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -2675,7 +2675,7 @@ window._focusUnlockAudio = function(){
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=225').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=228').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -3240,7 +3240,7 @@ window._focusUnlockAudio = function(){
                 {
                     target: null,
                     title: 'В путь!',
-                    text: 'А теперь — за дело! Полный порядок, дисциплина, наставничество, психолог, друг, который всегда рядом, не предаст и скажет правду. Мессенджер, ИИ-редактор фото, инструмент для тренировочных программ, контроля над телом, питанием и разумом — и всё это по цене двух пачек сигарет. А ты ещё думаешь? Нам промыли мозги, пора это менять. Время держать фокус на себе, мой друг.',
+                    text: 'А теперь — за дело! Полный порядок, дисциплина, наставничество, психолог, друг, который всегда рядом, не предаст и скажет правду. Мессенджер, ИИ-редактор фото, инструмент для тренировочных программ, контроля над телом, питанием и разумом — и всё это — по символической цене. А ты ещё думаешь? Пора вкладываться в себя, а не в пустое. Время держать фокус на себе, мой друг.',
                     voice: 'А теперь — за дело! Время держать фокус на себе, мой друг.'
                 }
             ];
@@ -3282,9 +3282,9 @@ window._focusUnlockAudio = function(){
                         localStorage.setItem('focus_greeted', '1');
                         document.documentElement.classList.remove('booting');
                     } catch(e){}
-                }, 30000);   // 30с БЕЗ активности на ОДНОМ шаге = только если реально завис
+                }, 60000);   // 60с БЕЗ активности на ОДНОМ шаге — юзер может задуматься, раньше не закрываем
             };
-            window._armGreetFailsafe();   // 45с — БОЛЬШЕ всей заставки (была 16с и срабатывала на середине текста, показывая сферы поверх)
+            window._armGreetFailsafe();   // таймер сбрасывается на каждом шаге
             requestAnimationFrame(function(){
                 ov.style.transition = '';                // вернуть плавность для дальнейшего
                 document.documentElement.classList.remove('booting');

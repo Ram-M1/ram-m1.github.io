@@ -604,7 +604,8 @@ initAtmosphere(canvasId) {
             periodDays: sharingProgram.periodDays,
             workouts: sharingProgram.workouts,
             price: price,
-            author: author
+            author: author,
+            authorUid: (function(){ try { var u = window.fbCurrentUser && window.fbCurrentUser(); return (u && u.uid) || null; } catch(e){ return null; } })()
         };
         let code;
         try {
@@ -654,7 +655,7 @@ initAtmosphere(canvasId) {
         if (parsedImport) {
             const exCount = parsedImport.workouts.reduce((s,w) => s + (w.exercises||[]).length, 0);
             const priceLine = parsedImport.price > 0
-                ? `<div style="margin-top:6px;" class="commission">Цена: <b>${parsedImport.price} ₽</b> + комиссия Фокуса <b>${FOCUS_COMMISSION} ₽</b> = <b>${parsedImport.price + FOCUS_COMMISSION} ₽</b><br><span style="font-size:10px;color:#8e8e9e;">Оплата подключается с серверной частью</span></div>`
+                ? `<div style="margin-top:6px;" class="commission">Цена: <b>${parsedImport.price} ₽</b> + комиссия Фокуса <b>${FOCUS_COMMISSION} ₽</b> = <b>${parsedImport.price + FOCUS_COMMISSION} ₽</b><br><span style="font-size:10px;color:#8e8e9e;">Спишется F-coin при добавлении</span></div>`
                 : `<div style="margin-top:6px;">Бесплатная программа · комиссия Фокуса ${FOCUS_COMMISSION} ₽</div>`;
             prev.innerHTML = `<b>${escapeHtml(parsedImport.name)}</b><br>Автор: ${escapeHtml(parsedImport.author||'—')}<br>${parsedImport.workouts.length} трен. · ${exCount} упр. · ${parsedImport.periodDays} дн${priceLine}`;
             prev.style.display = 'block';
@@ -662,8 +663,69 @@ initAtmosphere(canvasId) {
             prev.style.display = 'none';
         }
     });
-    document.getElementById('doImportBtn').addEventListener('click', () => {
+
+    /* НЕ ХВАТАЕТ F-COIN → показываем понятную плашку со ссылкой в магазин,
+       чтобы юзер сразу мог пополнить баланс (пополнение — через ЮKassa). */
+    function needCoins(msg){
+        try {
+            var old = document.getElementById('needCoinsBox'); if (old) old.remove();
+            var b = document.createElement('div');
+            b.id = 'needCoinsBox';
+            b.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:99999;' +
+                'background:rgba(12,12,18,0.98);border:1px solid rgba(255,217,102,0.45);border-radius:18px;' +
+                'padding:20px;max-width:300px;width:86%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.6);font-family:inherit;';
+            b.innerHTML = '<div style="font-size:30px;margin-bottom:8px;">🪙</div>' +
+                '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:6px;">Не хватает F-coin</div>' +
+                '<div style="font-size:12px;color:#9a9aab;line-height:1.5;margin-bottom:16px;">' + (msg || 'Пополни баланс, чтобы продолжить') + '</div>' +
+                '<div style="display:flex;gap:8px;">' +
+                '<button id="ncClose" style="flex:1;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#9a9aab;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Позже</button>' +
+                '<button id="ncGo" style="flex:1.4;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#FFD966,#7C8CFF);color:#0a0a0f;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Пополнить</button>' +
+                '</div>';
+            document.body.appendChild(b);
+            document.getElementById('ncClose').onclick = function(){ b.remove(); };
+            document.getElementById('ncGo').onclick = function(){ location.href = 'shop.html'; };
+        } catch(e){ try { toast(msg || 'Не хватает F-coin'); } catch(_){} }
+    }
+
+    document.getElementById('doImportBtn').addEventListener('click', async () => {
         if (!parsedImport) { toast('Вставь корректный код программы'); return; }
+
+        /* ОПЛАТА F-COIN. Раньше программу можно было забрать бесплатно —
+           списания не было вообще. Теперь: цена автору + комиссия Фокоса,
+           всё считает СЕРВЕР (клиенту доверять нельзя). */
+        const btn = document.getElementById('doImportBtn');
+        const price = parseInt(parsedImport.price, 10) || 0;
+        const total = price + FOCUS_COMMISSION;
+        const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+        let myUid = null;
+        try { const u = window.fbCurrentUser && window.fbCurrentUser(); myUid = u && u.uid; } catch(e){}
+
+        if (!myUid || !base) { toast('Нужен вход в аккаунт, чтобы оплатить'); return; }
+
+        btn.disabled = true; btn.innerText = 'Оплата...';
+        try {
+            // 1) доля автора — переводом, если автор известен и это не ты сам
+            if (price > 0 && parsedImport.authorUid && parsedImport.authorUid !== myUid) {
+                const r1 = await fetch(base + '/coins/transfer', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uid: myUid, toUid: parsedImport.authorUid, amount: price })
+                });
+                const d1 = await r1.json();
+                if (!d1.ok) { needCoins((d1.error || '') + ' Нужно ' + total + ' F-coin: ' + price + ' автору + ' + FOCUS_COMMISSION + ' комиссия.'); btn.disabled = false; btn.innerText = 'Добавить себе'; return; }
+            }
+            // 2) комиссия Фокуса
+            const r2 = await fetch(base + '/coins/spend', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: myUid, amount: FOCUS_COMMISSION, reason: 'program_commission' })
+            });
+            const d2 = await r2.json();
+            if (!d2.ok) { needCoins((d2.error || '') + ' Комиссия Фокуса — ' + FOCUS_COMMISSION + ' F-coin.'); btn.disabled = false; btn.innerText = 'Добавить себе'; return; }
+            if (typeof d2.coins === 'number') { try { FocusStorage.saveUser({ coins: d2.coins }); } catch(e){} }
+        } catch (e) {
+            toast('Оплата не прошла — проверь связь'); btn.disabled = false; btn.innerText = 'Добавить себе'; return;
+        }
+        btn.disabled = false; btn.innerText = 'Добавить себе';
+
         const newProg = {
             id: Date.now(),
             name: parsedImport.name,
@@ -679,7 +741,7 @@ initAtmosphere(canvasId) {
         savePrograms();
         importModal.classList.remove('show');
         renderList();
-        toast('Программа добавлена тебе! 💪');
+        toast('Оплачено ' + total + ' F-coin · программа добавлена 💪');
     });
 
     renderList();
