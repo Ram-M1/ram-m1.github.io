@@ -362,16 +362,9 @@ initAtmosphere(canvasId) {
         { id: 'lead_pour',   label: 'Отлив воском' }
     ];
 
-    // Каталог специалистов. Реальные одобренные грузятся из Firebase (см loadSpecialists).
-    // Демо-записи показываются только пока нет реальных (чтобы каталог не был пустым на старте).
-    let psychics = [
-        { name:'Мария Таролог',     rating:4.9, categories:['tarot','astrology'],   description:'Расклады Таро, астрология, отношения и судьба.', price_from:200, orders_today:12, status:'online', _demo:true },
-        { name:'Анна Астролог',     rating:4.7, categories:['astrology','numerology'], description:'Натальные карты, прогнозы, совместимость партнёров.', price_from:300, orders_today:8, status:'online', _demo:true },
-        { name:'Виктория Нумеролог',rating:4.5, categories:['numerology'],          description:'Числа судьбы, жизненная миссия, скрытые таланты.', price_from:150, orders_today:5, status:'offline', _demo:true },
-        { name:'Сергей Рунолог',    rating:4.8, categories:['runes','shaman'],      description:'Руны, шаманские практики, энергетическая защита.', price_from:250, orders_today:9, status:'online', _demo:true },
-        { name:'Елена Ясновидящая', rating:5.0, categories:['clairvoyant','tarot'], description:'Ясновидение, поиск ответов, работа с прошлым.', price_from:400, orders_today:15, status:'online', _demo:true },
-        { name:'Дарья Хиромант',    rating:4.6, categories:['palmistry'],           description:'Чтение по руке: линии судьбы, любви, жизни.', price_from:180, orders_today:4, status:'offline', _demo:true }
-    ];
+    // Каталог специалистов — ТОЛЬКО реальные одобренные, грузятся из Firebase (loadSpecialists).
+    // Демо-записи убраны перед запуском: показываем настоящих или заглушку «пока никого нет».
+    let psychics = [];
 
     // загрузка реальных одобренных специалистов из Firebase
     async function loadSpecialists(){
@@ -433,7 +426,12 @@ initAtmosphere(canvasId) {
             return true;
         });
         if (filtered.length === 0) {
-            container.innerHTML = '<div class="empty-state">🔮 Нет специалистов по твоему запросу.<br>Попробуй изменить фильтр или поиск.</div>';
+            if (psychics.length === 0) {
+                // каталог пуст — реальных специалистов ещё не одобрили
+                container.innerHTML = '<div class="empty-state">🔮 Специалисты скоро появятся.<br>Мы одобряем проверенных мастеров — загляни позже.</div>';
+            } else {
+                container.innerHTML = '<div class="empty-state">🔮 Нет специалистов по твоему запросу.<br>Попробуй изменить фильтр или поиск.</div>';
+            }
             return;
         }
         container.innerHTML = '';

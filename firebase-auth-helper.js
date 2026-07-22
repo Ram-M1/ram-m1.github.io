@@ -214,11 +214,21 @@ onAuthStateChanged(auth, (user) => {
     sessionStorage.setItem('_fb_synced', String(Date.now()));
     try {
       const d = window.FocusStorage.getUser();
-      // синкаем в фоне, не блокируя загрузку страницы
+      // ЗАЩИТА: не заливаем в облако НЕПОЛНЫЙ профиль. Если анкета ещё не заполнена
+      // (нет имени/ассистента/даты) — синк пропускаем, иначе можно затереть облако пустотой.
+      const profileReady = d && d.name && d.assistantName && d.birthDate;
+      if (!profileReady) return;
+      // синкаем в фоне, не блокируя загрузку страницы.
+      // ВАЖНО: раньше здесь НЕ было birthDate/assistantName/fullName/gender/lifeGoal —
+      // синк заливал в облако неполный профиль, гард потом не видел assistantName/birthDate
+      // и выкидывал заполнившего анкету обратно в анкету. Теперь шлём ВЕСЬ профиль.
       setTimeout(() => {
         window.fbSaveUserData({
-          name: d.name || '', age: d.age || '', city: d.city || '', phone: d.phone || '',
-          avatar: d.avatar || null,
+          name: d.name || '', fullName: d.fullName || d.name || '', firstName: d.firstName || '',
+          birthDate: d.birthDate || '', age: d.age || '', gender: d.gender || '',
+          city: d.city || '', phone: d.phone || '',
+          assistantName: d.assistantName || '', assistantVoice: d.assistantVoice || '',
+          lifeGoal: d.lifeGoal || '', avatar: d.avatar || null,
           coins: d.coins || 0, subscription: d.subscription || null,
           subscriptionUntil: d.subscriptionUntil || null, theme: d.theme || 'original',
           activity: d.activity || {}, weekStats: d.weekStats || {},
@@ -1687,30 +1697,38 @@ window.fbMySpecialistStatus = async function() {
 window.fbOrderConsultation = async function(specUid, specName, price) {
   const user = _currentUser || auth.currentUser;
   if (!user) return { ok: false, error: 'Нужен вход' };
+  price = parseInt(price, 10) || 0;
+  if (price <= 0) return { ok: false, error: 'Неверная цена' };
   try {
-    // проверка баланса (монеты хранятся в профиле)
-    const meSnap = await getDoc(doc(db, 'users', user.uid));
-    const coins = (meSnap.exists() && meSnap.data().coins) || 0;
-    if (coins < price) return { ok: false, error: 'Недостаточно монет (нужно ' + price + ' F)' };
-    // открываем чат
+    // 1) открываем чат со специалистом
     let chatId = null;
     if (window.fbOpenChat) {
       const chat = await window.fbOpenChat(specUid);
       if (chat && chat.ok) chatId = chat.chatId;
     }
-    // списываем монеты у юзера, начисляем специалисту
-    await setDoc(doc(db, 'users', user.uid), { coins: coins - price }, { merge: true });
-    const specUserSnap = await getDoc(doc(db, 'users', specUid));
-    const specCoins = (specUserSnap.exists() && specUserSnap.data().coins) || 0;
-    await setDoc(doc(db, 'users', specUid), { coins: specCoins + price }, { merge: true });
-    // фиксируем заказ
-    const orderId = 'ord_' + Date.now();
-    await setDoc(doc(db, 'specialists', specUid, 'orders', orderId), {
-      clientUid: user.uid, price: price, chatId: chatId,
-      status: 'active', createdAt: new Date().toISOString()
+    // 2) ОПЛАТА ЧЕРЕЗ СЕРВЕР (как в чате). Раньше телефон сам писал монеты в свой
+    //    и в ЧУЖОЙ документ специалиста — правила это блокируют, монеты терялись,
+    //    и проверялся общий баланс (можно было платить заработанными). Теперь всё
+    //    считает сервер: проверяет купленные монеты и переводит атомарно.
+    const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+    const r = await fetch(base + '/coins/transfer', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: user.uid, toUid: specUid, amount: price, reason: 'oracle' })
     });
-    return { ok: true, chatId, orderId };
-  } catch (e) { return { ok: false, error: e.message }; }
+    const d = await r.json();
+    if (!d.ok) return { ok: false, error: d.error || 'Оплата не прошла' };
+    // синхронизируем баланс с сервером
+    try { if (window.FocusStorage) FocusStorage.saveUser({ coins: d.myCoins }); } catch(e){}
+    // 3) фиксируем заказ у специалиста
+    const orderId = 'ord_' + Date.now();
+    try {
+      await setDoc(doc(db, 'specialists', specUid, 'orders', orderId), {
+        clientUid: user.uid, price: price, chatId: chatId,
+        status: 'active', createdAt: new Date().toISOString()
+      });
+    } catch(e){}
+    return { ok: true, chatId, orderId, newBalance: d.myCoins };
+  } catch (e) { return { ok: false, error: e.message || 'Ошибка связи' }; }
 };
 
 // ============ АДМИН: РЕАЛЬНАЯ СТАТИСТИКА ============
