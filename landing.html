@@ -675,14 +675,13 @@
             const user = window.fbCurrentUser && window.fbCurrentUser();
             if (user && user.emailVerified) {
                 try { localStorage.setItem('focus_login_anchor', '1'); } catch(e){}
-                const u = FocusStorage.getUser();
-                const completed = u && ((u.flags && u.flags.profileCompleted) || u.profileCompleted);
-                const hasFields = u && u.name && u.assistantName && u.birthDate;
-                if (completed || hasFields) {
-                    location.replace('index.html');
-                } else {
-                    location.replace('profile-form.html');
-                }
+                /* ВСЕГДА на главную. Раньше лендинг сам решал «анкета заполнена?»
+                   по ЛОКАЛЬНЫМ данным — и на чистом кэше (переустановка, новое
+                   устройство) отправлял в анкету человека, у которого профиль лежит
+                   в облаке. А приложение стартует именно с лендинга, так что ловилось
+                   постоянно. Решение об анкете принимает ТОЛЬКО гард на главной:
+                   он дожидается сессии и проверяет облако по факту. */
+                location.replace('index.html');
             }
         }
         if (window.FB_AUTH_READY) checkSession();

@@ -821,38 +821,50 @@
             }
         } catch(e){}
 
-        // облако — ЖДЁМ сохранения (с таймаутом), чтобы при новом входе данные были в облаке
-        (async function(){
+        /* ПЕРЕХОД МГНОВЕННЫЙ — юзер не ждёт сеть.
+           Облако пишем В ФОНЕ. Если сессии ещё нет или связь подвела —
+           ставим пометку-долг, и профиль сам доедет в облако при появлении сессии
+           (см. fbEnsureProfileInCloud). Раньше сохранение молча пропускалось
+           без сессии, и человека потом выкидывало заполнять анкету заново. */
+        // помечаем долг СРАЗУ: снимется автоматически, когда профиль осядет в облаке
+        try { if (window.fbMarkProfileDebt) window.fbMarkProfileDebt(); } catch(e){}
+
+        // фоновая запись в облако — ничего не блокирует
+        (function(){
             try {
-                if (window.fbSaveUserData && window.fbCurrentUser && window.fbCurrentUser()) {
-                    const fullUser = FocusStorage.getUser();
-                    const savePromise = window.fbSaveUserData({
-                        email: fullUser.email || '',
-                        name: fullUser.name || '', age: fullUser.age || '',
-                        birthDate: fullUser.birthDate || '', city: fullUser.city || '',
-                        phone: fullUser.phone || '', assistantName: fullUser.assistantName || '',
-                        assistantVoice: fullUser.assistantVoice || '', lifeGoal: fullUser.lifeGoal || null,
-                        coins: fullUser.coins || 0, profileCompleted: true,
-                        flags: Object.assign({}, fullUser.flags || {}, { profileCompleted: true }),
-                        updatedAt: new Date().toISOString()
-                    }).catch(function(){});
-                    // ждём не дольше 2.5с — чтобы не подвесить переход при слабом интернете
-                    await Promise.race([savePromise, new Promise(function(r){ setTimeout(r, 2500); })]);
-                }
+                if (!window.fbSaveUserData) return;
+                const fullUser = FocusStorage.getUser();
+                const payload = {
+                    email: fullUser.email || '',
+                    name: fullUser.name || '', age: fullUser.age || '',
+                    birthDate: fullUser.birthDate || '', city: fullUser.city || '',
+                    phone: fullUser.phone || '', assistantName: fullUser.assistantName || '',
+                    assistantVoice: fullUser.assistantVoice || '', lifeGoal: fullUser.lifeGoal || null,
+                    coins: fullUser.coins || 0, profileCompleted: true,
+                    flags: Object.assign({}, fullUser.flags || {}, { profileCompleted: true }),
+                    updatedAt: new Date().toISOString()
+                };
+                const push = function(){
+                    window.fbSaveUserData(payload)
+                        .then(function(){ try { localStorage.removeItem(window.FOCUS_PROFILE_DEBT || 'focus_profile_cloud_pending'); } catch(e){} })
+                        .catch(function(){});   // не вышло — долг остался, досышлем позже
+                };
+                if (window.fbCurrentUser && window.fbCurrentUser()) push();
+                else if (window.fbWaitSession) window.fbWaitSession(4000).then(function(u){ if (u) push(); });
             } catch(e){}
-            // ПЕРЕХОД (что бы ни случилось выше)
-            // друг заполнил анкету → он «активный», пригласившему +1 (путь A)
-            try { if (window.fbMarkReferralActive) window.fbMarkReferralActive(); } catch(e){}
-            // регистрация завершена — снимаем флаг, ставим якорь входа, помечаем профиль заполненным
-            try {
-                localStorage.removeItem('focus_registering');
-                localStorage.removeItem('focus_logged_out');
-                localStorage.setItem('focus_login_anchor', '1');
-                var _fu = FocusStorage.getUser() || {}; _fu.flags = _fu.flags || {}; _fu.flags.profileCompleted = true; _fu.flags.loggedIn = true;
-                FocusStorage.saveUser(_fu);
-            } catch(e){}
-            window.location.href = 'index.html';
         })();
+
+        // друг заполнил анкету → он «активный», пригласившему +1 (путь A)
+        try { if (window.fbMarkReferralActive) window.fbMarkReferralActive(); } catch(e){}
+        // регистрация завершена — снимаем флаг, ставим якорь входа, помечаем профиль заполненным
+        try {
+            localStorage.removeItem('focus_registering');
+            localStorage.removeItem('focus_logged_out');
+            localStorage.setItem('focus_login_anchor', '1');
+            var _fu = FocusStorage.getUser() || {}; _fu.flags = _fu.flags || {}; _fu.flags.profileCompleted = true; _fu.flags.loggedIn = true;
+            FocusStorage.saveUser(_fu);
+        } catch(e){}
+        window.location.href = 'index.html';
     });
 
     try {

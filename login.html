@@ -427,15 +427,10 @@
         });
     });
 
-    // после входа: если анкета не заполнена (нет имени, ассистента или даты рождения) — на анкету
-    function goAfterLogin(){
-        var u = FocusStorage.getUser();
-        // ТА ЖЕ логика что и гард на главной: анкета пройдена если стоит флаг ИЛИ есть поля.
-        var completed = u && ((u.flags && u.flags.profileCompleted) || u.profileCompleted);
-        var hasFields = u && u.name && u.assistantName && u.birthDate;
-        if (completed || hasFields) window.location.href = 'index.html';
-        else window.location.href = 'profile-form.html';
-    }
+    /* УБРАНО: goAfterLogin() решал на login.html, куда идти — и без сессии
+       отправлял в анкету человека с готовым профилем. Решение теперь одно
+       и только на главной (там оно ждёт сессию и проверяет облако по факту).
+       Два разных гарда на одну задачу — как раз и давали разнобой. */
 
     // ВХОД БЕЗ ПАРОЛЯ: почта → код из письма → внутрь.
     // Код проверяет СЕРВЕР и выдаёт ключ входа — на телефоне код не хранится.
@@ -587,12 +582,14 @@
         }
         try { localStorage.removeItem('focus_logged_out'); } catch(e){}
         try { FocusStorage.saveUser({ email: email, emailVerified: true, flags: { loggedIn: true } }); } catch(e){}
-        if (window.fbLoadUserData) {
-            window.fbLoadUserData().then(function(data){
-                if (data) FocusStorage.applyCloudData(data);
-                goAfterLogin();
-            }).catch(goAfterLogin);
-        } else goAfterLogin();
+        /* УХОДИМ НА ГЛАВНУЮ СРАЗУ — юзер не ждёт ни секунды.
+           РАНЬШЕ здесь была гонка: вызывали загрузку облака и по её ответу решали,
+           куда идти. Но БЕЗ СЕССИИ этот вызов отвечает пустотой мгновенно (0 мс) —
+           решение принималось на пустом месте, и человека с готовым профилем
+           отправляло заполнять анкету заново. Таймаут на 5 сек не спасал.
+           Теперь решает ТОЛЬКО гард на главной: он дожидается сессии и проверяет
+           облако по факту. Здесь — просто мгновенный переход. */
+        window.location.href = 'index.html';
     });
 
     document.getElementById('resendCode').addEventListener('click', function(){

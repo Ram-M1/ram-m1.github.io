@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v231 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v233 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -1031,8 +1031,56 @@ window._focusUnlockAudio = function(){
                 || (_u && _u.name && _u.assistantName && _u.birthDate);
             if (!entered) { location.replace('landing.html'); return; }
 
-            // вошёл, но анкета не заполнена → анкета (она обязательная)
-            if (!hasProfile) { location.replace('profile-form.html'); return; }
+            // Вошёл, но анкеты локально НЕТ. ВАЖНО: облако грузится асинхронно (1-3 сек),
+            // а гард выполняется мгновенно. Раньше здесь стоял моментальный редирект —
+            // и юзера, у которого профиль ЕСТЬ в облаке (новое устройство, очистка кеша),
+            // выкидывало в анкету ещё до того, как облако успевало ответить.
+            // Теперь ЖДЁМ облако до 8 секунд и только потом решаем.
+            if (!hasProfile) {
+                /* БЫСТРОЕ И ЧЁТКОЕ решение, без слепого таймера.
+                   Раньше здесь стоял таймер на 8 секунд, а в login.html решение
+                   принималось мгновенно по вызову, который БЕЗ СЕССИИ отвечает пустотой —
+                   поэтому человека с готовым профилем выкидывало в анкету.
+                   Теперь: ждём появления СЕССИИ (опрос 150 мс), делаем ОДНУ проверку
+                   облака и решаем сразу. Обычно укладывается в 0.5-1 сек. */
+                (function(){
+                    var done = false;
+                    var finish = function(toAnketa){
+                        if (done) return; done = true;
+                        if (toAnketa) location.replace('profile-form.html');
+                    };
+                    // следим: профиль мог подъехать из облака/восстановления — тогда остаёмся
+                    var watch = setInterval(function(){
+                        var u2 = null;
+                        try { u2 = JSON.parse(localStorage.getItem('focus_user') || 'null'); } catch(e){}
+                        if (u2 && ((u2.flags && u2.flags.profileCompleted) || u2.profileCompleted
+                                   || (u2.name && u2.assistantName && u2.birthDate))) {
+                            clearInterval(watch); done = true;
+                        }
+                    }, 150);
+                    var t0 = Date.now();
+                    var tryDecide = function(){
+                        if (done) { clearInterval(watch); return; }
+                        // помощник грузится модулем — дожидаемся его появления
+                        if (!window.fbWaitSession || !window.fbLoadUserData) {
+                            if (Date.now() - t0 < 4000) { setTimeout(tryDecide, 150); return; }
+                            clearInterval(watch); finish(true); return;
+                        }
+                        window.fbWaitSession(3000).then(function(user){
+                            if (done) { clearInterval(watch); return; }
+                            if (!user) { clearInterval(watch); finish(true); return; }   // сессии нет — анкета правда нужна
+                            window.fbLoadUserData().then(function(data){
+                                try { if (data && window.FocusStorage) FocusStorage.applyCloudData(data); } catch(e){}
+                                var has = !!(data && ((data.flags && data.flags.profileCompleted) || data.profileCompleted
+                                            || (data.name && data.assistantName && data.birthDate)));
+                                clearInterval(watch); finish(!has);
+                            }).catch(function(){ clearInterval(watch); finish(true); });
+                        });
+                    };
+                    tryDecide();
+                })();
+                return;
+            }
             return;
         } catch(e){}
     })();
@@ -2675,7 +2723,7 @@ window._focusUnlockAudio = function(){
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=231').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=233').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });

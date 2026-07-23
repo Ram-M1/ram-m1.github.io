@@ -186,9 +186,73 @@ window.fbLogout = async function() {
 
 // текущий пользователь — храним актуальное значение через слушатель сессии
 let _currentUser = null;
+/* ═══ ПРОФИЛЬ ОБЯЗАН ДОЕХАТЬ ДО ОБЛАКА ═══
+   Раньше анкета уходила в облако ТОЛЬКО если ровно в ту секунду была сессия.
+   Сессии нет (страница только открылась, воркер притормозил) → сохранение молча
+   пропускалось, повтора не было. При следующем входе облако пустое → человека
+   выкидывало заполнять анкету заново.
+   Теперь: ставим пометку-долг и досылаем профиль САМИ, как только появится сессия. */
+window.FOCUS_PROFILE_DEBT = 'focus_profile_cloud_pending';
+window.fbMarkProfileDebt = function(){
+  try { localStorage.setItem(window.FOCUS_PROFILE_DEBT, '1'); } catch(e){}
+};
+
+function _localProfile(){
+  try { return JSON.parse(localStorage.getItem('focus_user') || 'null') || null; } catch(e){ return null; }
+}
+function _profileReady(u){ return !!(u && u.name && u.assistantName && u.birthDate); }
+
+/** Досылает локальный профиль в облако, если там пусто/неполно или висит долг.
+    Работает в фоне и ничего не блокирует. */
+window.fbEnsureProfileInCloud = async function(){
+  try {
+    const user = _currentUser || auth.currentUser;
+    if (!user) return { ok:false, reason:'no-session' };
+    const d = _localProfile();
+    if (!_profileReady(d)) return { ok:false, reason:'local-incomplete' };
+    let debt = false;
+    try { debt = localStorage.getItem(window.FOCUS_PROFILE_DEBT) === '1'; } catch(e){}
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    const c = snap.exists() ? (snap.data() || {}) : {};
+    const cloudReady = !!(c.name && c.assistantName && c.birthDate);
+    if (cloudReady && !debt) return { ok:true, reason:'already' };
+    await setDoc(doc(db, 'users', user.uid), {
+      email: d.email || '', name: d.name || '', fullName: d.fullName || d.name || '',
+      firstName: d.firstName || '', birthDate: d.birthDate || '', age: d.age || '',
+      gender: d.gender || '', city: d.city || '', phone: d.phone || '',
+      assistantName: d.assistantName || '', assistantVoice: d.assistantVoice || '',
+      lifeGoal: d.lifeGoal || null, profileCompleted: true,
+      flags: Object.assign({}, d.flags || {}, { profileCompleted: true }),
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    try { localStorage.removeItem(window.FOCUS_PROFILE_DEBT); } catch(e){}
+    return { ok:true, reason:'uploaded' };
+  } catch(e){ return { ok:false, reason:'error' }; }
+};
+
+/** БЫСТРОЕ ожидание сессии (опрос каждые 150 мс, обычно 300-500 мс).
+    Нужен гарду на главной: нельзя решать «анкеты нет», пока Firebase
+    ещё поднимает сессию — иначе выкинет в анкету человека с готовым профилем. */
+window.fbWaitSession = function(maxMs){
+  return new Promise(function(resolve){
+    const now = _currentUser || auth.currentUser;
+    if (now) return resolve(now);
+    let waited = 0; const step = 150, cap = maxMs || 3000;
+    const iv = setInterval(function(){
+      const cur = _currentUser || auth.currentUser;
+      if (cur) { clearInterval(iv); resolve(cur); return; }
+      waited += step;
+      if (waited >= cap) { clearInterval(iv); resolve(null); }
+    }, step);
+  });
+};
+
 onAuthStateChanged(auth, (user) => {
   _currentUser = user;
   if (user) {
+    // 0. ДОЛГ ПО ПРОФИЛЮ: сессия появилась — молча досылаем профиль в облако,
+    //    если он там не осел. Бесконечные попытки, юзер ничего не замечает.
+    try { setTimeout(function(){ window.fbEnsureProfileInCloud().catch(function(){}); }, 400); } catch(e){}
     // 1. ВОССТАНОВЛЕНИЕ: при входе подтягиваем данные из облака (только то, чего локально нет)
     if (!sessionStorage.getItem('_fb_restored')) {
       sessionStorage.setItem('_fb_restored', '1');
