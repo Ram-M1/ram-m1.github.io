@@ -1151,12 +1151,21 @@ window.fbSendMessage = async function(chatId, opts) {
       }
     }
     if (kind === 'coins') msg.amount = opts.amount || 0;     // перевод F-coin
+    /* ПРОГРАММА ТРЕНИРОВОК прямо в чат: раньше код приходилось копировать руками
+       и слать через сторонний мессенджер. Теперь улетает сообщением, получатель
+       жмёт «Добавить себе» — оплата и импорт происходят внутри приложения. */
+    if (kind === 'program') {
+      msg.progCode  = opts.progCode || '';
+      msg.progName  = opts.progName || 'Программа';
+      msg.progPrice = parseInt(opts.progPrice, 10) || 0;
+    }
     await addDoc(collection(db, 'chats', chatId, 'messages'), msg);
     // текст превью для списка чатов
     let preview = opts.text || '';
     if (kind === 'photo') preview = '📷 Фото';
     if (kind === 'file') preview = '📎 ' + (opts.fileName || 'Файл');
     if (kind === 'coins') preview = '💰 Перевод ' + (opts.amount||0) + ' F-coin';
+    if (kind === 'program') preview = '🏋️ Программа: ' + (opts.progName || '');
     // Превью в СВОЁМ списке чатов обновляем сами...
     try {
       await setDoc(doc(db, 'users', user.uid, 'chatList', chatId), {

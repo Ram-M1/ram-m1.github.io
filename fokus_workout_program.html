@@ -254,20 +254,39 @@
     <div class="modal" id="shareModal">
         <div class="modal-box">
             <div class="modal-title">Поделиться программой</div>
-            <div class="modal-sub">Назначь цену — другой человек получит программу в свой Фокус как свою. С каждой передачи Фокус удерживает комиссию 150 ₽.</div>
+            <div class="modal-sub">Назначь цену — другой человек получит программу в свой Фокус как свою. С каждой передачи Фокус удерживает комиссию: 150 F-coin, а с дорогих программ — 20% от цены.</div>
             <div class="b-field">
-                <label class="b-label">ТВОЯ ЦЕНА ЗА ПРОГРАММУ (₽)</label>
-                <input type="number" class="b-input" id="sharePrice" value="0" inputmode="numeric">
+                <label class="b-label">ТВОЯ ЦЕНА ЗА ПРОГРАММУ (F-coin)</label>
+                <input type="number" class="b-input" id="sharePrice" value="0" min="0" max="5000" inputmode="numeric">
                 <div class="price-breakdown" id="priceBreakdown"></div>
             </div>
             <div class="share-code-wrap" id="shareCodeWrap" style="display:none;">
-                <label class="b-label">КОД ПРОГРАММЫ</label>
-                <div class="share-code" id="shareCode"></div>
-                <div class="copy-code-btn" id="copyCodeBtn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
-                    Скопировать код
+                <!-- ГЛАВНЫЙ ПУТЬ: отправить прямо в приложении, без копирования кода -->
+                <div id="sendInAppBtn" style="padding:13px;border-radius:13px;background:linear-gradient(135deg,#FFD966,#7C8CFF);color:#0a0a0f;font-weight:800;font-size:13.5px;text-align:center;cursor:pointer;">
+                    Отправить другу в Фокусе
                 </div>
-                <div class="hint" style="margin-top:8px;">Передай этот код покупателю. Он вставит его через «Импорт». Приём оплаты и автодоставка подключаются с серверной частью — сейчас код передаётся вручную.</div>
+                <div id="sysShareBtn" style="margin-top:8px;padding:12px;border-radius:13px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.05);color:#fff;font-weight:700;font-size:12.5px;text-align:center;cursor:pointer;">
+                    Поделиться в мессенджере
+                </div>
+
+                <!-- запасной путь: показать сам код -->
+                <div id="toggleCodeBtn" style="margin-top:10px;font-size:11.5px;color:#8e8e9e;text-align:center;cursor:pointer;text-decoration:underline;">Показать код вручную</div>
+                <div id="rawCodeBox" style="display:none;margin-top:8px;">
+                    <label class="b-label">КОД ПРОГРАММЫ</label>
+                    <div class="share-code" id="shareCode"></div>
+                    <div class="copy-code-btn" id="copyCodeBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                        Скопировать код
+                    </div>
+                </div>
+                <div class="hint" style="margin-top:8px;">Оплата спишется F-coin автоматически, твоя доля придёт сразу. Код одноразовый — сработает только у одного человека.</div>
+            </div>
+
+            <!-- выбор получателя из своих чатов -->
+            <div id="pickWrap" style="display:none;margin-top:10px;">
+                <label class="b-label">КОМУ ОТПРАВИТЬ</label>
+                <div id="pickList" style="max-height:190px;overflow-y:auto;"></div>
+                <div id="pickBack" style="margin-top:8px;font-size:11.5px;color:#8e8e9e;text-align:center;cursor:pointer;text-decoration:underline;">Назад</div>
             </div>
             <div class="modal-btns">
                 <button class="modal-btn cancel" id="cancelShare">Закрыть</button>
@@ -558,7 +577,14 @@ initAtmosphere(canvasId) {
     document.getElementById('createBtn').addEventListener('click', () => location.href = 'fokus_workout_builder.html');
 
     // ===== КОМИССИЯ FOCUS =====
-    const FOCUS_COMMISSION = 150; // ₽, удерживается с каждой передачи
+    /* КОМИССИЯ ФОКУСА. Была жёстко 150 — и с программы за 300, и за 5000, теряли на дорогих.
+       Теперь: минимум 150 F-coin, а с дорогих программ — 20% от цены (что больше). */
+    const FOCUS_MIN_COMMISSION = 150;
+    const FOCUS_COMMISSION_PCT = 0.20;
+    function focusCommission(price){
+        var p = parseInt(price, 10) || 0;
+        return Math.max(FOCUS_MIN_COMMISSION, Math.round(p * FOCUS_COMMISSION_PCT));
+    }
 
     // ===== ПОДЕЛИТЬСЯ ПРОГРАММОЙ =====
     const shareModal = document.getElementById('shareModal');
@@ -573,18 +599,23 @@ initAtmosphere(canvasId) {
         shareModal.classList.add('show');
     }
     function updatePriceBreakdown(){
-        const price = num(document.getElementById('sharePrice').value);
+        // потолок 5000: выше сервер перевод не пропустит (защита от абуза)
+        var _pi = document.getElementById('sharePrice');
+        if (num(_pi.value) > 5000) _pi.value = 5000;
+        const price = num(_pi.value);
         const bd = document.getElementById('priceBreakdown');
         if (price <= 0) {
-            bd.innerHTML = '<div class="row"><span>Бесплатная передача</span><b>0 ₽</b></div><div class="row commission"><span>Комиссия Фокуса</span><span>150 ₽ (с покупателя)</span></div><div class="hint" style="margin-top:6px;">Даже при бесплатной программе Фокус берёт комиссию 150 ₽ за передачу.</div>';
+            bd.innerHTML = '<div class="row"><span>Бесплатная передача</span><b>0 F-coin</b></div><div class="row commission"><span>Комиссия Фокуса</span><span>' + FOCUS_MIN_COMMISSION + ' F-coin (с покупателя)</span></div><div class="hint" style="margin-top:6px;">Даже при бесплатной программе Фокус берёт комиссию ' + FOCUS_MIN_COMMISSION + ' F-coin за передачу.</div>';
             return;
         }
-        const buyerPays = price + FOCUS_COMMISSION;
+        const comm = focusCommission(price);
+        const buyerPays = price + comm;
+        const pctNote = comm > FOCUS_MIN_COMMISSION ? ' (20%)' : '';
         bd.innerHTML = `
-            <div class="row"><span>Твоя цена</span><b>${price} ₽</b></div>
-            <div class="row commission"><span>+ Комиссия Фокуса</span><span>${FOCUS_COMMISSION} ₽</span></div>
-            <div class="row" style="border-top:0.5px solid rgba(255,255,255,0.1); margin-top:5px; padding-top:5px;"><span>Покупатель платит</span><b>${buyerPays} ₽</b></div>
-            <div class="row earn"><span>Ты получаешь</span><b>${price} ₽</b></div>`;
+            <div class="row"><span>Твоя цена</span><b>${price} F-coin</b></div>
+            <div class="row commission"><span>+ Комиссия Фокуса${pctNote}</span><span>${comm} F-coin</span></div>
+            <div class="row" style="border-top:0.5px solid rgba(255,255,255,0.1); margin-top:5px; padding-top:5px;"><span>Покупатель платит</span><b>${buyerPays} F-coin</b></div>
+            <div class="row earn"><span>Ты получаешь</span><b>${price} F-coin</b></div>`;
     }
     document.getElementById('sharePrice').addEventListener('input', updatePriceBreakdown);
     document.getElementById('cancelShare').addEventListener('click', () => shareModal.classList.remove('show'));
@@ -605,7 +636,11 @@ initAtmosphere(canvasId) {
             workouts: sharingProgram.workouts,
             price: price,
             author: author,
-            authorUid: (function(){ try { var u = window.fbCurrentUser && window.fbCurrentUser(); return (u && u.uid) || null; } catch(e){ return null; } })()
+            authorUid: (function(){ try { var u = window.fbCurrentUser && window.fbCurrentUser(); return (u && u.uid) || null; } catch(e){ return null; } })(),
+            // ОДНОРАЗОВОСТЬ: у каждого сгенерированного кода свой номер. Сервер помнит,
+            // что этот номер уже использован — второй раз тем же кодом программу не забрать.
+            // Раньше один код работал бесконечно: продавец не мог контролировать раздачу.
+            codeId: 'pc_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10)
         };
         let code;
         try {
@@ -615,7 +650,83 @@ initAtmosphere(canvasId) {
         }
         document.getElementById('shareCode').innerText = code;
         document.getElementById('shareCodeWrap').style.display = 'block';
+        // запоминаем, что именно отправляем (нужно для отправки в чат)
+        window._shareCode = code;
+        window._shareName = sharingProgram.name;
+        window._sharePrice = price;
         toast('Код сгенерирован');
+    });
+
+    /* ═══ ОТПРАВКА БЕЗ КОПИПАСТЫ ═══
+       Раньше продавец копировал простыню кода и слал её через сторонний мессенджер —
+       четыре действия. Теперь: выбрал человека → программа улетела ему в чат карточкой. */
+    document.getElementById('toggleCodeBtn').addEventListener('click', function(){
+        var box = document.getElementById('rawCodeBox');
+        var open = box.style.display !== 'none';
+        box.style.display = open ? 'none' : 'block';
+        this.innerText = open ? 'Показать код вручную' : 'Скрыть код';
+    });
+
+    // системное «Поделиться» — для тех, кого нет в приложении
+    document.getElementById('sysShareBtn').addEventListener('click', async function(){
+        var code = window._shareCode || '';
+        if (!code) { toast('Сначала сгенерируй код'); return; }
+        var text = 'Программа тренировок «' + (window._shareName || '') + '» в Фокусе.\nОткрой приложение → Тренировочные программы → Импорт и вставь код:\n\n' + code;
+        try {
+            if (navigator.share) { await navigator.share({ title: 'Программа тренировок', text: text }); return; }
+        } catch(e){ return; }   // юзер закрыл окно — молчим
+        // системного окна нет (десктоп) — копируем
+        var ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); toast('Скопировано — вставь в мессенджер 📋'); } catch(e){ toast('Скопируй код вручную'); }
+        document.body.removeChild(ta);
+    });
+
+    // отправка внутри приложения: список своих чатов
+    document.getElementById('sendInAppBtn').addEventListener('click', async function(){
+        if (!window._shareCode) { toast('Сначала сгенерируй код'); return; }
+        if (!window.fbGetChatList) { toast('Нужен вход в аккаунт'); return; }
+        var wrap = document.getElementById('pickWrap');
+        var list = document.getElementById('pickList');
+        list.innerHTML = '<div style="padding:14px;color:#8e8e9e;font-size:12px;text-align:center;">Загружаю контакты…</div>';
+        wrap.style.display = 'block';
+        document.getElementById('shareCodeWrap').style.display = 'none';
+        var chats = [];
+        try { chats = (await window.fbGetChatList()) || []; } catch(e){ chats = []; }
+        if (!chats.length) {
+            list.innerHTML = '<div style="padding:14px;color:#8e8e9e;font-size:12px;text-align:center;">Пока нет чатов. Добавь человека в «Сообщения» — и сможешь отправить программу одним тапом.</div>';
+            return;
+        }
+        list.innerHTML = chats.map(function(c){
+            var nm = (c.withName || 'Пользователь');
+            return '<div class="pick-row" data-chat="' + (c.chatId||'') + '" data-uid="' + (c.withUid||'') + '" style="display:flex;align-items:center;gap:10px;padding:11px 8px;border-bottom:0.5px solid rgba(255,255,255,0.07);cursor:pointer;">'
+                 + '<div style="width:34px;height:34px;border-radius:50%;background:rgba(255,217,102,0.15);display:flex;align-items:center;justify-content:center;font-weight:700;">' + nm.charAt(0).toUpperCase() + '</div>'
+                 + '<div style="flex:1;font-size:13.5px;font-weight:600;">' + nm + '</div>'
+                 + '<div style="font-size:11.5px;color:var(--accent,#FFD966);font-weight:700;">Отправить</div></div>';
+        }).join('');
+        list.querySelectorAll('.pick-row').forEach(function(row){
+            row.addEventListener('click', async function(){
+                var chatId = this.dataset.chat;
+                if (!chatId) { toast('Не удалось открыть чат'); return; }
+                this.style.opacity = '0.5';
+                try {
+                    var r = await window.fbSendMessage(chatId, {
+                        kind: 'program', progCode: window._shareCode,
+                        progName: window._shareName || 'Программа',
+                        progPrice: window._sharePrice || 0, text: ''
+                    });
+                    if (r && r.ok !== false) {
+                        toast('Программа отправлена 🏋️');
+                        shareModal.classList.remove('show');
+                        wrap.style.display = 'none';
+                    } else { toast('Не отправилось — попробуй ещё раз'); this.style.opacity = '1'; }
+                } catch(e){ toast('Не отправилось — проверь связь'); this.style.opacity = '1'; }
+            });
+        });
+    });
+    document.getElementById('pickBack').addEventListener('click', function(){
+        document.getElementById('pickWrap').style.display = 'none';
+        document.getElementById('shareCodeWrap').style.display = 'block';
     });
     document.getElementById('copyCodeBtn').addEventListener('click', () => {
         const code = document.getElementById('shareCode').innerText;
@@ -637,6 +748,20 @@ initAtmosphere(canvasId) {
     document.getElementById('cancelImport').addEventListener('click', () => importModal.classList.remove('show'));
     importModal.addEventListener('click', (e) => { if (e.target.id === 'importModal') importModal.classList.remove('show'); });
 
+    /* ПРОГРАММА ПРИШЛА ИЗ ЧАТА: человек нажал «Добавить себе» — открываем импорт
+       с уже вставленным кодом, чтобы не копировать руками. */
+    setTimeout(function(){
+        try {
+            var pending = localStorage.getItem('focus_pending_program');
+            if (!pending) return;
+            localStorage.removeItem('focus_pending_program');
+            var ta = document.getElementById('importCode');
+            ta.value = pending;
+            ta.dispatchEvent(new Event('input'));   // разбор кода вешается ниже — потому и откладываем
+            importModal.classList.add('show');
+        } catch(e){}
+    }, 0);
+
     function parseCode(code){
         code = (code || '').trim();
         if (!code.startsWith('FOCUSPROG:')) return null;
@@ -655,8 +780,8 @@ initAtmosphere(canvasId) {
         if (parsedImport) {
             const exCount = parsedImport.workouts.reduce((s,w) => s + (w.exercises||[]).length, 0);
             const priceLine = parsedImport.price > 0
-                ? `<div style="margin-top:6px;" class="commission">Цена: <b>${parsedImport.price} ₽</b> + комиссия Фокуса <b>${FOCUS_COMMISSION} ₽</b> = <b>${parsedImport.price + FOCUS_COMMISSION} ₽</b><br><span style="font-size:10px;color:#8e8e9e;">Спишется F-coin при добавлении</span></div>`
-                : `<div style="margin-top:6px;">Бесплатная программа · комиссия Фокуса ${FOCUS_COMMISSION} ₽</div>`;
+                ? `<div style="margin-top:6px;" class="commission">Цена: <b>${parsedImport.price} F-coin</b> + комиссия Фокуса <b>${focusCommission(parsedImport.price)} F-coin</b> = <b>${parsedImport.price + focusCommission(parsedImport.price)} F-coin</b><br><span style="font-size:10px;color:#8e8e9e;">Спишется при добавлении</span></div>`
+                : `<div style="margin-top:6px;">Бесплатная программа · комиссия Фокуса ${FOCUS_MIN_COMMISSION} F-coin</div>`;
             prev.innerHTML = `<b>${escapeHtml(parsedImport.name)}</b><br>Автор: ${escapeHtml(parsedImport.author||'—')}<br>${parsedImport.workouts.length} трен. · ${exCount} упр. · ${parsedImport.periodDays} дн${priceLine}`;
             prev.style.display = 'block';
         } else {
@@ -695,12 +820,26 @@ initAtmosphere(canvasId) {
            всё считает СЕРВЕР (клиенту доверять нельзя). */
         const btn = document.getElementById('doImportBtn');
         const price = parseInt(parsedImport.price, 10) || 0;
-        const total = price + FOCUS_COMMISSION;
+        const commission = focusCommission(price);
+        const total = price + commission;
         const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
         let myUid = null;
         try { const u = window.fbCurrentUser && window.fbCurrentUser(); myUid = u && u.uid; } catch(e){}
 
         if (!myUid || !base) { toast('Нужен вход в аккаунт, чтобы оплатить'); return; }
+
+        /* ОДНОРАЗОВОСТЬ: сначала спрашиваем сервер, не использован ли код.
+           Проверяем ДО оплаты — чтобы человек не заплатил за уже отработавший код. */
+        if (parsedImport.codeId) {
+            try {
+                const rc = await fetch(base + '/program/check', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codeId: parsedImport.codeId })
+                });
+                const dc = await rc.json();
+                if (dc && dc.used) { toast('Этот код уже использован. Попроси у автора новый'); return; }
+            } catch(e){}   // сервер недоступен — не блокируем покупку
+        }
 
         btn.disabled = true; btn.innerText = 'Оплата...';
         try {
@@ -708,23 +847,33 @@ initAtmosphere(canvasId) {
             if (price > 0 && parsedImport.authorUid && parsedImport.authorUid !== myUid) {
                 const r1 = await fetch(base + '/coins/transfer', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ uid: myUid, toUid: parsedImport.authorUid, amount: price })
+                    body: JSON.stringify({ uid: myUid, toUid: parsedImport.authorUid, amount: price, reason: 'program' })
                 });
                 const d1 = await r1.json();
-                if (!d1.ok) { needCoins((d1.error || '') + ' Нужно ' + total + ' F-coin: ' + price + ' автору + ' + FOCUS_COMMISSION + ' комиссия.'); btn.disabled = false; btn.innerText = 'Добавить себе'; return; }
+                if (!d1.ok) { needCoins((d1.error || '') + ' Нужно ' + total + ' F-coin: ' + price + ' автору + ' + commission + ' комиссия.'); btn.disabled = false; btn.innerText = 'Добавить себе'; return; }
             }
             // 2) комиссия Фокуса
             const r2 = await fetch(base + '/coins/spend', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ uid: myUid, amount: FOCUS_COMMISSION, reason: 'program_commission' })
+                body: JSON.stringify({ uid: myUid, amount: commission, reason: 'program_commission' })
             });
             const d2 = await r2.json();
-            if (!d2.ok) { needCoins((d2.error || '') + ' Комиссия Фокуса — ' + FOCUS_COMMISSION + ' F-coin.'); btn.disabled = false; btn.innerText = 'Добавить себе'; return; }
+            if (!d2.ok) { needCoins((d2.error || '') + ' Комиссия Фокуса — ' + commission + ' F-coin.'); btn.disabled = false; btn.innerText = 'Добавить себе'; return; }
             if (typeof d2.coins === 'number') { try { FocusStorage.saveUser({ coins: d2.coins }); } catch(e){} }
         } catch (e) {
             toast('Оплата не прошла — проверь связь'); btn.disabled = false; btn.innerText = 'Добавить себе'; return;
         }
         btn.disabled = false; btn.innerText = 'Добавить себе';
+
+        // оплата прошла — гасим код, чтобы им не воспользовались повторно
+        if (parsedImport.codeId) {
+            try {
+                fetch(base + '/program/redeem', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codeId: parsedImport.codeId, uid: myUid })
+                }).catch(function(){});
+            } catch(e){}
+        }
 
         const newProg = {
             id: Date.now(),
