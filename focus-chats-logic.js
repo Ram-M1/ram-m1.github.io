@@ -224,7 +224,17 @@
     var html = filtered.map(function(c){
       var pinned = pins.indexOf(c.chatId) !== -1;
       var isGroup = c.type === 'group';
-      var last = c.last || (isGroup ? 'Группа создана' : 'Начни переписку');
+      /* Нет переписки — вместо безликого «Начни переписку» показываем СТАТУС человека:
+         «в сети» или «был(а) 15 мин назад». Полезнее и понятнее. */
+      var last = c.last;
+      if (!last) {
+        if (isGroup) last = 'Группа создана';
+        else {
+          var _st = null;
+          try { _st = window.fbPresenceText ? window.fbPresenceText({ online: c._online, lastSeen: c._lastSeen }) : null; } catch(e){}
+          last = (_st && _st.text) ? _st.text : 'Начни переписку';
+        }
+      }
       var badgeHtml = (c.unread||0) > 0 ? '<span class="chat-badge">' + (c.unread > 99 ? '99+' : c.unread) + '</span>' : '';
       var pinHtml = pinned ? '<span class="chat-pin"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 4v6l2 3v2H6v-2l2-3V4z"/></svg></span>' : '';
       var groupTag = isGroup ? '<span class="group-tag">группа</span>' : '';
@@ -768,7 +778,7 @@ document.addEventListener('click', function(e){
              '<div class="av' + (c._online ? ' online' : '') + '">' + av + '<span class="dot"></span></div>' +
              '<div class="chat-mid">' +
                '<div class="chat-top"><div class="chat-name">' + esc2(nm) + '</div></div>' +
-               '<div class="chat-bot"><div class="chat-last">' + (c._online ? 'в сети' : (c.phone ? esc2(c.phone) : 'контакт')) + '</div></div>' +
+               '<div class="chat-bot"><div class="chat-last"' + (c._online ? ' style="color:#5fd68a;"' : '') + '>' + esc2(c._status || (c._online ? 'в сети' : 'не в сети')) + '</div></div>' +
              '</div>' +
            '</div>';
   }
@@ -859,6 +869,11 @@ document.addEventListener('click', function(e){
         if (p.name) c._name = p.name;          // настоящее имя вместо заглушки
         if (p.avatar) c._avatar = p.avatar;
         c._online = !!p.online;
+        // «в сети» или «был(а) 15 мин назад» — та же формула, что в шапке переписки
+        try {
+          var st = window.fbPresenceText ? window.fbPresenceText(p) : null;
+          if (st) { c._online = st.online; c._status = st.text || (st.online ? 'в сети' : 'не в сети'); }
+        } catch(e){}
       });
       if (el('contactsList') && el('contactsList').style.display !== 'none') paintContacts(list.slice());
       try { localStorage.setItem(CT_CACHE, JSON.stringify(list)); } catch(e){}

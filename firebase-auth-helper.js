@@ -892,6 +892,22 @@ window.fbTouchOnline = async function(force, online) {
       avatar = lu.avatarSmall || '';   // лёгкая версия для списка (см. профиль)
     } catch(e){}
     var payload = { name: name, online: online === false ? false : true, lastSeen: now };
+    /* ОТПЕЧАТОК НОМЕРА для поиска.
+       Раньше телефон лежал ТОЛЬКО в личном профиле, а он попадает в облако лишь если
+       синхронизация прошла. У кого не прошла — человек есть, но по номеру не находится.
+       Визитка же обновляется при каждом открытии приложения. Кладём сюда не сам номер,
+       а его необратимый отпечаток: искать можно, прочитать чужой номер — нельзя. */
+    try {
+      var _ph = String((lu && lu.phone) || '').replace(/\D/g, '');
+      if (_ph.length === 11 && (_ph[0] === '7' || _ph[0] === '8')) _ph = _ph.slice(1);
+      if (_ph.length >= 10 && window.crypto && crypto.subtle) {
+        var _buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(_ph));
+        payload.phoneHash = Array.from(new Uint8Array(_buf)).slice(0, 10)
+                                 .map(function(b){ return b.toString(16).padStart(2, '0'); }).join('');
+      }
+      var _nm = String(name || '').trim().toLowerCase();
+      if (_nm) payload.nameLower = _nm;      // чтобы поиск по имени работал и по визитке
+    } catch(e){}
     if (avatar) payload.avatar = avatar;   // ЕДИНЫЙ аватар FOCUS — виден везде
     await setDoc(doc(db, 'publicProfiles', user.uid), payload, { merge: true });
   } catch(e){}
@@ -944,6 +960,11 @@ function _presenceText(p) {
   const dd = Math.floor(h / 24);
   return { online: false, text: 'был(а) ' + dd + ' дн назад' };
 }
+
+/* Отдаём расчёт статуса наружу: список контактов и диалогов показывают
+   «в сети» / «был(а) 5 мин назад» той же формулой, что и шапка переписки.
+   Раньше функция была спрятана внутри, и в контактах писалось просто «не в сети». */
+window.fbPresenceText = function(p){ return _presenceText(p || {}); };
 
 /** Статус человека: {online:true} или {online:false, text:'был(а) 5 минут назад'} */
 window.fbGetPresence = async function(uid) {

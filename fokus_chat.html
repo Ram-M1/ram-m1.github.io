@@ -733,6 +733,27 @@ initAtmosphere(canvasId) {
         // шапка на реального собеседника
         document.getElementById('hdrName').innerText = realChatName;
         document.getElementById('hdrAvatar').innerText = (realChatName[0]||'?').toUpperCase();
+        /* ФОТО ПРОФИЛЯ В ПЕРЕПИСКЕ. Раньше в шапке была ТОЛЬКО первая буква имени —
+           фото из профиля FOCUS не запрашивалось вообще, хотя оно есть в визитке. */
+        (async function(){
+            try {
+                if (!window.fbWaitSession) return;
+                await window.fbWaitSession(4000);
+                resolveOther();
+                if (!otherUid || !window.fbGetProfilesBatch) return;
+                var pr = await window.fbGetProfilesBatch([otherUid]);
+                var me = pr && pr[otherUid];
+                if (!me) return;
+                if (me.name) {
+                    realChatName = me.name;
+                    document.getElementById('hdrName').innerText = me.name;
+                }
+                if (me.avatar) {
+                    document.getElementById('hdrAvatar').innerHTML =
+                        '<img src="' + me.avatar + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;">';
+                }
+            } catch(e){}
+        })();
         const st = document.getElementById('hdrStatus');
         if (st) { st.innerText = 'FOCUS чат'; st.className = 'chat-hdr-status'; }
 

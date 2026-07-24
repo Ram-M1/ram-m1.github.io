@@ -98,12 +98,18 @@
                 if (batch && batch[uid]) prof = Object.assign(prof, batch[uid]);
             }
         } catch (e) {}
+        /* Статус считаем той же формулой, что список и шапка переписки.
+           Раньше при отсутствии данных писалось «был(а) недавно» — заглушка,
+           которая не отражала реального времени. */
         var presence = { online: false, text: '' };
         try { if (window.fbGetPresence) presence = await window.fbGetPresence(uid); } catch (e) {}
+        if ((!presence || !presence.text) && window.fbPresenceText) {
+            try { presence = window.fbPresenceText({ online: prof.online, lastSeen: prof.lastSeen }); } catch (e) {}
+        }
 
         var name = prof.name || opts.name || 'Пользователь';
         var letter = name.trim().charAt(0).toUpperCase() || '?';
-        var statusText = presence.online ? 'в сети' : (presence.text || 'был(а) недавно');
+        var statusText = (presence && presence.text) ? presence.text : (presence && presence.online ? 'в сети' : 'давно не заходил(а)');
         var city = prof.city || '';
 
         var avatarHtml = prof.avatar
