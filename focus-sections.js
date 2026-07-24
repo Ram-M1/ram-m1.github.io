@@ -705,6 +705,11 @@ fill: function (data) {
     }
 
     // ── ПРОГРАММА ТРЕНИРОВОК ──
+    // ── ПРОГРАММА ТРЕНИРОВОК (на срок, с частотой в неделю) ──
+    if (sec === 'program' || sec === 'workout_program') {
+      return createProgram(name, p.days || p.periodDays, p.perWeek || p.timesPerWeek, p.exercises || p.items || []);
+    }
+
     if (sec === 'training') return createTraining(name, p.exercises || p.items || []);
 
     // ── ФИНАНСЫ: копилка ИЛИ разовая трата/доход — это разные вещи ──
@@ -740,6 +745,67 @@ fill: function (data) {
 
     // ── остальные разделы: обычное заполнение (желания, благодарность, питание и т.д.) ──
     return fill(sec, name);
+  }
+
+
+  /** СОЗДАТЬ ПРОГРАММУ ТРЕНИРОВОК (не разовую тренировку!).
+      Программа = срок в днях + сколько раз в неделю + набор занятий.
+      Раньше ИИ этого НЕ УМЕЛ: на просьбу «программа на 30 дней, 5 раз в неделю»
+      он создавал ОДНУ разовую тренировку — совсем не то, что просили. */
+  function createProgram(name, days, perWeek, exercises) {
+    var nm = String(name || '').trim();
+    if (!nm) return null;
+    var periodDays = parseInt(days, 10) || 30;
+    var times = parseInt(perWeek, 10) || 3;
+    if (times < 1) times = 1;
+    if (times > 7) times = 7;
+
+    var programs = readJSON('focus_workout_programs', []);
+    if (!Array.isArray(programs)) programs = [];
+    if (programs.some(function (x) { return x && String(x.name || '').toLowerCase() === nm.toLowerCase(); })) {
+      return 'Программа «' + cap(nm) + '» уже есть';
+    }
+
+    // разбираем упражнения: «отжимания 3х50» / {name,sets,reps,weight}
+    var listRaw = Array.isArray(exercises) ? exercises : splitItems(exercises || '');
+    var exList = [];
+    listRaw.forEach(function (item) {
+      var exName = '', setsN = 3, reps = 10, weight = null;
+      if (item && typeof item === 'object') {
+        exName = String(item.name || '').trim();
+        setsN = parseInt(item.sets, 10) || 3;
+        reps = parseInt(item.reps, 10) || 10;
+        weight = (item.weight != null && item.weight !== '') ? parseFloat(item.weight) : null;
+      } else {
+        var t = String(item || '').trim();
+        var m = t.match(/(\d+)\s*[xх*]\s*(\d+)/i);
+        if (m) { setsN = parseInt(m[1], 10); reps = parseInt(m[2], 10); }
+        var w = t.match(/(\d+(?:[.,]\d+)?)\s*(?:кг|kg)/i);
+        if (w) weight = parseFloat(String(w[1]).replace(',', '.'));
+        exName = t.replace(/(\d+)\s*[xх*]\s*(\d+)/i, '').replace(/(\d+(?:[.,]\d+)?)\s*(?:кг|kg)/i, '')
+                  .replace(/\b(подход[а-я]*|повтор[а-я]*|по)\b/gi, '').trim();
+      }
+      if (exName) exList.push({ name: cap(exName), sets: setsN, reps: reps, weight: weight });
+    });
+    if (!exList.length) exList.push({ name: 'Упражнение', sets: 3, reps: 10, weight: null });
+
+    // занятия на весь срок: сколько недель × раз в неделю
+    var weeks = Math.max(1, Math.round(periodDays / 7));
+    var total = Math.max(1, weeks * times);
+    if (total > 60) total = 60;
+    var workouts = [];
+    for (var i = 0; i < total; i++) {
+      workouts.push({ label: 'Занятие ' + (i + 1), exercises: exList.map(function (e) { return { name: e.name, sets: e.sets, reps: e.reps, weight: e.weight }; }) });
+    }
+
+    programs.push({
+      id: Date.now(), name: cap(nm), perWeek: times, periodDays: periodDays,
+      workouts: workouts, created: today(), sessions: [], cursor: 0, price: 0
+    });
+    writeJSON('focus_workout_programs', programs);
+    markProgress('training');
+    return 'Создал программу «' + cap(nm) + '»: ' + periodDays + ' дней, ' + times + ' раз в неделю, ' +
+           total + ' занятий. Упражнения: ' + exList.map(function (e) { return e.name + ' ' + e.sets + '×' + e.reps; }).join(', ');
   }
 
   /** СОЗДАТЬ программу тренировок с нуля (раньше ИИ этого не умел — только отмечать готовые).
@@ -845,5 +911,5 @@ fill: function (data) {
       : 'День завершён. Сегодня отметок не было — начнём заново завтра.';
   }
 
-  window.FocusSections = { SECTIONS: SECTIONS, detect: detect, listForPrompt: listForPrompt, userContext: userContext, fill: fill, complete: complete, planTask: planTask, createTraining: createTraining, create: createEntity, uncheck: uncheck, endDay: endDay, today: today };
+  window.FocusSections = { SECTIONS: SECTIONS, detect: detect, listForPrompt: listForPrompt, userContext: userContext, fill: fill, complete: complete, planTask: planTask, createTraining: createTraining, createProgram: createProgram, create: createEntity, uncheck: uncheck, endDay: endDay, today: today };
 })();

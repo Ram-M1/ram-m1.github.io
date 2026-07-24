@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v248 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v251 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -2744,7 +2744,7 @@ window._focusUnlockAudio = function(){
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=248').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=251').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });
@@ -2833,7 +2833,11 @@ window._focusUnlockAudio = function(){
         '  {"type":"create","section":"<id ЛЮБОГО раздела>","name":"<что создать>", ...} — СОЗДАТЬ новое в любом разделе.\n' +
         '     Примеры: {"type":"create","section":"medications","name":"Витамин D","dosage":"2000 МЕ","perDay":2}\n' +
         '               {"type":"create","section":"supplements","name":"Омега-3","perDay":1}\n' +
-        '               {"type":"create","section":"training","name":"Грудь","exercises":["жим лёжа 4х8 80кг"]}\n' +
+        '               {"type":"create","section":"training","name":"Грудь","exercises":["жим лёжа 4х8 80кг"]} — ОДНА тренировка\n' +
+        '               {"type":"create","section":"program","name":"Домашняя 2","days":30,"perWeek":5,"exercises":["отжимания 3х50"]} — ПРОГРАММА\n' +
+        '     ТРЕНИРОВКА и ПРОГРАММА — РАЗНОЕ. Если сказано «программа», «на N дней»,\n' +
+        '     «N раз в неделю», «курс», «план на месяц» → section:"program" с полями days и perWeek.\n' +
+        '     Просто список упражнений без срока → section:"training".\n' +
         '               {"type":"create","section":"workout","name":"планка 3х60"}\n' +
         '               {"type":"create","section":"finance","name":"На отпуск","target":100000} — КОПИЛКА (цель накопления)\n' +
         '     ФИНАНСЫ: копилка и трата — РАЗНОЕ. Копить/отложить/цель → "create" с "target".\n' +
@@ -2874,6 +2878,7 @@ window._focusUnlockAudio = function(){
                     dosage: a.dosage, perDay: a.perDay || a.timesPerDay || a.count,
                     times: a.times, sets: a.sets, reps: a.reps,
                     exercises: a.exercises || a.items,
+                    days: a.days || a.periodDays, perWeek: a.perWeek || a.timesPerWeek,   // для программы тренировок
                     target: a.target || a.amount, emoji: a.emoji,
                     column: a.column, deadline: a.deadline
                 });

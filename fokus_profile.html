@@ -255,6 +255,12 @@
                     <div class="avatar-edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
                 </div>
                 <div class="profile-name" id="profileName">Друг</div>
+                <!-- КОД FOCUS — как @имя в Telegram: по нему тебя найдут всегда -->
+                <div id="focusCodeRow" style="margin-top:6px;display:none;align-items:center;justify-content:center;gap:7px;cursor:pointer;">
+                    <span style="font-size:11.5px;color:#8e8e9e;">код</span>
+                    <span id="focusCode" style="font-size:13px;font-weight:800;letter-spacing:1.5px;color:var(--accent,#FFD966);">······</span>
+                    <span style="font-size:10.5px;color:#8e8e9e;">копировать</span>
+                </div>
                 <div class="profile-level">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16 3 5l5.5 4L12 4l3.5 5L21 5l-2 11H5Z"/></svg>
                     <span id="profileLevel">Новичок</span>
@@ -764,5 +770,31 @@ initAtmosphere(canvasId) {
 </script>
     <script src="focus-chat-fab.js"></script>
 <script src="focus-reminders.js"></script>
+<script>
+/* Показываем КОД FOCUS в профиле: по нему человека можно найти в поиске всегда,
+   даже если телефон и имя не доехали до базы (как @имя в Telegram). */
+(function(){
+    function paint(){
+        try {
+            if (!window.fbMyCode) return setTimeout(paint, 400);
+            var c = window.fbMyCode();
+            if (!c) return setTimeout(paint, 600);
+            var row = document.getElementById('focusCodeRow');
+            var el = document.getElementById('focusCode');
+            if (!row || !el) return;
+            el.textContent = c;
+            row.style.display = 'flex';
+            row.onclick = function(){
+                var ta = document.createElement('textarea');
+                ta.value = c; document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); } catch(e){}
+                document.body.removeChild(ta);
+                try { if (window.showToast) showToast('Код скопирован: ' + c); } catch(e){}
+            };
+        } catch(e){}
+    }
+    setTimeout(paint, 900);
+})();
+</script>
 </body>
 </html>
