@@ -706,17 +706,25 @@ document.addEventListener('click', function(e){
     renderContacts();
   }
 
-  async function renderContacts(){
+  var CT_CACHE = 'focus_contacts_cache';
+
+  function contactRow(c){
+    var nm = c._name || (c.name && c.name !== 'Пользователь' ? c.name : '') || 'Пользователь';
+    var av = c._avatar
+      ? '<img src="' + esc2(c._avatar) + '" alt="">'
+      : '<div class="av-letter">' + esc2((nm.trim().charAt(0) || '?').toUpperCase()) + '</div>';
+    return '<div class="chat-row" data-ct-uid="' + esc2(c.uid) + '" data-ct-name="' + esc2(nm) + '">' +
+             '<div class="av' + (c._online ? ' online' : '') + '">' + av + '<span class="dot"></span></div>' +
+             '<div class="chat-mid">' +
+               '<div class="chat-top"><div class="chat-name">' + esc2(nm) + '</div></div>' +
+               '<div class="chat-bot"><div class="chat-last">' + (c._online ? 'в сети' : (c.phone ? esc2(c.phone) : 'контакт')) + '</div></div>' +
+             '</div>' +
+           '</div>';
+  }
+
+  function paintContacts(list){
     var box = el('contactsList');
     if (!box) return;
-    if (!contactsLoaded) {
-      box.innerHTML = '<div style="padding:22px;text-align:center;color:#8e8e9e;font-size:12.5px;">Загружаю контакты…</div>';
-    }
-
-    var list = [];
-    try { list = (window.fbGetContacts ? await window.fbGetContacts() : []) || []; } catch(e){ list = []; }
-    contactsLoaded = true;
-
     if (!list.length) {
       box.innerHTML =
         '<div style="padding:34px 24px;text-align:center;">' +
@@ -729,45 +737,81 @@ document.addEventListener('click', function(e){
       if (ab) ab.addEventListener('click', function(){ var n = el('newBtn'); if (n) n.click(); });
       return;
     }
-
-    // свежие имя/фото/статус — одним запросом на всех
-    var profs = {};
-    try {
-      var uids = list.map(function(c){ return c.uid; }).filter(Boolean);
-      if (uids.length && window.fbGetProfilesBatch) profs = await window.fbGetProfilesBatch(uids) || {};
-    } catch(e){}
-
     list.sort(function(a,b){
-      var an = ((profs[a.uid] && profs[a.uid].name) || a.name || '').toLowerCase();
-      var bn = ((profs[b.uid] && profs[b.uid].name) || b.name || '').toLowerCase();
-      return an.localeCompare(bn);
+      return String(a._name || a.name || '').toLowerCase().localeCompare(String(b._name || b.name || '').toLowerCase());
     });
-
-    box.innerHTML = list.map(function(c){
-      var p = profs[c.uid] || {};
-      /* ИМЯ ВСЕГДА ИЗ ВИЗИТКИ. Заглушка «Пользователь» больше не показывается,
-         если у человека есть настоящее имя в профиле. */
-      var nm = p.name || (c.name && c.name !== 'Пользователь' ? c.name : '') || 'Пользователь';
-      var online = !!p.online;
-      var av = p.avatar
-        ? '<img src="' + esc2(p.avatar) + '" alt="">'
-        : '<div class="av-letter">' + esc2((nm.trim().charAt(0) || '?').toUpperCase()) + '</div>';
-      // те же классы, что у строки чата — вид один в один
-      return '<div class="chat-row" data-ct-uid="' + esc2(c.uid) + '" data-ct-name="' + esc2(nm) + '">' +
-               '<div class="av' + (online ? ' online' : '') + '">' + av + '<span class="dot"></span></div>' +
-               '<div class="chat-mid">' +
-                 '<div class="chat-top"><div class="chat-name">' + esc2(nm) + '</div></div>' +
-                 '<div class="chat-bot"><div class="chat-last">' + (online ? 'в сети' : 'не в сети') + '</div></div>' +
-               '</div>' +
-             '</div>';
-    }).join('');
-
+    box.innerHTML = list.map(contactRow).join('');
     box.querySelectorAll('[data-ct-uid]').forEach(function(row){
       row.addEventListener('click', function(){
-        var uid = this.dataset.ctUid, nm = this.dataset.ctName;
-        if (window.FocusUserCard) window.FocusUserCard.open(uid, { name: nm });
+        if (window.FocusUserCard) window.FocusUserCard.open(this.dataset.ctUid, { name: this.dataset.ctName });
       });
     });
+  }
+
+  /* ПОКАЗЫВАЕМ СРАЗУ, ДЕТАЛИ ДОТЯГИВАЕМ ПОТОМ.
+     Раньше экран ЖДАЛ загрузки визиток всех контактов и только потом рисовал —
+     если сеть тормозила или один профиль не отвечал, список висел «в загрузке»
+     бесконечно. Теперь: мгновенно из памяти телефона → затем свежий список →
+     затем фото и статусы фоном. Экран не ждёт сеть ни секунды. */
+  async function renderContacts(){
+    var box = el('contactsList');
+    if (!box) return;
+
+    // 1) мгновенно — то, что уже сохранено на телефоне
+    var cached = [];
+    try { cached = JSON.parse(localStorage.getItem(CT_CACHE) || '[]') || []; } catch(e){ cached = []; }
+    if (cached.length) paintContacts(cached.slice());
+    else if (!contactsLoaded) box.innerHTML = '<div style="padding:22px;text-align:center;color:#8e8e9e;font-size:12.5px;">Загружаю контакты…</div>';
+
+    // 2) свежий список (с ограничением по времени — не зависаем)
+    // помощник грузится модулем — дождёмся его, иначе покажем «контактов нет» на пустом месте
+    if (!window.fbGetContacts) {
+      for (var w = 0; w < 30 && !window.fbGetContacts; w++) {
+        await new Promise(function(r){ setTimeout(r, 150); });
+      }
+    }
+
+    var list = [];
+    try {
+      list = await Promise.race([
+        (window.fbGetContacts ? window.fbGetContacts() : Promise.resolve([])),
+        new Promise(function(res){ setTimeout(function(){ res(null); }, 7000); })
+      ]);
+    } catch(e){ list = null; }
+
+    if (list === null) {                       // сеть не ответила
+      if (!cached.length) {
+        box.innerHTML = '<div style="padding:28px 22px;text-align:center;color:#8e8e9e;font-size:12.5px;">' +
+          'Не получилось загрузить контакты.<br><span id="ctRetry" style="color:var(--accent,#FFD966);cursor:pointer;text-decoration:underline;">Повторить</span></div>';
+        var rb = el('ctRetry');
+        if (rb) rb.addEventListener('click', renderContacts);
+      }
+      return;
+    }
+    contactsLoaded = true;
+    list = list || [];
+    paintContacts(list.slice());
+    try { localStorage.setItem(CT_CACHE, JSON.stringify(list)); } catch(e){}
+
+    // 3) фото и статусы — ФОНОМ, экран уже нарисован
+    try {
+      var uids = list.map(function(c){ return c.uid; }).filter(Boolean);
+      if (!uids.length || !window.fbGetProfilesBatch) return;
+      var profs = await Promise.race([
+        window.fbGetProfilesBatch(uids),
+        new Promise(function(res){ setTimeout(function(){ res(null); }, 7000); })
+      ]);
+      if (!profs) return;
+      list.forEach(function(c){
+        var p = profs[c.uid];
+        if (!p) return;
+        if (p.name) c._name = p.name;          // настоящее имя вместо заглушки
+        if (p.avatar) c._avatar = p.avatar;
+        c._online = !!p.online;
+      });
+      if (el('contactsList') && el('contactsList').style.display !== 'none') paintContacts(list.slice());
+      try { localStorage.setItem(CT_CACHE, JSON.stringify(list)); } catch(e){}
+    } catch(e){}
   }
 
   document.addEventListener('DOMContentLoaded', function(){

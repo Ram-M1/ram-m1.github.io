@@ -1344,7 +1344,13 @@ window.fbGetChatList = async function() {
       var peers = list.filter(function(c){ return c.type !== 'group' && c.withUid; })
                       .map(function(c){ return c.withUid; });
       if (peers.length && window.fbGetProfilesBatch) {
-        var profs = await window.fbGetProfilesBatch(peers);
+        /* Ограничение по времени: если визитки не отвечают, отдаём список БЕЗ них,
+           а не держим экран в загрузке. Фото и статусы подтянутся при следующем обновлении. */
+        var profs = await Promise.race([
+          window.fbGetProfilesBatch(peers),
+          new Promise(function(res){ setTimeout(function(){ res(null); }, 6000); })
+        ]);
+        if (!profs) return list;
         list.forEach(function(c){
           var p = profs[c.withUid];
           if (p) {
