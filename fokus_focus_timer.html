@@ -511,7 +511,7 @@ initAtmosphere(canvasId) {
         const c = document.getElementById('controls');
         if (!running && remaining === durationMin * 60) {
             // не запущен
-            c.innerHTML = `<div class="ctrl-btn ctrl-start" id="startBtn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Старт</div>`;
+            c.innerHTML = `<div class="ctrl-btn ctrl-start" id="startBtn2"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Старт</div>`;
             document.getElementById('startBtn').addEventListener('click', start);
         } else if (running) {
             // идёт
@@ -526,7 +526,7 @@ initAtmosphere(canvasId) {
             // на паузе
             c.innerHTML = `
                 <div class="ctrl-btn ctrl-start" id="resumeBtn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Продолжить</div>
-                <div class="ctrl-btn ctrl-sec stop" id="stopBtn"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></div>`;
+                <div class="ctrl-btn ctrl-sec stop" id="stopBtn2"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></div>`;
             document.getElementById('resumeBtn').addEventListener('click', start);
             document.getElementById('stopBtn').addEventListener('click', stop);
         }

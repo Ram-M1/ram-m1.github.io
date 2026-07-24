@@ -144,6 +144,17 @@
     .nav-item span { font-size:10.5px; font-weight:500; }
 
     /* ── FAB ── */
+
+    /* ── СВАЙП ВЛЕВО (как в WhatsApp): под строкой прячутся «Закрепить» и «Удалить» ── */
+    .chat-row { position:relative; overflow:hidden; }
+    .sw-inner { display:flex; align-items:center; gap:12px; width:100%;
+                transition:transform .18s ease; background:var(--bg-1,#0d0d12); position:relative; z-index:1; }
+    .sw-acts { position:absolute; top:0; right:0; bottom:0; display:flex; z-index:0; }
+    .sw-act { width:78px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+              gap:3px; font-size:10.5px; font-weight:700; color:#fff; cursor:pointer; }
+    .sw-act svg { width:19px; height:19px; }
+    .sw-pin { background:#3a7bd5; }
+    .sw-del { background:#d34a4a; }
     .fab { position:absolute; right:18px; bottom:calc(76px + env(safe-area-inset-bottom,0px));
         width:56px; height:56px; border-radius:50%; z-index:55;
         background:linear-gradient(135deg, var(--accent), var(--accent-2));

@@ -331,6 +331,7 @@
          дублями («Анна» рядом с «Пользователь», «Администратор» рядом с именем).
          Записи с перепиской не трогаем — история важнее. */
       var fresh = (list || []).map(normalizeChat).filter(function(c){
+        if (isDeleted(c.chatId)) return false;       // удалённые не возвращаем
         if (c.type === 'group' || c.isAdmin) return true;
         if (c._live) return true;
         return !!(c.last && String(c.last).trim());   // без профиля, но с перепиской — оставляем
@@ -486,13 +487,63 @@
         savePins(); closeSheet(); render();
       }
       else if (act === 'delete') {
-        chats = chats.filter(function(c){ return c.chatId !== chatId; });
-        saveCache(); closeSheet(); render();
-        if (window.fbHideChat) window.fbHideChat(chatId).catch(function(){});
-        toast('Чат удалён');
+        closeSheet();
+        removeChat(chatId);
       }
     });
   }
+
+
+  /* ═══ НАДЁЖНОЕ УДАЛЕНИЕ ЧАТА ═══
+     Раньше чат убирался только с экрана, а запрос на сервер уходил «в фоне»
+     с молча проглоченной ошибкой. Не удалилось на сервере — при следующем
+     обновлении списка чат ВОЗВРАЩАЛСЯ. Отсюда «чаты не удаляются».
+     Теперь: помним удалённые у себя, не показываем их даже если сервер ответил
+     позже, и повторяем попытку, пока не получится. */
+  var DEL_KEY = 'focus_deleted_chats';
+  function delList(){
+    try { return JSON.parse(localStorage.getItem(DEL_KEY) || '[]') || []; } catch(e){ return []; }
+  }
+  function delAdd(id){
+    var l = delList(); if (l.indexOf(id) === -1) l.push(id);
+    try { localStorage.setItem(DEL_KEY, JSON.stringify(l)); } catch(e){}
+  }
+  function delDone(id){
+    try { localStorage.setItem(DEL_KEY, JSON.stringify(delList().filter(function(x){ return x !== id; }))); } catch(e){}
+  }
+  function isDeleted(id){ return delList().indexOf(id) !== -1; }
+
+  async function removeChat(chatId){
+    if (!chatId) { toast('Не удалось определить чат'); return; }
+    delAdd(chatId);                                   // помечаем СРАЗУ — назад не вернётся
+    chats = chats.filter(function(c){ return c.chatId !== chatId; });
+    saveCache(); render();
+    try {
+      var r = window.fbHideChat ? await window.fbHideChat(chatId) : null;
+      if (r && r.ok !== false) { delDone(chatId); toast('Чат удалён'); }
+      else toast('Удалён у тебя · синхронизирую');    // повторим при следующем открытии
+    } catch(e) { toast('Удалён у тебя · синхронизирую'); }
+  }
+
+  // при следующем открытии дочищаем то, что не удалилось на сервере
+  async function retryDeletes(){
+    var l = delList();
+    if (!l.length || !window.fbHideChat) return;
+    for (var i = 0; i < l.length; i++) {
+      try { var r = await window.fbHideChat(l[i]); if (r && r.ok !== false) delDone(l[i]); } catch(e){}
+    }
+  }
+
+
+  /* Действия свайпа берут ТЕ ЖЕ функции, что и меню по долгому нажатию —
+     чтобы поведение было одинаковым, где бы ты ни нажал. */
+  window.FocusChatSwipe = window.FocusChatSwipe || {};
+  window.FocusChatSwipe.remove = function(id){ removeChat(id); };
+  window.FocusChatSwipe.pin = function(id){
+    if (pins.indexOf(id) !== -1) { pins = pins.filter(function(x){ return x !== id; }); toast('Откреплён'); }
+    else { pins.push(id); toast('Закреплён'); }
+    savePins(); render();
+  };
 
   // ─────────── МОДАЛКА ───────────
   function showSheet(html){
@@ -825,4 +876,111 @@ document.addEventListener('click', function(e){
   });
 
   window.FocusContacts = { show: showContacts, refresh: renderContacts };
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   СВАЙП ВЛЕВО НА ДИАЛОГЕ — как в WhatsApp.
+   Потянул строку пальцем влево → показались «Закрепить» и «Удалить».
+   Раньше эти действия прятались за долгим нажатием, о котором никто не знает.
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+  'use strict';
+  var OPEN_W = 156;              // ширина двух кнопок
+  var openRow = null;
+
+  function icons(){
+    return {
+      pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5M9 3h6l-1 7 4 3H6l4-3z"/></svg>',
+      del:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
+    };
+  }
+
+  /** Оборачиваем содержимое строки один раз, чтобы было что двигать. */
+  function prepare(row){
+    if (row.dataset.swReady === '1') return row.querySelector('.sw-inner');
+    var inner = document.createElement('div');
+    inner.className = 'sw-inner';
+    while (row.firstChild) inner.appendChild(row.firstChild);
+    var acts = document.createElement('div');
+    acts.className = 'sw-acts';
+    var ic = icons();
+    acts.innerHTML =
+      '<div class="sw-act sw-pin" data-sw="pin">' + ic.pin + '<span>Закрепить</span></div>' +
+      '<div class="sw-act sw-del" data-sw="del">' + ic.del + '<span>Удалить</span></div>';
+    row.appendChild(acts);
+    row.appendChild(inner);
+    row.dataset.swReady = '1';
+
+    acts.addEventListener('click', function(e){
+      var b = e.target.closest('[data-sw]'); if (!b) return;
+      e.preventDefault(); e.stopPropagation();
+      var id = row.dataset.id, nm = row.dataset.name || '';
+      close(row);
+      if (b.dataset.sw === 'del') {
+        if (window.FocusChatSwipe && window.FocusChatSwipe.remove) window.FocusChatSwipe.remove(id);
+      } else {
+        if (window.FocusChatSwipe && window.FocusChatSwipe.pin) window.FocusChatSwipe.pin(id, nm);
+      }
+    });
+    return inner;
+  }
+
+  function open(row){
+    var inner = prepare(row);
+    inner.style.transform = 'translateX(-' + OPEN_W + 'px)';
+    row.dataset.swOpen = '1';
+    if (openRow && openRow !== row) close(openRow);
+    openRow = row;
+  }
+  function close(row){
+    if (!row) return;
+    var inner = row.querySelector('.sw-inner');
+    if (inner) inner.style.transform = '';
+    row.dataset.swOpen = '';
+    if (openRow === row) openRow = null;
+  }
+
+  var startX = 0, startY = 0, cur = null, moving = false;
+
+  document.addEventListener('touchstart', function(e){
+    var row = e.target.closest && e.target.closest('.chat-row');
+    if (openRow && (!row || row !== openRow)) close(openRow);
+    if (!row) return;
+    cur = row; moving = false;
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+  }, { passive:true });
+
+  document.addEventListener('touchmove', function(e){
+    if (!cur) return;
+    var dx = e.touches[0].clientX - startX;
+    var dy = e.touches[0].clientY - startY;
+    if (!moving) {
+      if (Math.abs(dy) > Math.abs(dx)) { cur = null; return; }   // это прокрутка списка
+      if (Math.abs(dx) < 8) return;
+      moving = true;
+      prepare(cur);
+    }
+    var open0 = cur.dataset.swOpen === '1' ? -OPEN_W : 0;
+    var shift = Math.max(-OPEN_W - 20, Math.min(0, open0 + dx));
+    var inner = cur.querySelector('.sw-inner');
+    if (inner) { inner.style.transition = 'none'; inner.style.transform = 'translateX(' + shift + 'px)'; }
+  }, { passive:true });
+
+  function finish(){
+    if (!cur) return;
+    var inner = cur.querySelector('.sw-inner');
+    if (inner) inner.style.transition = '';
+    if (moving) {
+      var m = (inner && inner.style.transform.match(/-?\d+(\.\d+)?/));
+      var x = m ? parseFloat(m[0]) : 0;
+      if (inner && inner.style.transform.indexOf('-') === -1) x = 0;
+      if (Math.abs(x) > OPEN_W / 2) open(cur); else close(cur);
+    }
+    cur = null; moving = false;
+  }
+  document.addEventListener('touchend', finish, { passive:true });
+  document.addEventListener('touchcancel', finish, { passive:true });
+
+  // на компе — колёсиком/мышью не свайпнуть, оставляем правую кнопку и долгое нажатие
+  window.FocusChatSwipe = window.FocusChatSwipe || {};
 })();

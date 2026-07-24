@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Проверка FOCUS</title>
+<style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:#0a0a0f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+         padding:18px;font-size:14px;line-height:1.5;}
+    h1{font-size:19px;margin-bottom:4px;}
+    .sub{color:#8e8e9e;font-size:12.5px;margin-bottom:18px;}
+    .card{background:#14141c;border:1px solid rgba(255,255,255,0.08);border-radius:14px;
+          padding:14px 15px;margin-bottom:10px;}
+    .card h2{font-size:13px;color:#FFD966;margin-bottom:9px;letter-spacing:0.3px;}
+    .row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:5px 0;
+         border-bottom:0.5px solid rgba(255,255,255,0.05);font-size:13px;}
+    .row:last-child{border-bottom:none;}
+    .k{color:#9a9aab;flex:1;}
+    .v{font-weight:700;text-align:right;max-width:58%;word-break:break-word;}
+    .ok{color:#5fd68a;} .bad{color:#ff7a7a;} .warn{color:#ffc861;}
+    .hint{margin-top:14px;padding:12px 14px;border-radius:12px;background:rgba(255,217,102,0.07);
+          border:1px solid rgba(255,217,102,0.2);font-size:12.5px;color:#e8e8f0;}
+    button{width:100%;margin-top:14px;padding:13px;border:none;border-radius:12px;
+           background:linear-gradient(135deg,#FFD966,#7C8CFF);color:#0a0a0f;font-weight:800;
+           font-size:14px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<h1>Проверка FOCUS</h1>
+<div class="sub">Что реально развёрнуто и работает прямо сейчас</div>
+
+<div class="card">
+    <h2>ПРИЛОЖЕНИЕ</h2>
+    <div class="row"><span class="k">Версия в браузере</span><span class="v" id="vApp">…</span></div>
+    <div class="row"><span class="k">Версия на сервере</span><span class="v" id="vServer">…</span></div>
+    <div class="row"><span class="k">Совпадают</span><span class="v" id="vMatch">…</span></div>
+</div>
+
+<div class="card">
+    <h2>СЕРВЕР (Cloudflare)</h2>
+    <div class="row"><span class="k">Отвечает</span><span class="v" id="wAlive">…</span></div>
+    <div class="row"><span class="k">Поиск по визиткам <span style="color:#6a6a7a;">(v242)</span></span><span class="v" id="wSearch">…</span></div>
+    <div class="row"><span class="k">Вход только своим <span style="color:#6a6a7a;">(v237)</span></span><span class="v" id="wLogin">…</span></div>
+    <div class="row"><span class="k">Одноразовые коды <span style="color:#6a6a7a;">(v234)</span></span><span class="v" id="wProg">…</span></div>
+</div>
+
+<div class="card">
+    <h2>АККАУНТ</h2>
+    <div class="row"><span class="k">Вход выполнен</span><span class="v" id="aAuth">…</span></div>
+    <div class="row"><span class="k">Анкета заполнена</span><span class="v" id="aProfile">…</span></div>
+    <div class="row"><span class="k">Профиль в облаке</span><span class="v" id="aCloud">…</span></div>
+    <div class="row"><span class="k">Контактов</span><span class="v" id="aContacts">…</span></div>
+    <div class="row"><span class="k">Чатов</span><span class="v" id="aChats">…</span></div>
+</div>
+
+<div class="hint" id="verdict">Проверяю…</div>
+<button onclick="location.href='index.html'">На главную</button>
+
+<script src="focus-storage.js"></script>
+<script type="module" src="firebase-auth-helper.js"></script>
+<script>
+(function(){
+    var S = function(id,txt,cls){ var e=document.getElementById(id); if(e){ e.textContent=txt; e.className='v '+(cls||''); } };
+    var problems = [];
+
+    // ── версия приложения ──
+    var appV = '—';
+    fetch('sw.js?nocache=' + Date.now()).then(function(r){ return r.text(); }).then(function(t){
+        var m = t.match(/focus-cache-v(\d+)/);
+        S('vServer', m ? ('v' + m[1]) : 'не найдена', m ? 'ok' : 'bad');
+        window.__serverV = m ? parseInt(m[1],10) : 0;
+        compareV();
+    }).catch(function(){ S('vServer','нет ответа','bad'); });
+
+    if ('serviceWorker' in navigator) {
+        try {
+        navigator.serviceWorker.getRegistrations().then(function(rs){
+            if (!rs.length) { S('vApp','служебный модуль не установлен','warn'); return; }
+            caches.keys().then(function(keys){
+                var k = keys.filter(function(x){ return x.indexOf('focus-cache-v')===0; })[0];
+                var n = k ? parseInt(k.replace('focus-cache-v',''),10) : 0;
+                S('vApp', n ? ('v'+n) : 'не определена', n ? 'ok':'warn');
+                window.__appV = n; compareV();
+            });
+        });
+        } catch(e){ S('vApp','—','warn'); }
+    } else S('vApp','—','warn');
+
+    function compareV(){
+        if (window.__appV === undefined || window.__serverV === undefined) return;
+        if (window.__appV && window.__serverV && window.__appV === window.__serverV) S('vMatch','да','ok');
+        else {
+            S('vMatch','НЕТ — браузер держит старое','bad');
+            problems.push('В браузере старая версия. Нужно: F12 → Application → Service Workers → Unregister, затем Clear site data и открыть заново.');
+        }
+        verdict();
+    }
+
+    // ── сервер ──
+    var base = (window.FOCUS_AI_PROXY || 'https://focus-ai.playing-life-rama.workers.dev').replace(/\/+$/,'');
+    function probe(path, body, elId, label, ver){
+        return fetch(base + path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{}) })
+            .then(function(r){ return r.status; })
+            .then(function(st){
+                // 404 на неизвестный адрес = функции нет в развёрнутом сервере
+                var have = st !== 404;
+                S(elId, have ? 'есть' : 'НЕТ (старый сервер)', have ? 'ok' : 'bad');
+                if (!have) problems.push('На Cloudflare развёрнут СТАРЫЙ сервер: нет «' + label + '» (' + ver + '). Нужно залить cloudflare-worker-deepseek.js и нажать Deploy.');
+                return have;
+            })
+            .catch(function(){ S(elId,'нет связи','bad'); });
+    }
+
+    fetch(base + '/health').then(function(){ S('wAlive','да','ok'); }).catch(function(){
+        S('wAlive','НЕ отвечает','bad'); problems.push('Сервер Cloudflare не отвечает.');
+    }).finally(function(){
+        probe('/program/check', {codeId:'test'}, 'wProg', 'одноразовые коды', 'v234');
+        probe('/users/find', {uid:'x', mode:'name', q:'проверка'}, 'wSearch', 'поиск', 'v242').then(verdict);
+        probe('/auth/send-code', {email:'', mode:'login'}, 'wLogin', 'вход только своим', 'v237');
+    });
+
+    // ── аккаунт ──
+    setTimeout(function(){
+        var u = {};
+        try { u = JSON.parse(localStorage.getItem('focus_user')||'{}')||{}; } catch(e){}
+        var full = !!(u.name && u.assistantName && u.birthDate);
+        S('aProfile', full ? 'да' : 'НЕТ', full ? 'ok':'bad');
+        if (!full) problems.push('Анкета не заполнена — приложение будет просить её заполнить.');
+
+        var authed = !!(window.fbCurrentUser && window.fbCurrentUser());
+        S('aAuth', authed ? 'да' : 'НЕТ', authed ? 'ok':'bad');
+        if (!authed) problems.push('Вход не выполнен — контакты и чаты не загрузятся.');
+
+        if (authed && window.fbGetContacts) {
+            window.fbGetContacts().then(function(c){ S('aContacts', String((c||[]).length), (c&&c.length)?'ok':'warn'); }).catch(function(){ S('aContacts','ошибка','bad'); });
+        } else S('aContacts','—','warn');
+
+        if (authed && window.fbGetChatList) {
+            window.fbGetChatList().then(function(c){ S('aChats', String((c||[]).length), 'ok'); }).catch(function(){ S('aChats','ошибка','bad'); });
+        } else S('aChats','—','warn');
+
+        if (authed && window.fbLoadUserData) {
+            window.fbLoadUserData().then(function(d){
+                var ok = !!(d && d.name && d.assistantName && d.birthDate);
+                S('aCloud', ok ? 'да' : 'НЕТ', ok ? 'ok':'bad');
+                if (!ok) problems.push('Профиля нет в облаке — на другом устройстве попросит заполнить анкету заново.');
+                verdict();
+            }).catch(function(){ S('aCloud','ошибка','bad'); });
+        } else S('aCloud','—','warn');
+        verdict();
+    }, 2500);
+
+    function verdict(){
+        var box = document.getElementById('verdict');
+        if (!box) return;
+        if (!problems.length) { box.innerHTML = '<b style="color:#5fd68a;">Всё в порядке.</b> Версии совпадают, сервер свежий, аккаунт в норме.'; return; }
+        var uniq = problems.filter(function(v,i,a){ return a.indexOf(v)===i; });
+        box.innerHTML = '<b style="color:#ffc861;">Найдено ' + uniq.length + ':</b><br>• ' + uniq.join('<br>• ');
+    }
+})();
+</script>
+</body>
+</html>
