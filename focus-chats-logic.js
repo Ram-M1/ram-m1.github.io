@@ -302,7 +302,8 @@
       type: c.type || 'user',
       isAdmin: !!c.isAdmin || c.withName === 'Администратор',
       _online: c._online || false,
-      _lastSeen: c._lastSeen || 0
+      _lastSeen: c._lastSeen || 0,
+      _live: c._live !== false          // false = за записью нет живого профиля
     };
   }
 
@@ -325,7 +326,15 @@
       // ПУСТО + у нас уже есть чаты → игнорируем (не мигаем)
       if ((!list || !list.length) && chats.length) { loading = false; return; }
 
-      var fresh = (list || []).map(normalizeChat);
+      /* УБИРАЕМ ПРИЗРАКОВ: запись, за которой нет живого профиля И нет ни одного
+         сообщения — это остаток от старого номера аккаунта. Именно они висели
+         дублями («Анна» рядом с «Пользователь», «Администратор» рядом с именем).
+         Записи с перепиской не трогаем — история важнее. */
+      var fresh = (list || []).map(normalizeChat).filter(function(c){
+        if (c.type === 'group' || c.isAdmin) return true;
+        if (c._live) return true;
+        return !!(c.last && String(c.last).trim());   // без профиля, но с перепиской — оставляем
+      });
 
       // рисуем только если реально изменилось (иначе лишняя перерисовка = мелькание)
       var sigOld = chats.map(function(c){ return c.chatId + c.updatedAt + c.unread; }).sort().join('|');
@@ -650,3 +659,126 @@ document.addEventListener('click', function(e){
     }
   } catch(err){}
 }, true);
+
+/* ═══════════════════════════════════════════════════════════════
+   РАЗДЕЛ «КОНТАКТЫ»
+   Раньше кнопка «Контакты» внизу не имела ОБРАБОТЧИКА — нажатие не делало ничего.
+   Контакт при добавлении честно сохранялся в базу, но на экране его было негде
+   увидеть: список показывает только чаты, а контакты лежат отдельно.
+   Отсюда и «контакты пропали» — они были, но невидимые.
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+  'use strict';
+
+  var contactsLoaded = false;
+
+  function esc2(v){
+    return String(v == null ? '' : v)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function el(id){ return document.getElementById(id); }
+
+  function setNav(which){
+    document.querySelectorAll('.nav-item').forEach(function(n){
+      if (!n.dataset.nav) return;
+      n.classList.toggle('active', n.dataset.nav === which);
+    });
+  }
+
+  function showChats(){
+    setNav('chats');
+    if (el('list')) el('list').style.display = '';
+    if (el('contactsList')) el('contactsList').style.display = 'none';
+    if (el('tabs')) el('tabs').style.display = '';
+    if (el('fab')) el('fab').style.display = '';
+    if (el('topTitle')) el('topTitle').innerText = 'Чаты';
+  }
+
+  function showContacts(){
+    setNav('contacts');
+    if (el('list')) el('list').style.display = 'none';
+    if (el('contactsList')) el('contactsList').style.display = '';
+    if (el('tabs')) el('tabs').style.display = 'none';
+    if (el('fab')) el('fab').style.display = 'none';
+    if (el('topTitle')) el('topTitle').innerText = 'Контакты';
+    renderContacts();
+  }
+
+  async function renderContacts(){
+    var box = el('contactsList');
+    if (!box) return;
+    if (!contactsLoaded) {
+      box.innerHTML = '<div style="padding:22px;text-align:center;color:#8e8e9e;font-size:12.5px;">Загружаю контакты…</div>';
+    }
+
+    var list = [];
+    try { list = (window.fbGetContacts ? await window.fbGetContacts() : []) || []; } catch(e){ list = []; }
+    contactsLoaded = true;
+
+    if (!list.length) {
+      box.innerHTML =
+        '<div style="padding:34px 24px;text-align:center;">' +
+          '<div style="font-size:34px;margin-bottom:10px;">👥</div>' +
+          '<div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;">Контактов пока нет</div>' +
+          '<div style="font-size:12.5px;color:#8e8e9e;line-height:1.5;margin-bottom:16px;">Найди человека по имени или телефону — и он появится здесь.</div>' +
+          '<div id="ctAddBtn" style="display:inline-block;padding:11px 20px;border-radius:13px;background:linear-gradient(135deg,#FFD966,#7C8CFF);color:#0a0a0f;font-weight:700;font-size:13px;cursor:pointer;">Добавить контакт</div>' +
+        '</div>';
+      var ab = el('ctAddBtn');
+      if (ab) ab.addEventListener('click', function(){ var n = el('newBtn'); if (n) n.click(); });
+      return;
+    }
+
+    // свежие имя/фото/статус — одним запросом на всех
+    var profs = {};
+    try {
+      var uids = list.map(function(c){ return c.uid; }).filter(Boolean);
+      if (uids.length && window.fbGetProfilesBatch) profs = await window.fbGetProfilesBatch(uids) || {};
+    } catch(e){}
+
+    list.sort(function(a,b){
+      var an = ((profs[a.uid] && profs[a.uid].name) || a.name || '').toLowerCase();
+      var bn = ((profs[b.uid] && profs[b.uid].name) || b.name || '').toLowerCase();
+      return an.localeCompare(bn);
+    });
+
+    box.innerHTML = list.map(function(c){
+      var p = profs[c.uid] || {};
+      /* ИМЯ ВСЕГДА ИЗ ВИЗИТКИ. Заглушка «Пользователь» больше не показывается,
+         если у человека есть настоящее имя в профиле. */
+      var nm = p.name || (c.name && c.name !== 'Пользователь' ? c.name : '') || 'Пользователь';
+      var online = !!p.online;
+      var av = p.avatar
+        ? '<img src="' + esc2(p.avatar) + '" alt="">'
+        : '<div class="av-letter">' + esc2((nm.trim().charAt(0) || '?').toUpperCase()) + '</div>';
+      // те же классы, что у строки чата — вид один в один
+      return '<div class="chat-row" data-ct-uid="' + esc2(c.uid) + '" data-ct-name="' + esc2(nm) + '">' +
+               '<div class="av' + (online ? ' online' : '') + '">' + av + '<span class="dot"></span></div>' +
+               '<div class="chat-mid">' +
+                 '<div class="chat-top"><div class="chat-name">' + esc2(nm) + '</div></div>' +
+                 '<div class="chat-bot"><div class="chat-last">' + (online ? 'в сети' : 'не в сети') + '</div></div>' +
+               '</div>' +
+             '</div>';
+    }).join('');
+
+    box.querySelectorAll('[data-ct-uid]').forEach(function(row){
+      row.addEventListener('click', function(){
+        var uid = this.dataset.ctUid, nm = this.dataset.ctName;
+        if (window.FocusUserCard) window.FocusUserCard.open(uid, { name: nm });
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('.nav-item').forEach(function(n){
+      var nav = n.dataset.nav;
+      if (nav === 'contacts') n.addEventListener('click', showContacts);
+      if (nav === 'chats') n.addEventListener('click', showChats);
+    });
+    // после добавления контакта список обновляем
+    window.addEventListener('focus-contact-added', function(){ contactsLoaded = false; renderContacts(); });
+  });
+
+  window.FocusContacts = { show: showContacts, refresh: renderContacts };
+})();
