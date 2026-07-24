@@ -673,7 +673,11 @@
         function checkSession(){
             try { if (localStorage.getItem('focus_registering') === '1') return; } catch(e){}
             const user = window.fbCurrentUser && window.fbCurrentUser();
-            if (user && user.emailVerified) {
+            /* Достаточно ЖИВОЙ СЕССИИ. Раньше требовалась ещё отметка «почта подтверждена» —
+               у аккаунтов, заведённых до её появления, её нет, и человек с рабочей сессией
+               видел рекламный экран вместо приложения, будто его разлогинило.
+               Сессия сама по себе означает, что человек вводил код с почты. */
+            if (user) {
                 try { localStorage.setItem('focus_login_anchor', '1'); } catch(e){}
                 /* ВСЕГДА на главную. Раньше лендинг сам решал «анкета заполнена?»
                    по ЛОКАЛЬНЫМ данным — и на чистом кэше (переустановка, новое

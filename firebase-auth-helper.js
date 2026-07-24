@@ -45,12 +45,13 @@ try {
 /* ===== ВХОД ПО ПОЧТЕ И КОДУ (без пароля) =====
    Код генерит и проверяет СЕРВЕР (воркер). Он же выдаёт ключ входа.
    На телефоне код не хранится — подобрать или подставить его нельзя. */
-window.fbSendCode = async function(email) {
+window.fbSendCode = async function(email, mode) {
   try {
     const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+    // mode='login' → сервер откажет незнакомой почте («Пожалуйста, пройдите регистрацию»)
     const r = await fetch(base + '/auth/send-code', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: String(email || '').trim().toLowerCase() })
+      body: JSON.stringify({ email: String(email || '').trim().toLowerCase(), mode: mode || '' })
     });
     const d = await r.json();
     return d.ok ? { ok: true } : { ok: false, error: d.error || 'Не удалось отправить код' };

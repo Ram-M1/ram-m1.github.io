@@ -300,7 +300,7 @@
     <canvas id="cosmicCanvas" width="375" height="700" style="width:375px;height:700px;"></canvas>
     <div class="screen">
         <div class="header-row">
-            <div class="back-btn" onclick="location.href='confirm.html'">
+            <div class="back-btn" id="backBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
             </div>
             <div style="flex:1; text-align:center; padding:0 10px;">
@@ -368,7 +368,7 @@
                 Дата рождения
                 <span class="label-bonus">+5 монет</span>
             </div>
-            <input type="date" class="input" id="birthDate" max="2020-12-31" min="1920-01-01">
+            <input type="date" class="input" id="birthDate">
             <div class="birth-hint" id="birthHint" style="font-size:12px;color:#9db0ff;margin-top:8px;display:none;"></div>
         </div>
 
@@ -645,20 +645,72 @@
     if (savedUser.phone) document.getElementById('phone').value = savedUser.phone;
 
     // дата рождения — сразу показываем знак зодиака и число судьбы как подсказку
+    /* СТРЕЛКА «НАЗАД». Раньше вела ЖЁСТКО на подтверждение почты — откуда бы ты
+       ни пришёл. Из-за этого при редактировании профиля кидало на ввод кода.
+       Теперь: во время регистрации назад некуда (аккаунт уже создан) — стрелку прячем.
+       Редактируешь профиль — возвращаемся в профиль. */
+    (function(){
+        var back = document.getElementById('backBtn');
+        if (!back) return;
+        var registering = false;
+        try { registering = localStorage.getItem('focus_registering') === '1'; } catch(e){}
+        if (registering) { back.style.visibility = 'hidden'; return; }
+        back.addEventListener('click', function(){ location.href = 'fokus_profile.html'; });
+    })();
+
     const birthInput = document.getElementById('birthDate');
+    /* Границы поля СЧИТАЕМ от сегодняшнего дня и держим ровно теми же, что и проверка (5–120 лет).
+       Раньше в разметке жёстко стояло 1920–2020: поле и проверка расходились, и календарь
+       не давал выбрать то, что проверка считала допустимым. */
+    (function(){
+        var t = new Date();
+        var maxD = new Date(t.getFullYear() - 5, t.getMonth(), t.getDate());
+        var minD = new Date(t.getFullYear() - 120, t.getMonth(), t.getDate());
+        var f = function(d){ return d.toISOString().slice(0,10); };
+        birthInput.max = f(maxD);
+        birthInput.min = f(minD);
+    })();
     if (savedUser.birthDate) birthInput.value = savedUser.birthDate;
+    /** Возраст по дате рождения (одна формула на всю страницу — чтобы подсказка и
+        проверка всегда говорили одно и то же). */
+    function calcAge(bd){
+        try {
+            var b = new Date(bd + 'T00:00:00');
+            if (isNaN(b.getTime())) return null;
+            var n = new Date();
+            return n.getFullYear() - b.getFullYear() - ((n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) ? 1 : 0);
+        } catch(e){ return null; }
+    }
     function updateBirthHint(){
         const hint = document.getElementById('birthHint');
         const bd = birthInput.value;
-        if (!bd || !window.FocusAstro) { if(hint) hint.style.display='none'; return; }
-        const z = FocusAstro.getZodiac(bd);
-        const lp = FocusAstro.getLifePathNumber(bd);
-        if (z && lp && hint) {
-            hint.innerHTML = z.emoji + ' ' + z.sign + ' · Число судьбы: <b>' + lp + '</b>';
+        if (!hint) return;
+        if (!bd) { hint.style.display='none'; birthInput.style.borderColor=''; return; }
+        var age = calcAge(bd);
+        /* ПОКАЗЫВАЕМ ВОЗРАСТ СРАЗУ. Раньше тут был только зодиак, и человек не видел,
+           КАК приложение поняло дату. Введёшь год «100» — поле примет 0100, а на экране
+           ничего не изменится: получаешь непонятную ошибку «возраст от 5 до 200». */
+        var bad = (age === null || age < 5 || age > 120);
+        birthInput.style.borderColor = bad ? 'rgba(255,90,90,0.8)' : '';
+        if (bad) {
+            hint.innerHTML = age === null
+                ? '<span style="color:#ff8080;">Дата не распознана. Формат: день, месяц, год — например 15.03.1990</span>'
+                : '<span style="color:#ff8080;">Получается <b>' + age + '</b> лет — проверь ГОД рождения (нужен полный, например 1990)</span>';
             hint.style.display = 'block';
+            return;
         }
+        var extra = '';
+        try {
+            if (window.FocusAstro) {
+                var z = FocusAstro.getZodiac(bd), lp = FocusAstro.getLifePathNumber(bd);
+                if (z && lp) extra = ' · ' + z.emoji + ' ' + z.sign + ' · Число судьбы: <b>' + lp + '</b>';
+            }
+        } catch(e){}
+        hint.innerHTML = 'Тебе <b>' + age + '</b> ' + (age % 10 === 1 && age % 100 !== 11 ? 'год' : (age % 10 >= 2 && age % 10 <= 4 && (age % 100 < 10 || age % 100 >= 20) ? 'года' : 'лет')) + extra;
+        hint.style.display = 'block';
     }
     birthInput.addEventListener('change', updateBirthHint);
+    birthInput.addEventListener('input', updateBirthHint);   // видно сразу, а не после ухода с поля
     updateBirthHint();
 
     // выбор голоса ассистента
@@ -731,16 +783,26 @@
         if (!LETTERS.test(name) || name.length < 2) { showToast('Имя — только буквы (без цифр и символов)'); return; }
 
         if (!birthDate) { showToast('Укажите дату рождения'); return; }
-        // возраст строго 5–200 лет
-        var _age = null;
-        try {
-            var _b = new Date(birthDate + 'T00:00:00');
-            if (isNaN(_b.getTime())) { showToast('Некорректная дата рождения'); return; }
-            var _n = new Date();
-            _age = _n.getFullYear() - _b.getFullYear() - ((_n.getMonth() < _b.getMonth() || (_n.getMonth() === _b.getMonth() && _n.getDate() < _b.getDate())) ? 1 : 0);
-        } catch(e) { showToast('Некорректная дата рождения'); return; }
-        if (_b > new Date()) { showToast('Дата рождения не может быть в будущем'); return; }
-        if (_age < 5 || _age > 200) { showToast('Возраст должен быть от 5 до 200 лет'); return; }
+        /* ВОЗРАСТ. Раньше при любой странной дате писало «возраст должен быть от 5 до 200» —
+           и человек не понимал, что не так: он-то видит в поле нормальные цифры.
+           Классика: в поле ГОДА вводят «100» → получается 0100 год → возраст 1926 лет →
+           та же непонятная ошибка снова и снова. Теперь говорим КОНКРЕТНО, что не сходится. */
+        var _b = new Date(birthDate + 'T00:00:00');
+        if (isNaN(_b.getTime())) {
+            showToast('Дата не распознана. Формат: день, месяц, год — например 15.03.1990');
+            document.getElementById('birthDate').style.borderColor = 'rgba(255,90,90,0.8)';
+            document.getElementById('birthDate').focus(); return;
+        }
+        if (_b > new Date()) { showToast('Дата рождения не может быть в будущем'); document.getElementById('birthDate').focus(); return; }
+        var _age = calcAge(birthDate);
+        if (_age === null || _age < 5 || _age > 120) {
+            document.getElementById('birthDate').style.borderColor = 'rgba(255,90,90,0.8)';
+            document.getElementById('birthDate').focus();
+            if (_age !== null && _age > 120) { showToast('Получается ' + _age + ' лет — проверь ГОД рождения (нужен полный, например 1990)'); return; }
+            if (_age !== null && _age < 5) { showToast('Приложение с 5 лет. Проверь год рождения'); return; }
+            showToast('Проверь дату рождения'); return;
+        }
+        document.getElementById('birthDate').style.borderColor = '';
 
         if (!city) { showToast('Введите город'); return; }
         if (!LETTERS.test(city) || city.length < 2) { showToast('Город — только буквы'); return; }
@@ -760,14 +822,8 @@
         if (!assistantName) { showToast('Придумай имя своему ассистенту ✨'); return; }
         if (!LETTERS.test(assistantName) || assistantName.length < 2) { showToast('Имя ассистента — только буквы'); return; }
 
-        // вычисляем возраст из даты рождения
-        let age = '';
-        try {
-            const b = new Date(birthDate + 'T00:00:00');
-            const now = new Date();
-            age = now.getFullYear() - b.getFullYear() - ((now.getMonth() < b.getMonth() || (now.getMonth()===b.getMonth() && now.getDate()<b.getDate())) ? 1 : 0);
-            age = String(age);
-        } catch(e){}
+        // возраст — той же формулой, что подсказка и проверка (без второго расчёта, чтобы не расходились)
+        var age = String(_age);
 
         let bonusCoins = 0;
         const updates = {};

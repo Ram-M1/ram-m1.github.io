@@ -227,8 +227,10 @@ const FocusStorage = {
 
             // анкета пройдена, если облако говорит profileCompleted (верхним уровнем ИЛИ в flags)
             // ИЛИ есть ключевые поля — фиксируем флаг локально, чтобы гард не выкидывал в анкету.
-            var done = data.profileCompleted === true || (data.flags && data.flags.profileCompleted === true)
-                       || (merged.name && merged.assistantName && merged.birthDate)
+            /* Флаг из облака САМ ПО СЕБЕ ничего не значит: у брошенных на полпути
+               регистраций он остался без данных и пускал людей на главную с пустым профилем.
+               Ставим флаг только когда реально есть имя + ассистент + дата. */
+            var done = (merged.name && merged.assistantName && merged.birthDate)
                        || (local.name && local.assistantName && local.birthDate);
             if (done) { try { this.saveUser({ flags: { profileCompleted: true } }); } catch(e){} }
             // все пользовательские ключи (тренировки, программы, дневники и т.п.) — пишем обратно,

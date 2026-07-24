@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" data-theme="original" id="htmlRoot">
 <head>
-<script>console.log('%cFOCUS v235 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
+<script>console.log('%cFOCUS v238 — приветствие','color:#7fd0ff;font-weight:bold;font-size:14px');</script>
 <script>
   // ДО отрисовки: если новый юзер (будет приветствие) — красим всё в чёрный сразу, чтобы главная не мелькнула
   try {
@@ -1006,7 +1006,11 @@ window._focusUnlockAudio = function(){
         try {
             var _raw = localStorage.getItem('focus_user');
             var _u = _raw ? (JSON.parse(_raw) || {}) : null;
-            var hasProfile = _u && ((_u.flags && _u.flags.profileCompleted) || _u.profileCompleted || (_u.name && _u.assistantName && _u.birthDate));
+            /* АНКЕТА ПРОЙДЕНА = ЕСТЬ РЕАЛЬНЫЕ ДАННЫЕ. Раньше хватало голого флага
+               profileCompleted — и человек с пустым профилем (флаг остался от старых
+               тестов или пришёл из облака) попадал на главную, минуя анкету.
+               Теперь решают САМИ ПОЛЯ: нет имени/ассистента/даты — идёшь в анкету. */
+            var hasProfile = !!(_u && _u.name && _u.assistantName && _u.birthDate);
             var anchor = localStorage.getItem('focus_login_anchor') === '1';
             var loggedOut = localStorage.getItem('focus_logged_out') === '1';
             var registering = localStorage.getItem('focus_registering') === '1';
@@ -1043,39 +1047,56 @@ window._focusUnlockAudio = function(){
                    поэтому человека с готовым профилем выкидывало в анкету.
                    Теперь: ждём появления СЕССИИ (опрос 150 мс), делаем ОДНУ проверку
                    облака и решаем сразу. Обычно укладывается в 0.5-1 сек. */
+                /* ПРАВИЛО: В АНКЕТУ — ТОЛЬКО ПО ПОДТВЕРЖДЁННОМУ ОТВЕТУ ОБЛАКА.
+                   Раньше сюда попадали три «не знаю»: помощник не догрузился, сессия
+                   не успела подняться, облако не ответило — и человека с заполненной
+                   анкетой выкидывало заполнять заново из-за плохой сети или долгого
+                   отсутствия. Теперь сомневаемся — НЕ трогаем: остаёмся на главной
+                   и тихо переспрашиваем в фоне. Уводим в анкету, только если сервер
+                   реально ответил и анкеты в ответе нет. */
                 (function(){
                     var done = false;
                     var finish = function(toAnketa){
                         if (done) return; done = true;
                         if (toAnketa) location.replace('profile-form.html');
                     };
-                    // следим: профиль мог подъехать из облака/восстановления — тогда остаёмся
+                    // профиль мог подъехать из облака/восстановления — тогда просто остаёмся
                     var watch = setInterval(function(){
                         var u2 = null;
                         try { u2 = JSON.parse(localStorage.getItem('focus_user') || 'null'); } catch(e){}
-                        if (u2 && ((u2.flags && u2.flags.profileCompleted) || u2.profileCompleted
-                                   || (u2.name && u2.assistantName && u2.birthDate))) {
+                        if (u2 && u2.name && u2.assistantName && u2.birthDate) {
                             clearInterval(watch); done = true;
                         }
                     }, 150);
+
                     var t0 = Date.now();
+                    var LIMIT = 90000;                      // столько всего пробуем переспрашивать
+                    var retry = function(delay){            // не знаем — переспросим позже, юзера не трогаем
+                        if (done) { clearInterval(watch); return; }
+                        if (Date.now() - t0 > LIMIT) { clearInterval(watch); return; }   // сдались, но НЕ выкидываем
+                        setTimeout(tryDecide, delay || 3000);
+                    };
+
                     var tryDecide = function(){
                         if (done) { clearInterval(watch); return; }
-                        // помощник грузится модулем — дожидаемся его появления
-                        if (!window.fbWaitSession || !window.fbLoadUserData) {
-                            if (Date.now() - t0 < 4000) { setTimeout(tryDecide, 150); return; }
-                            clearInterval(watch); finish(true); return;
-                        }
+                        // помощник ещё не загрузился — это «не знаю», ждём дальше
+                        if (!window.fbWaitSession || !window.fbLoadUserData) { retry(300); return; }
+
                         window.fbWaitSession(3000).then(function(user){
                             if (done) { clearInterval(watch); return; }
-                            if (!user) { clearInterval(watch); finish(true); return; }   // сессии нет — анкета правда нужна
+                            // сессии пока нет — тоже «не знаю» (медленная сеть). Переспросим.
+                            if (!user) { retry(3000); return; }
+
                             window.fbLoadUserData().then(function(data){
-                                try { if (data && window.FocusStorage) FocusStorage.applyCloudData(data); } catch(e){}
-                                var has = !!(data && ((data.flags && data.flags.profileCompleted) || data.profileCompleted
-                                            || (data.name && data.assistantName && data.birthDate)));
-                                clearInterval(watch); finish(!has);
-                            }).catch(function(){ clearInterval(watch); finish(true); });
-                        });
+                                if (done) { clearInterval(watch); return; }
+                                // null = спросить не удалось (нет сессии/связи) → НЕ решаем
+                                if (data === null || data === undefined) { retry(3000); return; }
+                                try { if (window.FocusStorage) FocusStorage.applyCloudData(data); } catch(e){}
+                                var has = !!(data.name && data.assistantName && data.birthDate);
+                                if (has) { clearInterval(watch); done = true; return; }   // профиль есть — остаёмся
+                                clearInterval(watch); finish(true);                       // ОТВЕТ ПОЛУЧЕН, анкеты нет
+                            }).catch(function(){ retry(3000); });                         // связь оборвалась — не выкидываем
+                        }).catch(function(){ retry(3000); });
                     };
                     tryDecide();
                 })();
@@ -2723,7 +2744,7 @@ window._focusUnlockAudio = function(){
         // свежая версия подхватывается при следующем естественном переходе (клик в раздел
         // или переоткрытие приложения = полная загрузка). Мелькания нет вообще.
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js?v=235').then(function(reg){
+            navigator.serviceWorker.register('sw.js?v=238').then(function(reg){
                 if (reg && reg.update) { try { reg.update(); } catch(e){} }   // тихо проверяем обновление
             }).catch(() => {});
         });

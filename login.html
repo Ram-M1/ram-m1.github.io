@@ -453,7 +453,7 @@
         }
         btn.disabled = true;
         document.getElementById('loginBtnText').innerText = 'Отправляем код...';
-        const r = await window.fbSendCode(email);
+        const r = await window.fbSendCode(email, 'login');   // вход: незнакомой почте — отказ
         btn.disabled = false;
         if (!r.ok) {
             document.getElementById('loginBtnText').innerText = 'Получить код';
