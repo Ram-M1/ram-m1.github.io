@@ -1248,7 +1248,9 @@ window.fbSearchChats = async function(queryText) {
     const matchedMessages = [];
     // ограничиваем: ищем по 20 последним чатам (раньше обходились ВСЕ чаты подряд —
     // при 100 чатах это 100 запросов и секунды ожидания)
-    for (const c of chatList.slice(0, 20)) {
+    /* Запросы идут ПАРАЛЛЕЛЬНО. Раньше 20 чатов опрашивались по очереди —
+       каждый ждал предыдущего, и поиск занимал секунды. Теперь все разом. */
+    await Promise.all(chatList.slice(0, 20).map(async function(c){
       try {
         // берём только последние 50 сообщений чата (не все — для скорости)
         const msgSnap = await getDocs(query(collection(db, 'chats', c.chatId, 'messages'), orderBy('ts', 'desc'), limit(50)));
@@ -1265,7 +1267,7 @@ window.fbSearchChats = async function(queryText) {
           }
         });
       } catch(e){}
-    }
+    }));
     matchedMessages.sort((a,b) => (b.at||'').localeCompare(a.at||''));
     return { chats: matchedChats, messages: matchedMessages };
   } catch (e) {

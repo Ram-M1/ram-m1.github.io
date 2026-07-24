@@ -266,8 +266,8 @@
             <div class="back-btn" onclick="chatGoBack()" style="position:static;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
             </div>
-            <div class="chat-hdr-avatar" id="hdrAvatar">?</div>
-            <div class="chat-hdr-info">
+            <div class="chat-hdr-avatar" id="hdrAvatar" style="cursor:pointer;">?</div>
+            <div class="chat-hdr-info" id="hdrInfoTap" style="cursor:pointer;">
                 <div class="chat-hdr-name" id="hdrName">Чат</div>
                 <div class="chat-hdr-status" id="hdrStatus">онлайн</div>
             </div>
@@ -758,7 +758,7 @@ initAtmosphere(canvasId) {
             wrap.style.display = 'flex';
             wrap.style.flexDirection = 'column';
             const t = m.at ? new Date(m.at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}) : '';
-            const chatId = new URLSearchParams(location.search).get('chatId');
+            const chatId = (new URLSearchParams(location.search).get('chatId') || new URLSearchParams(location.search).get('chat'));
             let inner = '';
 
             if (m.kind === 'photo' && (m.thumb || m.data)) {
@@ -849,7 +849,7 @@ initAtmosphere(canvasId) {
            и юзер вообще не мог посмотреть картинку. */
         function openPhotoViewer(src){
             const ov = document.createElement('div');
-            ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.95);' +
+            ov.style.cssText = 'position:absolute;inset:0;z-index:99999;background:rgba(0,0,0,0.95);' +
                 'display:flex;align-items:center;justify-content:center;padding:16px;' +
                 'padding-top:calc(16px + env(safe-area-inset-top,0px));';
             const im = document.createElement('img');
@@ -863,7 +863,8 @@ initAtmosphere(canvasId) {
             ov.appendChild(im);
             ov.appendChild(close);
             ov.addEventListener('click', function(){ ov.remove(); });
-            document.body.appendChild(ov);
+            // крепим к рамке телефона, иначе на компе просмотр фото уедет за её границы
+            (document.querySelector('.phone') || document.body).appendChild(ov);
         }
 
         function startRealChat(){
@@ -894,6 +895,7 @@ initAtmosphere(canvasId) {
             // 2. подключаем реалтайм из облака (обновит когда придёт)
             if (!window.fbListenMessages || !myUidNow()) { setTimeout(startRealChat, 300); return; }
             resolveOther();
+            try { window._realChatId = realChatId; } catch(e){}   // нужно карточке пользователя
             window.fbListenMessages(realChatId, (msgs) => {
                 if (!msgs.length) {
                     if (!area.querySelector('.msg')) area.innerHTML = '<div style="text-align:center;color:#8e8e9e;font-size:12px;padding:30px 20px;">Начни переписку — напиши первое сообщение 👋</div>';
@@ -907,6 +909,10 @@ initAtmosphere(canvasId) {
                    (50 сообщений с картинками = 50 узлов DOM заново каждый раз).
                    Теперь на экране остаётся то, что уже нарисовано, а новое просто
                    добавляется в конец — как в WhatsApp и MAX. */
+                /* Список показанных сообщений привязан к КОНКРЕТНОМУ чату.
+                   Раньше он был общий и рос бесконечно при переходах между чатами —
+                   лишняя память, а при большом числе диалогов и лишние проверки. */
+                if (window.__shownChat !== realChatId) { window.__shownIds = new Set(); window.__shownChat = realChatId; }
                 if (!window.__shownIds) window.__shownIds = new Set();
                 var shown = window.__shownIds;
 
@@ -1042,7 +1048,7 @@ initAtmosphere(canvasId) {
 
     async function loadOlder(area){
         if (loading || noMore || !oldestTs) return;
-        var chatId = new URLSearchParams(location.search).get('chatId');
+        var chatId = (new URLSearchParams(location.search).get('chatId') || new URLSearchParams(location.search).get('chat'));
         if (!chatId || !window.fbLoadOlderMessages || typeof renderMsg !== 'function') return;
 
         loading = true;
@@ -1096,7 +1102,7 @@ initAtmosphere(canvasId) {
     var peerUid = null;
 
     function peerFromChat(){
-        var chatId = new URLSearchParams(location.search).get('chatId');
+        var chatId = (new URLSearchParams(location.search).get('chatId') || new URLSearchParams(location.search).get('chat'));
         var me = (window.fbCurrentUser && fbCurrentUser()) ? fbCurrentUser().uid : null;
         if (!chatId || !me || chatId.indexOf('__') === -1) return null;
         var parts = chatId.split('__');
@@ -1121,6 +1127,7 @@ initAtmosphere(canvasId) {
 
     async function init(){
         peerUid = peerFromChat();
+        try { window._peerUid = peerUid; } catch(e){}   // нужно карточке пользователя
         if (!peerUid) return;
         /* ЖИВАЯ ПОДПИСКА вместо опроса.
            Раньше телефон каждые 30 секунд спрашивал базу «он в сети?» — это 120 лишних
@@ -1194,5 +1201,24 @@ initAtmosphere(canvasId) {
 </script>
 
 <script src="focus-reminders.js"></script>
+<script src="focus-usercard.js"></script>
+<script>
+/* ТАП ПО АВАТАРУ/ИМЕНИ В ШАПКЕ → карточка собеседника (как в WhatsApp).
+   Раньше тап не делал ничего: ни фото, ни информации, ни действий. */
+(function(){
+    function openCard(){
+        try {
+            var uid = window._peerUid || null;
+            if (!uid) return;
+            var nm = (document.getElementById('hdrName') || {}).innerText || '';
+            if (window.FocusUserCard) window.FocusUserCard.open(uid, { name: nm, chatId: window._realChatId || null });
+        } catch(e){}
+    }
+    ['hdrAvatar','hdrInfoTap'].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('click', openCard);
+    });
+})();
+</script>
 </body>
 </html>

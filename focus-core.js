@@ -437,9 +437,21 @@ const FocusCore = {
         function cssColor(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
         function cssColorRgb(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 
+        /* Цвета берём ИЗ КЭША. Раньше на каждом кадре лезли в стили страницы —
+           браузер каждый раз пересчитывал стили, это дорого. Обновляем при смене темы. */
+        var _cAcc = null, _cAcc2 = null, _cTheme = null;
+        function _colors(){
+            var t = currentTheme();
+            if (t !== _cTheme || _cAcc === null) {
+                _cTheme = t;
+                _cAcc = cssColorRgb('--accent-rgb');
+                _cAcc2 = cssColorRgb('--accent-2-rgb');
+            }
+        }
         function drawFullScreenWash() {
-            washT += 0.008;
-            const accRgb = cssColorRgb('--accent-rgb'), acc2Rgb = cssColorRgb('--accent-2-rgb');
+            washT += 0.016;   // шаг вдвое больше — при 30 кадрах скорость та же
+            _colors();
+            const accRgb = _cAcc, acc2Rgb = _cAcc2;
             const x = ac.width * (0.5 + Math.sin(washT) * 0.5);
             const y = ac.height * (0.5 + Math.cos(washT * 0.7) * 0.5);
             const grad = actx.createRadialGradient(x, y, 0, ac.width / 2, ac.height / 2, Math.max(ac.width, ac.height) * 0.9);
@@ -732,7 +744,33 @@ const FocusCore = {
             }
         }
 
-        function loop() {
+        /* ПАУЗА, КОГДА НЕ ВИДНО.
+           Фон рисовал 60 кадров в секунду НЕПРЕРЫВНО — даже когда приложение свёрнуто
+           или экран не активен. Это грело телефон, сажало батарею и мешало прокрутке
+           и набору текста в чате. Теперь: экран скрыт — цикл встаёт, вернулись — ожил. */
+        var _atmosPaused = false;
+        function _atmosResume(){
+            if (!_atmosPaused) return;
+            _atmosPaused = false;
+            requestAnimationFrame(loop);
+        }
+        try {
+            document.addEventListener('visibilitychange', function(){
+                if (document.hidden) { _atmosPaused = true; }
+                else { _atmosResume(); }
+            });
+            window.addEventListener('focus', _atmosResume);
+        } catch(e){}
+
+        var _lastFrame = 0;
+        function loop(ts) {
+            if (document.hidden) { _atmosPaused = true; return; }   // не тратим кадры впустую
+            requestAnimationFrame(loop);
+            /* 30 кадров в секунду вместо 60: фон плывёт медленно, глазом разницы нет,
+               а нагрузка на процессор вдвое меньше — заметно на телефоне. */
+            var now = ts || performance.now();
+            if (now - _lastFrame < 33) return;
+            _lastFrame = now;
             const theme = currentTheme();
             if (theme !== lastTheme) {
                 actx.clearRect(0, 0, ac.width, ac.height);
@@ -747,8 +785,7 @@ const FocusCore = {
             else if (theme === 'matrix') drawMatrix();
             else if (theme === 'cyberpunk') drawCyberpunk();
             else if (theme === 'whitematrix') drawWhiteMatrix();
-            requestAnimationFrame(loop);
         }
-        loop();
+        requestAnimationFrame(loop);
     }
 };

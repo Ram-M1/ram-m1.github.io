@@ -61,7 +61,11 @@
       var letter = (chat.name || '?').trim().charAt(0).toUpperCase() || '?';
       inner = '<div class="av-letter">' + esc(letter) + '</div>';
     }
-    return '<div class="' + cls + '">' + inner + '<span class="dot"></span></div>';
+    /* Аватар кликабельный: тап открывает карточку человека (как в WhatsApp).
+       Раньше тап по аватару не делал ничего. Данные кладём в атрибуты — их читает
+       общий обработчик ниже, чтобы не вешать слушатель на каждую строку. */
+    var duid = (chat.type === 'group') ? '' : (chat.uid || chat.withUid || '');
+    return '<div class="' + cls + '"' + (duid ? ' data-card-uid="' + esc(duid) + '" data-card-chat="' + esc(chat.chatId || '') + '" data-card-name="' + esc(chat.name || '') + '" style="cursor:pointer;"' : '') + '>' + inner + '<span class="dot"></span></div>';
   }
 
   // ─────────── ПОИСК ПО ПЕРЕПИСКЕ (по кэшу на устройстве) ───────────
@@ -627,3 +631,22 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
+
+
+/* ═══ ТАП ПО АВАТАРУ В СПИСКЕ → КАРТОЧКА ЧЕЛОВЕКА ═══
+   Один слушатель на весь список вместо слушателя на каждую строку — меньше памяти
+   и не нужно перевешивать обработчики после каждой перерисовки. */
+document.addEventListener('click', function(e){
+  var av = e.target && e.target.closest ? e.target.closest('[data-card-uid]') : null;
+  if (!av) return;
+  e.preventDefault();
+  e.stopPropagation();          // не открываем сам чат — только карточку
+  try {
+    if (window.FocusUserCard) {
+      window.FocusUserCard.open(av.dataset.cardUid, {
+        name: av.dataset.cardName || '',
+        chatId: av.dataset.cardChat || null
+      });
+    }
+  } catch(err){}
+}, true);

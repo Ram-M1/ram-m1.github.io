@@ -517,7 +517,7 @@ initAtmosphere(canvasId) {
                     saveMyOrders(orders);
                     orderModal.classList.remove('show');
                     toast('✓ Заказ оформлен! Открываю чат со специалистом...');
-                    if (res.chatId) setTimeout(()=>{ location.href = 'fokus_chat.html?chat=' + res.chatId; }, 1200);
+                    if (res.chatId) setTimeout(()=>{ location.href = 'fokus_chat.html?chatId=' + res.chatId; }, 1200);
                     return;
                 } else {
                     toast(res && res.error ? res.error : 'Не удалось оформить');
