@@ -44,6 +44,19 @@
         setTimeout(function () { if (el.parentNode) el.remove(); }, 180);
     }
 
+    /** Дожидаемся готовности помощника и сессии — вместо мгновенного отказа.
+        Кнопки нажимают сразу после открытия экрана, когда сессия ещё поднимается. */
+    async function ready(fnName, maxMs) {
+        var t0 = Date.now(), cap = maxMs || 5000;
+        while (Date.now() - t0 < cap) {
+            if (window[fnName] && window.fbCurrentUser && window.fbCurrentUser()) return true;
+            if (window.fbWaitSession) { try { await window.fbWaitSession(cap); } catch (e) {} }
+            if (window[fnName] && window.fbCurrentUser && window.fbCurrentUser()) return true;
+            await new Promise(function (r) { setTimeout(r, 150); });
+        }
+        return !!(window[fnName] && window.fbCurrentUser && window.fbCurrentUser());
+    }
+
     /** Открыть карточку. uid — чей профиль, opts: {name, avatar, chatId, phone} */
     async function open(uid, opts) {
         opts = opts || {};
@@ -133,6 +146,7 @@
                 if (act === 'write') {
                     close();
                     if (opts.chatId) { location.href = 'fokus_chat.html?chatId=' + encodeURIComponent(opts.chatId); return; }
+                    if (!(await ready('fbOpenChat', 5000))) { toast('Нет связи — попробуй ещё раз'); return; }
                     try {
                         var r = await window.fbOpenChat(uid, name);
                         if (r && r.ok) location.href = 'fokus_chat.html?chatId=' + encodeURIComponent(r.chatId);
@@ -154,9 +168,16 @@
                 }
 
                 if (act === 'contact') {
+                    this.style.opacity = '0.5';
+                    var okReady = await ready('fbAddContact', 5000);
+                    this.style.opacity = '1';
+                    if (!okReady) { toast('Нет связи — попробуй ещё раз'); return; }
                     try {
                         var rc = await window.fbAddContact(uid, name, opts.phone || '');
-                        toast(rc && rc.ok ? 'Добавлен в контакты ✅' : ((rc && rc.error) || 'Не вышло добавить'));
+                        if (rc && rc.ok) {
+                            toast('Добавлен в контакты ✅');
+                            try { window.dispatchEvent(new Event('focus-contact-added')); } catch (e) {}
+                        } else toast((rc && rc.error) || 'Не вышло добавить');
                     } catch (e) { toast('Не вышло добавить'); }
                     return;
                 }

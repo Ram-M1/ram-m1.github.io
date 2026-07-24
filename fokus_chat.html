@@ -960,19 +960,40 @@ initAtmosphere(canvasId) {
         if (window.FB_AUTH_READY) startRealChat();
         else { startRealChat(); window.addEventListener('fb-auth-ready', startRealChat); }
 
+        /* ЖДЁМ ГОТОВНОСТИ, А НЕ ОТКАЗЫВАЕМ.
+           Раньше кнопки требовали, чтобы сессия и помощник были готовы РОВНО в момент
+           нажатия — иначе сразу «Не готово, подожди» и ни одной попытки. А сессия
+           поднимается за доли секунды после открытия экрана, и человек попадал в это окно. */
+        async function ensureReady(maxMs){
+            var t0 = Date.now(), cap = maxMs || 5000;
+            while (Date.now() - t0 < cap) {
+                if (window.fbWaitSession) { try { await window.fbWaitSession(cap); } catch(e){} }
+                resolveOther();
+                if (otherUid && window.fbAddContact) return true;
+                await new Promise(function(r){ setTimeout(r, 150); });
+            }
+            resolveOther();
+            return !!(otherUid && window.fbAddContact);
+        }
+
         // === Добавить в контакты ===
         addContactBtn.addEventListener('click', async () => {
-            resolveOther();
-            if (!otherUid || !window.fbAddContact) { toast('Не готово, подожди'); return; }
+            const old = addContactBtn.style.opacity;
+            addContactBtn.style.opacity = '0.5';
+            const ready = await ensureReady(5000);
+            addContactBtn.style.opacity = old || '1';
+            if (!ready) { toast('Нет связи — попробуй ещё раз'); return; }
             const res = await window.fbAddContact(otherUid, realChatName, '');
-            toast(res.ok ? '✓ Добавлен в контакты' : 'Не удалось');
+            toast(res.ok ? '✓ Добавлен в контакты' : (res.error || 'Не удалось'));
+            // раздел «Контакты» обновится при следующем открытии
+            try { window.dispatchEvent(new Event('focus-contact-added')); } catch(e){}
         });
 
         // === Перевод F-coin через существующее меню (optCoin → coinModal) ===
         // переопределяем подтверждение перевода на реальный переток
         window._realChatTransfer = async function(amount){
-            resolveOther();
-            if (!otherUid || !window.fbTransferCoinsInChat) { toast('Не готово'); return false; }
+            await ensureReady(5000);
+            if (!otherUid || !window.fbTransferCoinsInChat) { toast('Нет связи — попробуй ещё раз'); return false; }
             const res = await window.fbTransferCoinsInChat(realChatId, otherUid, amount);
             if (res.ok) {
                 FocusStorage.saveUser({ coins: res.newBalance });
