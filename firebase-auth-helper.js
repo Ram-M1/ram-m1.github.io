@@ -11,15 +11,20 @@
    - window.fbLoadUserData() → Promise<data|null> (загрузить профиль)
 */
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+/* Грузим Firebase ЧЕРЕЗ СВОЙ ЗАГРУЗЧИК (firebase-cdn.js).
+   Раньше библиотека тянулась только с серверов Google — если они недоступны,
+   не появлялась НИ ОДНА функция: ни регистрация, ни вход, ни поиск, ни чат.
+   Теперь загрузчик пробует несколько источников и берёт первый доступный. */
+import { initializeApp } from "./firebase-cdn.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signOut, onAuthStateChanged, sendEmailVerification, reload,
   signInWithCustomToken, setPersistence, indexedDBLocalPersistence, browserLocalPersistence
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+} from "./firebase-cdn.js";
 import {
   getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, arrayUnion,
-  addDoc, onSnapshot, orderBy, serverTimestamp, limit, startAfter, deleteDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  addDoc, onSnapshot, orderBy, serverTimestamp, limit, startAfter, deleteDoc, loadMessaging
+} from "./firebase-cdn.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyASAdRxYNELOEwCQyAKPSecLBIHrqNoap4",
@@ -46,16 +51,27 @@ try {
    Код генерит и проверяет СЕРВЕР (воркер). Он же выдаёт ключ входа.
    На телефоне код не хранится — подобрать или подставить его нельзя. */
 window.fbSendCode = async function(email, mode) {
+  const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
+  /* ЧЕСТНАЯ ОШИБКА. Раньше и обрыв сети, и упавший сервер давали одинаковое
+     «Нет связи с сервером» — понять причину было невозможно. Теперь различаем:
+     не достучались вообще / сервер ответил не тем / сервер вернул ошибку. */
+  let r;
   try {
-    const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
     // mode='login' → сервер откажет незнакомой почте («Пожалуйста, пройдите регистрацию»)
-    const r = await fetch(base + '/auth/send-code', {
+    r = await fetch(base + '/auth/send-code', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: String(email || '').trim().toLowerCase(), mode: mode || '' })
     });
-    const d = await r.json();
-    return d.ok ? { ok: true } : { ok: false, error: d.error || 'Не удалось отправить код' };
-  } catch (e) { return { ok: false, error: 'Нет связи с сервером' }; }
+  } catch (e) {
+    return { ok: false, error: 'Сервер недоступен. Проверь интернет' };
+  }
+  let d;
+  try { d = await r.json(); }
+  catch (e) {
+    // пришёл не ответ, а страница ошибки — почти всегда это незадеплоенный/упавший сервер
+    return { ok: false, error: 'Сервер отвечает неправильно (код ' + r.status + '). Похоже, серверная часть не обновлена' };
+  }
+  return d.ok ? { ok: true } : { ok: false, error: d.error || 'Не удалось отправить код' };
 };
 
 window.fbVerifyCode = async function(email, code) {
@@ -1552,7 +1568,8 @@ window.fbEnablePush = async function() {
     // ломался ВЕСЬ файл авторизации, и в приложение было не зайти.
     let getMessaging, getToken, onMessage;
     try {
-      const m = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js");
+      const m = await loadMessaging();
+      if (!m) return { ok: false, error: "Библиотека уведомлений недоступна" };
       getMessaging = m.getMessaging; getToken = m.getToken; onMessage = m.onMessage;
     } catch (e) {
       return { ok: false, error: 'Уведомления не поддерживаются этим браузером' };

@@ -10,7 +10,7 @@
      и ускоряем загрузку — что особенно важно при слабом интернете)
 */
 
-const CACHE_NAME = 'focus-cache-v251';
+const CACHE_NAME = 'focus-cache-v257';
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
@@ -44,7 +44,8 @@ self.addEventListener('fetch', (event) => {
     // Скрипты Firebase лежат на чужом домене (gstatic). Без сети они не грузились —
     // из-за этого приложение не могло восстановить сессию и выкидывало на регистрацию.
     // Кэшируем их: сначала сеть, при офлайне — из кэша.
-    if (url.hostname === 'www.gstatic.com' && url.pathname.indexOf('/firebasejs/') !== -1) {
+    if ((url.hostname === 'www.gstatic.com' && url.pathname.indexOf('/firebasejs/') !== -1)
+        || url.hostname === 'cdn.jsdelivr.net' || url.hostname === 'esm.sh') {
         event.respondWith(
             fetch(request)
                 .then((response) => {

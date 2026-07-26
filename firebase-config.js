@@ -9,10 +9,8 @@
    - объявляет готовность через window.FB_READY (Promise)
 */
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+/* Через общий загрузчик — чтобы не зависеть от доступности серверов Google. */
+import { initializeApp, getAuth, getFirestore } from "./firebase-cdn.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyASAdRxYNELOEwCQyAKPSecLBIHrqNoap4",
@@ -30,7 +28,7 @@ const app = initializeApp(firebaseConfig);
 window.fbApp = app;
 window.fbAuth = getAuth(app);
 window.fbDB = getFirestore(app);
-window.fbStorage = getStorage(app);
+window.fbStorage = null /* хранилище не используется */;
 window.FB_OK = true;
 
 // сигнал что Firebase готов
