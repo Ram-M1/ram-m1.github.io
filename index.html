@@ -724,31 +724,47 @@ window._focusUnlockAudio = function(){
             <div class="logo-left" id="logoTrigger">
                 <div class="logo-badge" id="logoBadge">
                 <div class="logo-svg">
-                    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <style>
+                        .fgl-r{transform-box:view-box;transform-origin:50% 50%}
+                        .fgl-r1{animation:fgl-k1 16s infinite}
+                        .fgl-r2{animation:fgl-k2 16s infinite}
+                        .fgl-r3{animation:fgl-k3 16s infinite}
+                        .fgl-r4{animation:fgl-k4 16s infinite}
+                        .fgl-r5{animation:fgl-k5 16s infinite}
+                        .fgl-r6{animation:fgl-k6 16s infinite}
+                        @keyframes fgl-k1{0%{transform:rotate(0deg);animation-timing-function:cubic-bezier(.5,0,.2,1)}37.5%{transform:rotate(60deg)}50%{transform:rotate(60deg);animation-timing-function:cubic-bezier(.5,0,.2,1)}87.5%{transform:rotate(0deg)}100%{transform:rotate(0deg)}}
+                        @keyframes fgl-k2{0%{transform:rotate(0deg);animation-timing-function:cubic-bezier(.5,0,.2,1)}37.5%{transform:rotate(120deg)}50%{transform:rotate(120deg);animation-timing-function:cubic-bezier(.5,0,.2,1)}87.5%{transform:rotate(0deg)}100%{transform:rotate(0deg)}}
+                        @keyframes fgl-k3{0%{transform:rotate(0deg);animation-timing-function:cubic-bezier(.5,0,.2,1)}37.5%{transform:rotate(180deg)}50%{transform:rotate(180deg);animation-timing-function:cubic-bezier(.5,0,.2,1)}87.5%{transform:rotate(0deg)}100%{transform:rotate(0deg)}}
+                        @keyframes fgl-k4{0%{transform:rotate(0deg);animation-timing-function:cubic-bezier(.5,0,.2,1)}37.5%{transform:rotate(240deg)}50%{transform:rotate(240deg);animation-timing-function:cubic-bezier(.5,0,.2,1)}87.5%{transform:rotate(0deg)}100%{transform:rotate(0deg)}}
+                        @keyframes fgl-k5{0%{transform:rotate(0deg);animation-timing-function:cubic-bezier(.5,0,.2,1)}37.5%{transform:rotate(300deg)}50%{transform:rotate(300deg);animation-timing-function:cubic-bezier(.5,0,.2,1)}87.5%{transform:rotate(0deg)}100%{transform:rotate(0deg)}}
+                        @keyframes fgl-k6{0%{transform:rotate(0deg);animation-timing-function:cubic-bezier(.5,0,.2,1)}37.5%{transform:rotate(360deg)}50%{transform:rotate(360deg);animation-timing-function:cubic-bezier(.5,0,.2,1)}87.5%{transform:rotate(0deg)}100%{transform:rotate(0deg)}}
+                        @media(prefers-reduced-motion:reduce){.fgl-r{animation:none}}
+                        </style>
                         <defs>
-                            <linearGradient id="eyeG" x1="0" y1="0" x2="100" y2="100">
-                                <stop offset="0%" style="stop-color:var(--accent-light)"/><stop offset="55%" style="stop-color:var(--accent)"/><stop offset="100%" stop-color="#B8862A"/>
-                            </linearGradient>
-                            <radialGradient id="eyeC" cx="50%" cy="50%" r="50%">
-                                <stop offset="0%" stop-color="#FFFFFF"/><stop offset="40%" style="stop-color:var(--accent-light)"/><stop offset="100%" style="stop-color:var(--accent)"/>
-                            </radialGradient>
+                        <linearGradient id="fglStruct" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="512" y2="512"><stop offset="0%" style="stop-color:var(--accent-light)"/><stop offset="52%" style="stop-color:var(--accent)"/><stop offset="100%" style="stop-color:var(--accent-dark)"/></linearGradient>
+                        <linearGradient id="fglDepth" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="512" y2="512"><stop offset="0%" stop-color="#E4D4FF"/><stop offset="60%" stop-color="#C8AAFF"/><stop offset="100%" stop-color="#8B6FD6"/></linearGradient>
+                        <radialGradient id="fglCore" cx="42%" cy="38%" r="64%"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="34%" style="stop-color:var(--accent-light)"/><stop offset="78%" style="stop-color:var(--accent)"/><stop offset="100%" style="stop-color:var(--accent-dark)"/></radialGradient>
+                        <radialGradient id="fglHalo" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#C8AAFF" stop-opacity=".34"/><stop offset="100%" stop-color="#C8AAFF" stop-opacity="0"/></radialGradient>
                         </defs>
-                        <circle cx="50" cy="50" r="47" stroke="url(#eyeG)" stroke-width="1" opacity="0.35"/>
-                        <g stroke="url(#eyeG)" stroke-width="1.1" stroke-linecap="round" opacity="0.55">
-                            <line x1="50" y1="4" x2="50" y2="14"/><line x1="50" y1="86" x2="50" y2="96"/>
-                            <line x1="4" y1="50" x2="14" y2="50"/><line x1="86" y1="50" x2="96" y2="50"/>
-                            <line x1="17.5" y1="17.5" x2="24.7" y2="24.7"/><line x1="75.3" y1="75.3" x2="82.5" y2="82.5"/>
-                            <line x1="17.5" y1="82.5" x2="24.7" y2="75.3"/><line x1="75.3" y1="24.7" x2="82.5" y2="17.5"/>
+                        <circle cx="256" cy="256" r="194" fill="none" stroke="url(#fglStruct)" stroke-width="12" opacity="0.9"/>
+                        <g stroke="url(#fglStruct)" stroke-width="13" stroke-linecap="round">
+                            <line x1="384.00" y1="256.00" x2="400.02" y2="376.84"/>
+                            <line x1="320.00" y1="366.85" x2="223.35" y2="441.14"/>
+                            <line x1="192.00" y1="366.85" x2="79.34" y2="320.30"/>
+                            <line x1="128.00" y1="256.00" x2="111.98" y2="135.16"/>
+                            <line x1="192.00" y1="145.15" x2="288.65" y2="70.86"/>
+                            <line x1="320.00" y1="145.15" x2="432.66" y2="191.70"/>
                         </g>
-                        <g fill="url(#eyeG)" opacity="0.85">
-                            <path d="M76 14 L78.3 19.4 L84 19.7 L79.6 23.5 L81.1 29 L76 25.9 L70.9 29 L72.4 23.5 L68 19.7 L73.7 19.4 Z"/>
-                            <path d="M19 18 L20.4 21.3 L24 21.5 L21.3 23.8 L22.1 27.3 L19 25.4 L15.9 27.3 L16.7 23.8 L14 21.5 L17.6 21.3 Z"/>
-                        </g>
-                        <circle cx="50" cy="50" r="34" stroke="url(#eyeG)" stroke-width="1.4" fill="none" opacity="0.8"/>
-                        <path d="M34 50 Q41 38 50 38 Q59 38 66 50 Q59 62 50 62 Q41 62 34 50 Z" fill="url(#eyeC)" fill-opacity="0.22" stroke="url(#eyeG)" stroke-width="1.3"/>
-                        <circle cx="50" cy="50" r="7" fill="url(#eyeC)"/>
-                        <circle cx="50" cy="50" r="2.4" fill="#3a2a08"/>
-                        <circle cx="47.3" cy="47.3" r="1.6" fill="#FFFFFF" opacity="0.9"/>
+                        <path d="M384.00 256.00 L320.00 366.85 L192.00 366.85 L128.00 256.00 L192.00 145.15 L320.00 145.15 Z" fill="none" stroke="url(#fglStruct)" stroke-width="12" stroke-linejoin="round"/>
+                        <circle cx="256" cy="256" r="112" fill="url(#fglHalo)"/>
+                        <g class="fgl-r fgl-r1"><path d="M366.10 256.00 L311.05 351.35 L200.95 351.35 L145.90 256.00 L200.95 160.65 L311.05 160.65 Z" fill="none" stroke="url(#fglStruct)" stroke-width="10" stroke-linejoin="round" opacity="0.92"/></g>
+                        <g class="fgl-r fgl-r2"><path d="M349.65 256.00 L302.82 337.10 L209.18 337.10 L162.35 256.00 L209.18 174.90 L302.82 174.90 Z" fill="none" stroke="url(#fglStruct)" stroke-width="9.5" stroke-linejoin="round" opacity="0.85"/></g>
+                        <g class="fgl-r fgl-r3"><path d="M333.77 256.00 L294.89 323.35 L217.11 323.35 L178.23 256.00 L217.11 188.65 L294.89 188.65 Z" fill="none" stroke="url(#fglStruct)" stroke-width="9" stroke-linejoin="round" opacity="0.78"/></g>
+                        <g class="fgl-r fgl-r4"><path d="M318.76 256.00 L287.38 310.35 L224.62 310.35 L193.24 256.00 L224.62 201.65 L287.38 201.65 Z" fill="none" stroke="url(#fglDepth)" stroke-width="8" stroke-linejoin="round" opacity="0.9"/></g>
+                        <g class="fgl-r fgl-r5"><path d="M304.61 256.00 L280.31 298.10 L231.69 298.10 L207.39 256.00 L231.69 213.90 L280.31 213.90 Z" fill="none" stroke="url(#fglDepth)" stroke-width="7.5" stroke-linejoin="round" opacity="0.82"/></g>
+                        <g class="fgl-r fgl-r6"><path d="M291.05 256.00 L273.52 286.35 L238.48 286.35 L220.95 256.00 L238.48 225.65 L273.52 225.65 Z" fill="none" stroke="url(#fglDepth)" stroke-width="7" stroke-linejoin="round" opacity="0.74"/></g>
+                        <circle cx="256" cy="256" r="22.35" fill="url(#fglCore)"/>
                     </svg>
                 </div>
                 </div>
