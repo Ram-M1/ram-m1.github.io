@@ -1212,6 +1212,11 @@ window.fbSendMessage = async function(chatId, opts) {
       at: new Date().toISOString(),
       ts: serverTimestamp()
     };
+    /* КЛИЕНТСКИЙ ID сообщения. Нужен для мгновенного показа: пузырь рисуется сразу,
+       ещё до ответа сервера, а когда сообщение вернётся живой подпиской — клиент
+       узнаёт его по этому id и убирает временный пузырь вместо того, чтобы
+       показать текст дважды. */
+    if (opts.clientId) msg.clientId = String(opts.clientId);
     /* ═══ ТЯЖЁЛОЕ СОДЕРЖИМОЕ — В ОТДЕЛЬНЫЙ ДОКУМЕНТ ═══
        Раньше фото и файлы лежали ПРЯМО ВНУТРИ сообщения. Из-за этого при каждом открытии
        чата телефон скачивал ВСЕ фото целиком — даже те, что юзер не смотрит. 50 сообщений
@@ -1422,6 +1427,61 @@ window.fbHideChat = async function(chatId) {
   } catch (e) { return { ok: false, error: e.message }; }
 };
 
+/* ЖИВОЙ СПИСОК ДИАЛОГОВ.
+   Раньше список обновлялся опросом раз в 15 секунд: сообщение в открытом чате
+   приходило мгновенно, а в списке появлялось с задержкой до пятнадцати секунд.
+   Теперь — подписка: строка списка шевелится в ту же секунду, как в WhatsApp.
+   Возвращает функцию отписки. Если подписка не поднялась, вызывающий код
+   продолжает работать на старом опросе — поведение не ломается. */
+window.fbListenChatList = function(callback) {
+  const user = _currentUser || auth.currentUser;
+  if (!user) return null;
+  try {
+    return onSnapshot(collection(db, 'users', user.uid, 'chatList'), (snap) => {
+      const list = [];
+      snap.forEach(d => list.push(Object.assign({ id: d.id }, d.data())));
+      list.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+      callback(list);
+    }, () => {});
+  } catch (e) {
+    return null;
+  }
+};
+
+/* СБРОС СЧЁТЧИКА НЕПРОЧИТАННЫХ при открытии диалога.
+   Экран переписки не трогал счётчик вообще — обнуление целиком висело на сервере,
+   из-за чего значок мог остаться гореть после прочтения. Свой документ списка
+   клиенту писать разрешено, поэтому гасим сразу и локально. */
+window.fbMarkChatRead = async function(chatId) {
+  const user = _currentUser || auth.currentUser;
+  if (!user || !chatId) return { ok: false };
+  try {
+    await setDoc(doc(db, 'users', user.uid, 'chatList', chatId),
+                 { unread: 0 }, { merge: true });
+    /* ОТМЕТКА ПРОЧТЕНИЯ ДЛЯ ГАЛОЧЕК.
+       Пишем ОДНУ метку на весь чат («прочитано до такого-то времени»), а не флаг
+       на каждое сообщение. Сто сообщений — одна запись вместо ста: так же устроен
+       WhatsApp, и это единственный способ не разорить себя на счёте за базу. */
+    try {
+      const reads = {}; reads[user.uid] = new Date().toISOString();
+      await setDoc(doc(db, 'chats', chatId), { reads: reads }, { merge: true });
+    } catch(e){}
+    return { ok: true };
+  } catch (e) { return { ok: false }; }
+};
+
+/* Живая метка прочтения собеседника — по ней рисуются галочки у моих сообщений. */
+window.fbListenChatMeta = function(chatId, callback) {
+  if (!chatId) return null;
+  try {
+    return onSnapshot(doc(db, 'chats', chatId), (snap) => {
+      const d = snap.data() || {};
+      callback({ reads: d.reads || {} });
+    }, () => {});
+  } catch (e) { return null; }
+};
+
+// Получить список чатов пользователя
 window.fbGetChatList = async function() {
   const user = _currentUser || auth.currentUser;
   if (!user) return [];
@@ -1611,7 +1671,11 @@ window.fbPushEnabled = function() {
 
 // ========== БЭКАП ДАННЫХ РАЗДЕЛОВ (безопасный, ручной вызов) ==========
 const _SYNC_SKIP = ['focus_realchats_cache','focus_geo_sent','_fb_synced','_fb_restored','focus_selected_child','focus_controlled_children'];
-const _SYNC_SKIP_PREFIX = ['focus_chat_msgs_'];
+/* Кэш переписки и очередь отправки в бэкап НЕ идут: это временные данные одного
+   устройства, а бэкап складывает всё в ОДИН документ с жёстким лимитом размера.
+   Раз переполнив его, бэкап перестал бы сохраняться молча — вместе со всеми
+   остальными разделами. */
+const _SYNC_SKIP_PREFIX = ['focus_chat_msgs_', 'focus_msgs_', 'focus_outbox_'];
 
 function _collectLocalData(){
   const out = {};

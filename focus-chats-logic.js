@@ -292,9 +292,18 @@
   }
 
   function saveCache(){
+    /* Аватарки лежат картинками прямо в записи (base64, десятки КБ каждая).
+       Комментарий обещал их выбрасывать, но код клал запись целиком — хранилище
+       переполнялось, и тогда кэш стирался ЦЕЛИКОМ: список диалогов внезапно
+       пропадал до перезагрузки. Теперь тяжёлые картинки в кэш не попадают —
+       они всё равно подтягиваются из облака при первой же загрузке. */
     try {
-      // в кэш — без тяжёлых полных аватаров (лёгкие оставляем, они маленькие)
-      localStorage.setItem(CACHE_KEY, JSON.stringify(chats.slice(0, 60)));
+      var light = chats.slice(0, 60).map(function(c){
+        var o = {}; for (var k in c) if (c.hasOwnProperty(k)) o[k] = c[k];
+        if (typeof o.avatar === 'string' && o.avatar.indexOf('data:') === 0) o.avatar = '';
+        return o;
+      });
+      localStorage.setItem(CACHE_KEY, JSON.stringify(light));
     } catch(e){
       try { localStorage.removeItem(CACHE_KEY); } catch(_){}
     }
@@ -408,6 +417,14 @@
         } else if (looksPhone && window.fbFindUserByPhone) {
           var r = await window.fbFindUserByPhone(q);
           if (r.ok) matches = [r.user];
+          else if (/^\d+$/.test(q.replace(/\D/g,'')) && r.error && /номер/i.test(r.error)) {
+            /* Ввели одни цифры, но номер неполный. Раньше запрос молча уходил в поиск
+               по имени и человек видел «никого не найдено» — хотя проблема была
+               в недобранных цифрах. Теперь говорим прямо. */
+            box.innerHTML = '<div class="empty" style="padding:20px 14px;"><div class="empty-s">' + esc(r.error) + '</div></div>';
+            btn.disabled = false; btn.textContent = 'Найти';
+            return;
+          }
           else if (window.fbFindUsersByName) { var r2 = await window.fbFindUsersByName(q); if (r2.ok) matches = r2.users; }
         } else if (window.fbFindUsersByName) {
           var r3 = await window.fbFindUsersByName(q);
@@ -709,6 +726,47 @@
     document.addEventListener('visibilitychange', function(){ if (!document.hidden) refreshOnReturn(); });
     window.addEventListener('pageshow', function(){ refreshOnReturn(); });
 
+    /* ЖИВОЙ СПИСОК. Раньше список ждал опроса — до 15 секунд после прихода сообщения.
+       Теперь подписка обновляет строку сразу. Опрос ниже оставлен страховкой:
+       если подписка не поднялась (нет сессии, сбой), всё работает как раньше. */
+    var _liveOff = null;
+    function startLive(){
+      if (_liveOff || !window.fbListenChatList) return;
+      _liveOff = window.fbListenChatList(function(list){
+        if (!list) return;
+        if (!list.length && chats.length) return;      // пустой ответ не стирает список
+        /* Подписка отдаёт «сырые» записи — без аватарки, статуса «в сети» и признака
+           живого профиля: их подтягивает обогащённая загрузка. Поэтому переносим
+           уже известное на новые записи, иначе при каждом сообщении аватарки гасли,
+           а чаты-призраки возвращались в список. */
+        var byId = {};
+        chats.forEach(function(c){ byId[c.chatId] = c; });
+        var needEnrich = false;
+        var fresh = list.map(function(raw){
+          var n = normalizeChat(raw);
+          var old = byId[n.chatId];
+          if (old) {
+            n.avatar = n.avatar || old.avatar;
+            n.name = old.name || n.name;
+            n._online = old._online; n._lastSeen = old._lastSeen; n._live = old._live;
+          } else needEnrich = true;                    // новый собеседник — нужны его данные
+          return n;
+        }).filter(function(c){
+          if (isDeleted(c.chatId)) return false;
+          if (c.type === 'group' || c.isAdmin) return true;
+          if (c._live) return true;
+          return !!(c.last && String(c.last).trim());  // призрак без переписки — не показываем
+        });
+        var sigOld = chats.map(function(c){ return c.chatId + c.updatedAt + c.unread; }).sort().join('|');
+        var sigNew = fresh.map(function(c){ return c.chatId + c.updatedAt + c.unread; }).sort().join('|');
+        if (sigOld === sigNew) return;                 // ничего не поменялось — не перерисовываем
+        chats = fresh; saveCache(); render();
+        if (needEnrich) refreshSoft();                 // догрузить фото и «в сети» новому чату
+      });
+    }
+    startLive();
+    setTimeout(startLive, 1500);      // сессия Firebase поднимается не мгновенно
+
     // лёгкий фоновый пуллинг, пока экран открыт (раз в 15 сек — дёшево, список живой)
     setInterval(function(){ if (!document.hidden) refreshSoft(); }, 15000);
   }
@@ -846,6 +904,10 @@ document.addEventListener('click', function(e){
         await new Promise(function(r){ setTimeout(r, 150); });
       }
     }
+    /* И ДОЖДЁМСЯ САМОЙ СЕССИИ. Раньше ждали только загрузки модуля: если открыть
+       контакты сразу после запуска, запрос уходил без авторизации, приходил пустой
+       список — и он ЗАТИРАЛ КЭШ. Контакты просто исчезали с экрана. */
+    try { if (window.fbWaitSession) await window.fbWaitSession(5000); } catch(e){}
 
     var list = [];
     try {
@@ -866,6 +928,10 @@ document.addEventListener('click', function(e){
     }
     contactsLoaded = true;
     list = list || [];
+    /* ПУСТОЙ ОТВЕТ НЕ СТИРАЕТ КОНТАКТЫ. Сервер может ответить пусто из-за неподнятой
+       сессии или сбоя сети — раньше в этот момент кэш перезаписывался пустотой,
+       и человек видел «контактов нет», хотя они есть. */
+    if (!list.length && cached.length) { paintContacts(cached.slice()); return; }
     paintContacts(list.slice());
     try { localStorage.setItem(CT_CACHE, JSON.stringify(list)); } catch(e){}
 

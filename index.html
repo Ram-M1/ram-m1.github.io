@@ -17,6 +17,30 @@
   html.booting, html.booting body { background:#000 !important; }
 </style>
 <script>try{var _t=localStorage.getItem('focus_theme')||'original';document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
+<script>
+  /* СФЕРЫ — ДО ОТРИСОВКИ.
+     Плитки записаны в разметке видимыми (все шесть), а скрипт прятал отключённые
+     только после загрузки ~144 КБ скриптов. Браузер успевал нарисовать полную
+     сетку, и она схлопывалась на глазах — это и выглядело как «главная грузится
+     два раза». Здесь тот же самый ключ читается ДО первого кадра, и отключённые
+     плитки не рисуются вовсе. Логика выбора сфер не меняется: ниже по странице
+     всё работает как прежде, эта вставка только опережает отрисовку. */
+  try {
+    var _sph = JSON.parse(localStorage.getItem('focus_active_spheres') || 'null');
+    if (Array.isArray(_sph) && _sph.length) {
+      var _all = ['body','mental','energy','relations','faith','reward'];
+      var _off = _all.filter(function(s){ return _sph.indexOf(s) === -1; });
+      if (_off.length) {
+        var _st = document.createElement('style');
+        _st.id = 'sphereBoot';
+        _st.textContent = _off.map(function(s){
+          return '.focus-tile[data-sphere="' + s + '"]{display:none}';
+        }).join('');
+        document.head.appendChild(_st);
+      }
+    }
+  } catch(e){}
+</script>
 <meta charset="UTF-8">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a0a0f">
@@ -1503,6 +1527,10 @@ window._focusUnlockAudio = function(){
         return active;
     }
     function updateTiles(active) {
+        /* Снимаем стартовую вставку из <head>: дальше состоянием плиток заведует
+           этот код. Без этого включённая обратно сфера осталась бы скрытой. */
+        var _boot = document.getElementById('sphereBoot');
+        if (_boot) _boot.remove();
         document.querySelectorAll('.focus-tile[data-sphere]').forEach(tile => {
             tile.classList.toggle('hidden-tile', !active.includes(tile.dataset.sphere));
         });
@@ -1612,6 +1640,20 @@ window._focusUnlockAudio = function(){
         showToast('Focus VPN — отдельное направление, появится позже. Приложение работает с VPN и без него.');
     });
     loadSphereSettings();
+
+    /* ДАННЫЕ ПРИЕХАЛИ ИЗ ОБЛАКА.
+       Приложение слало сигнал 'focus-data-restored', но его НИКТО не слушал:
+       восстановленные данные ложились в хранилище, а экран показывал старое —
+       до ручной перезагрузки. Отсюда ощущение «синхронизация работает через раз».
+       Обновляем только то, что видно на главной.
+       ВАЖНО: во время приветствия не вмешиваемся — заставка идёт своим ходом. */
+    window.addEventListener('focus-data-restored', function () {
+        try {
+            if (document.getElementById('greetOverlay')) return;          // идёт заставка
+            if (document.documentElement.classList.contains('booting')) return;
+            loadSphereSettings();
+        } catch (e) {}
+    });
 
     // Единый атмосферный движок — сам определяет тему и рисует соответствующий эффект
     (function() {

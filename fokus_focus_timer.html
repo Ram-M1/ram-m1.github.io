@@ -511,7 +511,10 @@ initAtmosphere(canvasId) {
         const c = document.getElementById('controls');
         if (!running && remaining === durationMin * 60) {
             // не запущен
-            c.innerHTML = `<div class="ctrl-btn ctrl-start" id="startBtn2"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Старт</div>`;
+            /* Кнопка создавалась с именем startBtn2, а обработчик вешался на startBtn —
+               но старого startBtn к этому моменту уже нет (его затёрла эта же строка).
+               Обращение к пустоте роняло скрипт, и «Старт» не работал вообще. */
+            c.innerHTML = `<div class="ctrl-btn ctrl-start" id="startBtn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Старт</div>`;
             document.getElementById('startBtn').addEventListener('click', start);
         } else if (running) {
             // идёт
@@ -524,9 +527,11 @@ initAtmosphere(canvasId) {
             document.getElementById('stopBtn').addEventListener('click', stop);
         } else {
             // на паузе
+            /* Та же ошибка: кнопка называлась stopBtn2, а обработчик искал stopBtn —
+               скрипт падал, и с паузы нельзя было ни продолжить, ни остановить. */
             c.innerHTML = `
                 <div class="ctrl-btn ctrl-start" id="resumeBtn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Продолжить</div>
-                <div class="ctrl-btn ctrl-sec stop" id="stopBtn2"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></div>`;
+                <div class="ctrl-btn ctrl-sec stop" id="stopBtn"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></div>`;
             document.getElementById('resumeBtn').addEventListener('click', start);
             document.getElementById('stopBtn').addEventListener('click', stop);
         }

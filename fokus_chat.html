@@ -484,16 +484,104 @@ initAtmosphere(canvasId) {
         renderMsgs();
     }
 
+    /* ═══ ОЧЕРЕДЬ ОТПРАВКИ ═══
+       Раньше сообщение уходило в облако и появлялось на экране только когда
+       вернётся обратно живой подпиской — на слабой сети это секунда пустоты и
+       ощущение, что приложение висит. Хуже другое: поле ввода очищалось сразу,
+       и если отправка падала, НАБРАННЫЙ ТЕКСТ ПРОПАДАЛ насовсем.
+       Теперь как в WhatsApp: пузырь рисуется мгновенно с часиками, текст лежит
+       в очереди на диске (переживает потерю связи и перезагрузку), при сбое
+       помечается красным и уходит повторно — по тапу или сам, когда связь вернулась. */
+    const OUTBOX_KEY = 'focus_outbox_' + (realChatId || chatId || '');
+    function outboxGet(){ try { return JSON.parse(localStorage.getItem(OUTBOX_KEY)) || []; } catch(e){ return []; } }
+    function outboxSet(l){ try { localStorage.setItem(OUTBOX_KEY, JSON.stringify(l.slice(-50))); } catch(e){} }
+    function outboxAdd(it){ var l = outboxGet(); l.push(it); outboxSet(l); }
+    function outboxDrop(cid){ outboxSet(outboxGet().filter(function(i){ return i.clientId !== cid; })); }
+    function outboxHas(cid){ return outboxGet().some(function(i){ return i.clientId === cid; }); }
+    function outboxPatch(cid, patch){
+        var l = outboxGet();
+        l.forEach(function(i){ if (i.clientId === cid) Object.assign(i, patch); });
+        outboxSet(l);
+    }
+
+    // временные пузыри держим отдельным блоком, всегда последним в ленте
+    function pendingWrap(){
+        var area = document.getElementById('messagesArea');
+        var w = document.getElementById('pendingWrap');
+        if (!w) { w = document.createElement('div'); w.id = 'pendingWrap'; }
+        area.appendChild(w);
+        return w;
+    }
+
+    function renderOutbox(){
+        var w = pendingWrap();
+        w.innerHTML = '';
+        outboxGet().forEach(function(it){
+            var wrap = document.createElement('div');
+            wrap.style.display = 'flex';
+            wrap.style.flexDirection = 'column';
+            var t = new Date(it.at).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+            var mark = it.failed
+                ? '<span style="color:#ff6b6b;font-weight:700;"> не отправлено · повторить</span>'
+                : ' <span style="opacity:.8;">⏳</span>';
+            wrap.innerHTML = '<div class="msg me"' + (it.failed ? ' style="border:1px solid rgba(255,107,107,.55);cursor:pointer;"' : ' style="opacity:.72;"') + '>' +
+                escapeHtml(it.text) + '<span class="msg-time">' + t + mark + '</span></div>';
+            if (it.failed) {
+                wrap.addEventListener('click', function(){
+                    outboxPatch(it.clientId, { failed: false, sent: false });
+                    renderOutbox(); flushOutbox();
+                });
+            }
+            w.appendChild(wrap);
+        });
+        var area = document.getElementById('messagesArea');
+        if (w.children.length) area.scrollTop = area.scrollHeight;
+    }
+
+    var _flushing = false;
+    async function flushOutbox(){
+        if (_flushing || !isRealChat || !window.fbSendMessage) return;
+        _flushing = true;
+        try {
+            var list = outboxGet();
+            for (var i = 0; i < list.length; i++) {
+                var it = list[i];
+                if (it.failed || it.sent) continue;      // отправленное ждёт эха, не шлём второй раз
+                var r = null;
+                try {
+                    r = await window.fbSendMessage(realChatId, { text: it.text, kind: 'text', clientId: it.clientId });
+                } catch(e) { r = null; }
+                if (r && r.ok) {
+                    outboxPatch(it.clientId, { sent: true });
+                    // если эхо не пришло за 20 секунд — считаем, что не дошло, даём повторить
+                    (function(cid){
+                        setTimeout(function(){
+                            if (outboxHas(cid)) { outboxPatch(cid, { failed: true, sent: false }); renderOutbox(); }
+                        }, 20000);
+                    })(it.clientId);
+                } else {
+                    outboxPatch(it.clientId, { failed: true });
+                    renderOutbox();
+                }
+            }
+        } finally { _flushing = false; }
+    }
+
+    window.addEventListener('online', function(){
+        outboxGet().forEach(function(it){ if (it.failed) outboxPatch(it.clientId, { failed: false }); });
+        renderOutbox(); flushOutbox();
+    });
+
     // отправка текста
     const input = document.getElementById('chatInput');
     function sendText(){
         const text = input.value.trim();
         if (!text) return;
         if (isRealChat && window.fbSendMessage) {
-            // реальный чат — шлём в облако (отобразится через реалтайм-подписку)
-            window.fbSendMessage(realChatId, text).then(function(r){
-                if (!r || !r.ok) toast('Сообщение не отправилось. Проверь связь');
-            }).catch(function(){ toast('Сообщение не отправилось. Проверь связь'); });
+            var cid = 'c' + Date.now() + Math.random().toString(36).slice(2, 8);
+            outboxAdd({ clientId: cid, text: text, at: new Date().toISOString(), failed: false, sent: false });
+            renderOutbox();                 // пузырь на экране СРАЗУ, до ответа сервера
+            flushOutbox();
             input.value = '';
             input.style.height = 'auto';
             sendBtnEl.style.display = 'none'; voiceBtnEl.style.display = 'flex';
@@ -808,7 +896,11 @@ initAtmosphere(canvasId) {
                     <span class="msg-time" style="display:block;">${t}</span>
                 </div>`;
             } else {
-                inner = `<div class="msg ${mine?'me':'them'}">${escapeHtml(m.text)}<span class="msg-time">${t}</span></div>`;
+                /* ГАЛОЧКИ. Одна — доставлено (сообщение в облаке), две — собеседник
+                   открыл чат после этого сообщения. Состояние берётся из общей метки
+                   прочтения чата, поэтому лишних записей в базу нет. */
+                const tick = mine ? '<span class="msg-tick" data-at="' + (m.at || '') + '">✓</span>' : '';
+                inner = `<div class="msg ${mine?'me':'them'}">${escapeHtml(m.text)}<span class="msg-time">${t}${tick}</span></div>`;
             }
             wrap.innerHTML = inner;
 
@@ -917,9 +1009,67 @@ initAtmosphere(canvasId) {
             if (!window.fbListenMessages || !myUidNow()) { setTimeout(startRealChat, 300); return; }
             resolveOther();
             try { window._realChatId = realChatId; } catch(e){}   // нужно карточке пользователя
+            /* Гасим счётчик непрочитанных сразу при открытии. Экран переписки его вообще
+               не трогал — обнуление висело только на сервере, из-за чего значок мог
+               остаться гореть после прочтения. */
+            try { if (window.fbMarkChatRead) window.fbMarkChatRead(realChatId); } catch(e){}
+            /* ГАЛОЧКИ: слушаем метку прочтения собеседника и перекрашиваем свои сообщения.
+               Одна запись на открытие чата с той стороны — и все галочки встают разом. */
+            (function(){
+                var readAt = 0;
+                function paintTicks(){
+                    var list = document.querySelectorAll('.msg-tick');
+                    for (var i = 0; i < list.length; i++) {
+                        var at = Date.parse(list[i].getAttribute('data-at') || '') || 0;
+                        var seen = at && readAt && at <= readAt;
+                        list[i].textContent = seen ? ' ✓✓' : ' ✓';
+                        list[i].style.color = seen ? 'var(--accent, #FFD966)' : 'inherit';
+                        list[i].style.opacity = seen ? '1' : '0.65';
+                        list[i].style.fontSize = '11px';
+                        list[i].style.marginLeft = '3px';
+                    }
+                }
+                window.__paintTicks = paintTicks;
+                try {
+                    if (window.fbListenChatMeta) {
+                        window.fbListenChatMeta(realChatId, function(meta){
+                            resolveOther();
+                            var ts = otherUid && meta.reads ? meta.reads[otherUid] : null;
+                            var v = ts ? (Date.parse(ts) || 0) : 0;
+                            if (v !== readAt) { readAt = v; paintTicks(); }
+                        });
+                    }
+                } catch(e){}
+            })();
+            /* Незавершённая отправка с прошлого захода — показываем и дошлём. */
+            try { renderOutbox(); flushOutbox(); } catch(e){}
+            /* Пока облако отвечает — показываем сохранённую переписку, чтобы экран
+               не был пустым (особенно без сети). Придут настоящие — перерисуем. */
+            try {
+                var cached = JSON.parse(localStorage.getItem('focus_msgs_' + realChatId) || '[]');
+                if (cached.length && !area.dataset.inited) {
+                    var uidC = myUidNow();
+                    var fragC = document.createDocumentFragment();
+                    cached.forEach(function(m){ fragC.appendChild(renderMsg(m, m.from === uidC)); });
+                    area.innerHTML = '';
+                    area.appendChild(fragC);
+                    area.scrollTop = area.scrollHeight;
+                    try { renderOutbox(); } catch(e){}
+                }
+            } catch(e){}
             window.fbListenMessages(realChatId, (msgs) => {
+                /* Своё сообщение вернулось из облака — снимаем временный пузырь,
+                   иначе текст покажется дважды: временный и настоящий. */
+                try {
+                    var dropped = false;
+                    msgs.forEach(function(m){
+                        if (m.clientId && outboxHas(m.clientId)) { outboxDrop(m.clientId); dropped = true; }
+                    });
+                    if (dropped) renderOutbox();
+                } catch(e){}
                 if (!msgs.length) {
                     if (!area.querySelector('.msg')) area.innerHTML = '<div style="text-align:center;color:#8e8e9e;font-size:12px;padding:30px 20px;">Начни переписку — напиши первое сообщение 👋</div>';
+                    try { renderOutbox(); } catch(e){}
                     return;
                 }
                 const uid = myUidNow();
@@ -937,6 +1087,18 @@ initAtmosphere(canvasId) {
                 if (!window.__shownIds) window.__shownIds = new Set();
                 var shown = window.__shownIds;
 
+                /* КЭШ ПЕРЕПИСКИ. Раньше без сети диалог открывался ПУСТЫМ: сообщения
+                   жили только в облаке. Теперь последние 40 лежат на устройстве —
+                   переписка видна сразу при открытии и целиком доступна офлайн.
+                   Тяжёлое (фото, файлы) в кэш не кладём, чтобы не забить хранилище. */
+                try {
+                    var lite = msgs.slice(-40).map(function(m){
+                        return { id:m.id, from:m.from, kind:m.kind, text:m.text, at:m.at,
+                                 amount:m.amount, fileName:m.fileName, clientId:m.clientId };
+                    });
+                    localStorage.setItem('focus_msgs_' + realChatId, JSON.stringify(lite));
+                } catch(e){}
+
                 // первый показ (или чат переоткрыли) — рисуем разом
                 if (!area.dataset.inited) {
                     const frag = document.createDocumentFragment();
@@ -947,6 +1109,8 @@ initAtmosphere(canvasId) {
                     area.innerHTML = '';
                     area.appendChild(frag);
                     area.dataset.inited = '1';
+                    try { renderOutbox(); } catch(e){}   // неотправленное — всегда под лентой
+                    try { if (window.__paintTicks) window.__paintTicks(); } catch(e){}
                     area.scrollTop = area.scrollHeight;
                 } else {
                     // дальше — только НОВЫЕ сообщения
@@ -958,6 +1122,14 @@ initAtmosphere(canvasId) {
                         area.appendChild(renderMsg(m, m.from === uid));
                         added++;
                     });
+                    if (added) { try { renderOutbox(); } catch(e){} }
+                    /* Сообщение пришло, а чат открыт у меня на экране — значит оно уже
+                       прочитано. Без этого счётчик непрочитанных вырос бы и остался
+                       висеть, хотя человек всё видит. */
+                    if (added && !document.hidden) {
+                        try { if (window.fbMarkChatRead) window.fbMarkChatRead(realChatId); } catch(e){}
+                    }
+                    try { if (window.__paintTicks) window.__paintTicks(); } catch(e){}
                     // экран не дёргаем, если юзер читает старое
                     if (added && atBottom) area.scrollTop = area.scrollHeight;
                 }
