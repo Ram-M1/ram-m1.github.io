@@ -721,34 +721,35 @@
       if (_liveOff || !window.fbListenChatList) return;
       _liveOff = window.fbListenChatList(function(list){
         if (!list) return;
-        if (!list.length && chats.length) return;      // пустой ответ не стирает список
-        /* Подписка отдаёт «сырые» записи — без аватарки, статуса «в сети» и признака
-           живого профиля: их подтягивает обогащённая загрузка. Поэтому переносим
-           уже известное на новые записи, иначе при каждом сообщении аватарки гасли,
-           а чаты-призраки возвращались в список. */
+        if (!list.length) return;                      // пустой ответ игнорируем
+        /* ПОДПИСКА НИЧЕГО НЕ УДАЛЯЕТ И НЕ ПЕРЕСОБИРАЕТ СПИСОК.
+           Раньше она заменяла массив целиком — а параллельно тот же массив правила
+           фоновая догрузка (аватарки, «в сети», признак живого профиля). Два писателя
+           дрались за одни данные, и строки то появлялись, то исчезали.
+           Теперь подписка делает только одно: обновляет у СУЩЕСТВУЮЩИХ строк текст
+           последнего сообщения, время и счётчик. Появление новых и удаление мёртвых
+           остаётся за обычной загрузкой — она одна владеет составом списка. */
         var byId = {};
         chats.forEach(function(c){ byId[c.chatId] = c; });
-        var needEnrich = false;
-        var fresh = list.map(function(raw){
-          var n = normalizeChat(raw);
-          var old = byId[n.chatId];
-          if (old) {
-            n.avatar = n.avatar || old.avatar;
-            n.name = old.name || n.name;
-            n._online = old._online; n._lastSeen = old._lastSeen; n._live = old._live;
-          } else needEnrich = true;                    // новый собеседник — нужны его данные
-          return n;
-        }).filter(function(c){
-          if (isDeleted(c.chatId)) return false;
-          if (c.type === 'group' || c.isAdmin) return true;
-          if (c._live) return true;
-          return !!(c.last && String(c.last).trim());  // призрак без переписки — не показываем
+        var changed = false, hasNew = false;
+        list.forEach(function(raw){
+          var id = raw.chatId || raw.id;
+          if (!id || isDeleted(id)) return;
+          var cur = byId[id];
+          if (!cur) { hasNew = true; return; }         // новый чат — пусть подтянет загрузка
+          var last = raw.lastText || '';
+          var upd  = raw.updatedAt || '';
+          var unr  = raw.unread || 0;
+          if (cur.last !== last || cur.updatedAt !== upd || cur.unread !== unr) {
+            cur.last = last; cur.updatedAt = upd; cur.unread = unr;
+            changed = true;
+          }
         });
-        var sigOld = chats.map(function(c){ return c.chatId + c.updatedAt + c.unread; }).sort().join('|');
-        var sigNew = fresh.map(function(c){ return c.chatId + c.updatedAt + c.unread; }).sort().join('|');
-        if (sigOld === sigNew) return;                 // ничего не поменялось — не перерисовываем
-        chats = fresh; saveCache(); render();
-        if (needEnrich) refreshSoft();                 // догрузить фото и «в сети» новому чату
+        if (changed) {
+          chats.sort(function(a, b){ return (b.updatedAt || '').localeCompare(a.updatedAt || ''); });
+          saveCache(); render();
+        }
+        if (hasNew) refreshSoft();                     // новый собеседник — догрузить его данные
       });
     }
     startLive();

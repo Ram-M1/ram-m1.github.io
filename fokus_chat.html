@@ -1044,11 +1044,15 @@ initAtmosphere(canvasId) {
             /* Незавершённая отправка с прошлого захода — показываем и дошлём. */
             try { renderOutbox(); flushOutbox(); } catch(e){}
             /* Пока облако отвечает — показываем сохранённую переписку, чтобы экран
-               не был пустым (особенно без сети). Придут настоящие — перерисуем. */
+               не был пустым (особенно без сети). Придут настоящие — перерисуем.
+               ВАЖНО: рисуем ТОЛЬКО когда уже известно, кто я. Раньше проверки не было:
+               сессия могла не успеть подняться, свой идентификатор был пустым, и все
+               сообщения показывались как чужие — а через миг приходили настоящие и
+               перескакивали на свою сторону. Это и было мелькание слева-направо. */
             try {
+                var uidC = myUidNow();
                 var cached = JSON.parse(localStorage.getItem('focus_msgs_' + realChatId) || '[]');
-                if (cached.length && !area.dataset.inited) {
-                    var uidC = myUidNow();
+                if (uidC && cached.length && !area.dataset.inited) {
                     var fragC = document.createDocumentFragment();
                     cached.forEach(function(m){ fragC.appendChild(renderMsg(m, m.from === uidC)); });
                     area.innerHTML = '';
