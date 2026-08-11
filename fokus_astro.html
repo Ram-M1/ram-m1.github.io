@@ -83,11 +83,74 @@
             '</div>' +
             '<div class="section-title">☀️ Твой день сегодня</div>' +
             '<div id="dailyArea"><button class="gen-btn" id="dailyBtn">Прогноз на сегодня</button></div>' +
+            '<div class="section-title">🌗 Прогноз на ' + monthName() + '</div>' +
+            '<div id="monthArea"><button class="gen-btn" id="monthBtn">Прогноз на месяц</button></div>' +
             '<div class="section-title">🌙 Астропрогноз судьбы</div>' +
             '<div id="forecastArea"><button class="gen-btn" id="genBtn">Раскрыть судьбу от ИИ</button></div>';
 
         document.getElementById('genBtn').addEventListener('click', getForecast);
         document.getElementById('dailyBtn').addEventListener('click', getDaily);
+        document.getElementById('monthBtn').addEventListener('click', getMonthly);
+        showSavedMonthly();
+    }
+
+    /* Заголовки блоков (КАПСОМ) подсвечиваем, иначе прогноз читается сплошной
+       стеной текста и до сути никто не доходит. */
+    function fmtForecast(raw){
+        var safe = String(raw || '').trim().replace(/</g, '&lt;');
+        return safe.replace(/^([А-ЯЁ][А-ЯЁ \u2014-]{3,40})(\s*[—:-])?\s*$/gm, function(_, head){
+            return '<div style="color:var(--accent);font-size:11px;letter-spacing:.07em;margin:14px 0 5px;font-weight:700;">' + head.trim() + '</div>';
+        }).replace(/^([А-ЯЁ][А-ЯЁ \u2014-]{3,40})\s*[—:-]\s*/gm, function(_, head){
+            return '<div style="color:var(--accent);font-size:11px;letter-spacing:.07em;margin:14px 0 5px;font-weight:700;">' + head.trim() + '</div>';
+        });
+    }
+
+    /* ═══ ПРОГНОЗ НА МЕСЯЦ ═══
+       Отличается от дневного не длиной, а сутью: не «настрой на сегодня», а карта
+       периодов — когда браться за новое, когда придержать, на чём сфокусироваться.
+       Результат храним до конца месяца: смысла пересчитывать каждый заход нет,
+       а каждый запрос к ИИ стоит денег. */
+    function monthKeyNow(){ var d = new Date(); return d.getFullYear() + '-' + (d.getMonth()+1); }
+    function monthName(){
+        try { return new Date().toLocaleDateString('ru-RU', { month:'long' }); } catch(e){ return 'месяц'; }
+    }
+    var MONTH_KEY = 'focus_astro_month';
+
+    function showSavedMonthly(){
+        try {
+            var saved = JSON.parse(localStorage.getItem(MONTH_KEY) || 'null');
+            if (saved && saved.key === monthKeyNow() && saved.text) {
+                document.getElementById('monthArea').innerHTML =
+                    '<div class="forecast-card">' + fmtForecast(saved.text) + '</div>';
+            }
+        } catch(e){}
+    }
+
+    async function getMonthly(){
+        const area = document.getElementById('monthArea');
+        area.innerHTML = '<div class="loading">🌗 Читаю месяц целиком...</div>';
+        const z = FocusAstro.getZodiac(FS.birthDate);
+        const astroCtx = FocusAstro.contextForAI(FS);
+        const mName = monthName();
+        const messages = [
+            { role:'system', content: 'Ты — астролог в приложении FOCUS. Составь прогноз на месяц (' + mName + ') для знака ' + z.sign + '. Учитывай тип личности человека.\n\nСТРУКТУРА (каждый блок с новой строки, заголовок капсом):\nГЛАВНАЯ ТЕМА МЕСЯЦА — 2-3 предложения: вокруг чего будет крутиться этот месяц.\nНАЧАЛО МЕСЯЦА — 2-3 предложения: на что направить силы в первую декаду.\nСЕРЕДИНА — 2-3 предложения про вторую декаду.\nКОНЕЦ МЕСЯЦА — 2-3 предложения про третью декаду.\nТВОЯ ВОЗМОЖНОСТЬ — 2-3 предложения: что важно не упустить именно в этом месяце.\nЧЕГО НЕ ДЕЛАТЬ — 2 предложения, мягко, без запугивания.\n\nЖивой русский, на ты, тепло. Без клише «звёзды говорят» и «расположение планет». Конкретно и по делу, чтобы можно было применить.' },
+            { role:'user', content: 'Мой знак: ' + z.sign + '. ' + astroCtx + '. Прогноз на ' + mName + '.' }
+        ];
+        if (!window.fbAskAI) { area.innerHTML = '<div class="forecast-card">ИИ недоступен.</div>'; return; }
+        try { if (window.FocusStorage && FocusStorage.canUseAI && !FocusStorage.canUseAI('astro','text').ok) { area.innerHTML = '<div class="forecast-card">🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.</div>'; return; } } catch(e){}
+        var _short = function(r){ return !(r && r.ok && r.reply && r.reply.trim().length >= 300); };
+        let res = await window.fbAskAI(messages, 2000);
+        if (_short(res)) {
+            await new Promise(function(r){ setTimeout(r, 900); });
+            res = await window.fbAskAI(messages, 2000);
+        }
+        if (res && res.ok && res.reply && res.reply.trim()) {
+            try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('astro','text'); } catch(e){}
+            try { localStorage.setItem(MONTH_KEY, JSON.stringify({ key: monthKeyNow(), text: res.reply.trim() })); } catch(e){}
+            area.innerHTML = '<div class="forecast-card">' + fmtForecast(res.reply) + '</div>';
+        } else {
+            area.innerHTML = '<div class="forecast-card">Месяц пока не читается — загляни чуть позже.</div>';
+        }
     }
 
     async function getDaily(){
@@ -97,7 +160,7 @@
         const astroCtx = FocusAstro.contextForAI(FS);
         const today = new Date().toLocaleDateString('ru-RU', { day:'numeric', month:'long' });
         const messages = [
-            { role:'system', content: 'Ты — астролог в приложении FOCUS. Составь короткий вдохновляющий гороскоп на СЕГОДНЯ (' + today + ') для знака ' + z.sign + '. Учитывай тип личности. Дай настрой на день: что благоприятно, совет. Живой русский, 3-4 предложения, тепло. Без «звёзды говорят».' },
+            { role:'system', content: 'Ты — астролог в приложении FOCUS. Составь гороскоп на СЕГОДНЯ (' + today + ') для знака ' + z.sign + '. Учитывай тип личности человека.\n\nСТРУКТУРА (каждый блок с новой строки, заголовок капсом):\nНАСТРОЙ ДНЯ — 2-3 предложения о том, какая сегодня энергия и как её использовать.\nЧТО БЛАГОПРИЯТНО — 2-3 предложения: за что стоит взяться именно сегодня.\nНА ЧТО ОБРАТИТЬ ВНИМАНИЕ — 2 предложения: где легко оступиться, мягко, без запугивания.\nСОВЕТ ДНЯ — одна ёмкая фраза, которую хочется запомнить.\n\nЖивой русский, тепло, обращайся на ты. Без клише вроде «звёзды говорят» и «расположение планет». Пиши так, будто хорошо знаешь этого человека.' },
             { role:'user', content: 'Мой знак: ' + z.sign + '. ' + astroCtx + '. Гороскоп на сегодня.' }
         ];
         if (!window.fbAskAI) { area.innerHTML = '<div class="forecast-card">ИИ недоступен.</div>'; return; }
@@ -106,15 +169,15 @@
            и если модель присылала пару слов, они так и показывались. Теперь
            слишком короткий ответ (меньше 60 символов — это не гороскоп) тоже
            уходит в повтор. */
-        var _tooShort = function(r){ return !(r && r.ok && r.reply && r.reply.trim().length >= 60); };
-        let res = await window.fbAskAI(messages, 900);   // было 400 — на русском этого мало
+        var _tooShort = function(r){ return !(r && r.ok && r.reply && r.reply.trim().length >= 200); };
+        let res = await window.fbAskAI(messages, 1400);   // было 400 — на русском этого мало
         if (_tooShort(res)) {
             await new Promise(function(r){ setTimeout(r, 900); });   // пауза и ретрай (два запроса разом могли захлебнуться)
-            res = await window.fbAskAI(messages, 900);
+            res = await window.fbAskAI(messages, 1400);
         }
         if (res && res.ok && res.reply && res.reply.trim()) { try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('astro','text'); } catch(e){} }
         area.innerHTML = (res.ok && res.reply && res.reply.trim())
-            ? '<div class="forecast-card">' + res.reply.trim().replace(/</g,'&lt;') + '</div>'
+            ? '<div class="forecast-card">' + fmtForecast(res.reply) + '</div>'
             : '<div class="forecast-card">Звёзды сегодня молчат — загляни чуть позже, прогноз обновится.</div>';
     }
 
@@ -124,20 +187,20 @@
         const astroCtx = FocusAstro.contextForAI(FS);
         const aboutText = getAboutText();
         const messages = [
-            { role:'system', content: 'Ты — мудрый астролог в приложении FOCUS. Составь тёплый вдохновляющий астропрогноз судьбы. Опирайся на знак зодиака, число судьбы и что человек рассказал о себе. Учитывай тип личности, адаптируй. Живой русский, 4-6 предложений. Без клише вроде «звёзды говорят». Как мудрый наставник, который видит суть человека.' },
+            { role:'system', content: 'Ты — мудрый астролог в приложении FOCUS. Составь глубокий астропрогноз судьбы. Опирайся на знак зодиака, число судьбы и на то, что человек рассказал о себе.\n\nСТРУКТУРА (каждый блок с новой строки, заголовок капсом):\nТВОЯ СУТЬ — 3-4 предложения: что за человек, какая у него природная сила.\nСИЛЬНЫЕ СТОРОНЫ — 3-4 предложения о том, что даётся легче других и как это использовать.\nЗОНА РОСТА — 3-4 предложения: что тормозит и как с этим быть. Мягко, как наставник, без приговоров.\nЧТО ВПЕРЕДИ — 3-4 предложения о ближайшем периоде и возможностях.\nГЛАВНОЕ — одна фраза, ради которой стоило всё это читать.\n\nЖивой русский, обращайся на ты, тепло и уважительно. Без клише «звёзды говорят», «расположение планет», «вам предначертано». Пиши как человек, который видит суть.' },
             { role:'user', content: 'Мои астро-данные: ' + astroCtx + '.\n' + (aboutText ? ('Обо мне: ' + aboutText + '\n') : '') + 'Составь мой астропрогноз судьбы.' }
         ];
         if (!window.fbAskAI) { area.innerHTML = '<div class="forecast-card">ИИ недоступен, обнови страницу.</div>'; return; }
         try { if (window.FocusStorage && FocusStorage.canUseAI && !FocusStorage.canUseAI('astro','text').ok) { area.innerHTML = '<div class="forecast-card">🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.</div>'; return; } } catch(e){}
-        var _tooShort2 = function(r){ return !(r && r.ok && r.reply && r.reply.trim().length >= 80); };
-        let res = await window.fbAskAI(messages, 1200);  // было 600 — ответ обрывался
+        var _tooShort2 = function(r){ return !(r && r.ok && r.reply && r.reply.trim().length >= 400); };
+        let res = await window.fbAskAI(messages, 2200);  // было 600 — ответ обрывался
         if (_tooShort2(res)) {
             await new Promise(function(r){ setTimeout(r, 900); });
-            res = await window.fbAskAI(messages, 1200);
+            res = await window.fbAskAI(messages, 2200);
         }
         if (res && res.ok && res.reply && res.reply.trim()) { try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('astro','text'); } catch(e){} }
         area.innerHTML = (res.ok && res.reply && res.reply.trim())
-            ? '<div class="forecast-card">' + res.reply.trim().replace(/</g,'&lt;') + '</div>'
+            ? '<div class="forecast-card">' + fmtForecast(res.reply) + '</div>'
             : '<div class="forecast-card">Прогноз готовится — попробуй обновить через минуту.</div>';
     }
 

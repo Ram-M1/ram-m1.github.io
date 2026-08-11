@@ -522,6 +522,255 @@ fill: function (data) {
         if (!all.length) return null;
         return 'Желания юзера: ' + all.slice(0, 8).join(', ');
       }
+    },
+
+    /* ═══ РАЗДЕЛЫ, КОТОРЫХ ИИ РАНЬШЕ НЕ ЗНАЛ ═══
+       Ассистент видел 16 разделов из 37: он не знал ни целей человека, ни его
+       веса и замеров, ни задач в фокусе. Из-за этого он не мог ни ответить
+       «какие у меня цели», ни выполнить «запиши вес 82». Добавляем. */
+
+    business: {
+      name: 'Работа и бизнес', group: 'mental', reward: 'business',
+      aliases: ['цел', 'бизнес', 'работ', 'шаг', 'проект', 'план на год', 'доход', 'задач по цел', 'достиж'],
+      screen: 'fokus_business.html',
+      /* Отмечаем ШАГ цели выполненным — по тексту. Человек говорит «сделал лендинг»,
+         мы находим подходящий шаг и закрываем его. */
+      fill: function (data) {
+        var goals = readJSON('focus_biz_goals', []);
+        if (!Array.isArray(goals) || !goals.length) {
+          return '__NEEDCREATE__Целей пока нет. Создай цель в разделе «Работа и бизнес» — потом отмечу шаги.';
+        }
+        var dl = String(data || '').toLowerCase().trim();
+        var hit = null, hitGoal = null;
+        goals.forEach(function (g) {
+          (g.steps || []).forEach(function (s) {
+            if (hit || !s || s.done) return;
+            var st = String(s.text || '').toLowerCase();
+            if (!st || !dl) return;
+            if (st.indexOf(dl) !== -1 || dl.indexOf(st) !== -1) { hit = s; hitGoal = g; }
+          });
+        });
+        if (!hit) {
+          var open = [];
+          goals.forEach(function (g) { (g.steps || []).forEach(function (s) { if (s && !s.done) open.push(s.text); }); });
+          if (!open.length) return 'Все шаги по целям уже закрыты 🎉';
+          return '__NEEDCREATE__Не нашёл такой шаг. Открытые: ' + open.slice(0, 6).join(', ') + '. Какой отметить?';
+        }
+        hit.done = true;
+        writeJSON('focus_biz_goals', goals);
+        // тот же шаг мог быть в недельном плане — закрываем и там
+        try {
+          var week = readJSON('focus_biz_week', {}), touched = false;
+          Object.keys(week || {}).forEach(function (day) {
+            (week[day] || []).forEach(function (it) {
+              if (it && !it.done && (it.stepRef === hit.id || it.text === hit.text)) { it.done = true; touched = true; }
+            });
+          });
+          if (touched) writeJSON('focus_biz_week', week);
+        } catch (e) {}
+        markDone(this);
+        var total = (hitGoal.steps || []).length;
+        var done = (hitGoal.steps || []).filter(function (s) { return s && s.done; }).length;
+        return 'Отметил шаг «' + hit.text + '» по цели «' + hitGoal.title + '» (' + done + '/' + total + ')';
+      },
+      summary: function () {
+        var goals = readJSON('focus_biz_goals', []);
+        if (!Array.isArray(goals) || !goals.length) return null;
+        var out = goals.slice(0, 5).map(function (g) {
+          var steps = g.steps || [];
+          var done = steps.filter(function (s) { return s && s.done; }).length;
+          var open = steps.filter(function (s) { return s && !s.done; }).map(function (s) { return s.text; });
+          return '«' + g.title + '» (' + done + '/' + steps.length + ' шагов'
+               + (open.length ? ', осталось: ' + open.slice(0, 4).join(', ') : ', всё закрыто') + ')';
+        });
+        return 'Цели юзера: ' + out.join('; ');
+      }
+    },
+
+    body_stats: {
+      name: 'Показатели тела', group: 'body', reward: 'body_stats',
+      /* Ключевые слова — КОРНЯМИ, а не целыми словами: «вешу», «взвесился»,
+         «замерил» должны находиться так же, как «вес». Раньше «сколько я вешу»
+         не опознавалось вообще. */
+      aliases: ['вес', 'веш', 'взвес', 'замер', 'объём', 'обхват', 'талия', 'тали',
+                'рост', 'бицепс', 'бёдр', 'бедр', 'грудь', 'похуде', 'поправил'],
+      screen: 'fokus_body_stats.html',
+      /* «запиши вес 82», «талия 78», «вес 81.5 талия 76» — записываем в показатели
+         и в историю замеров, чтобы построился график. */
+      fill: function (data) {
+        var txt = String(data || '').toLowerCase();
+        var stats = readJSON('focus_body_stats', {});
+        if (!stats || typeof stats !== 'object') stats = {};
+        var FIELDS = [
+          { key: 'weight', words: ['вес', 'вешу', 'взвес'], label: 'вес', unit: 'кг' },
+          { key: 'height', words: ['рост'],                 label: 'рост', unit: 'см' },
+          { key: 'chest',  words: ['грудь', 'грудн'],       label: 'грудь', unit: 'см' },
+          { key: 'waist',  words: ['талия', 'тали', 'пояс'],label: 'талия', unit: 'см' },
+          { key: 'hip',    words: ['бедр', 'ягодиц'],       label: 'бёдра', unit: 'см' },
+          { key: 'bicep',  words: ['бицепс', 'рука', 'руки'],label: 'бицепс', unit: 'см' }
+        ];
+        var wrote = [];
+        FIELDS.forEach(function (f) {
+          f.words.forEach(function (w) {
+            if (wrote.some(function (x) { return x.key === f.key; })) return;
+            var i = txt.indexOf(w);
+            if (i === -1) return;
+            // число рядом со словом — после него или прямо перед
+            var after = txt.slice(i).match(/(\d+(?:[.,]\d+)?)/);
+            var before = txt.slice(0, i).match(/(\d+(?:[.,]\d+)?)\s*(?:кг|см)?\s*$/);
+            var num = after ? after[1] : (before ? before[1] : null);
+            if (num == null) return;
+            var val = parseFloat(String(num).replace(',', '.'));
+            if (!(val > 0) || val > 400) return;
+            stats[f.key] = val;
+            wrote.push({ key: f.key, label: f.label, val: val, unit: f.unit });
+          });
+        });
+        if (!wrote.length) {
+          return '__NEEDCREATE__Не понял, какой показатель записать. Скажи, например: «запиши вес 82» или «талия 76».';
+        }
+        writeJSON('focus_body_stats', stats);
+        // история — для графика
+        try {
+          var hist = readJSON('focus_body_measure_history', []);
+          if (!Array.isArray(hist)) hist = [];
+          var d = today();
+          var rec = hist.filter(function (h) { return h && h.date === d; })[0];
+          if (!rec) { rec = { date: d }; hist.push(rec); }
+          wrote.forEach(function (x) { rec[x.key] = x.val; });
+          writeJSON('focus_body_measure_history', hist.slice(-400));
+        } catch (e) {}
+        markDone(this);
+        return 'Записал: ' + wrote.map(function (x) { return x.label + ' ' + x.val + ' ' + x.unit; }).join(', ');
+      },
+      summary: function () {
+        var s = readJSON('focus_body_stats', {});
+        if (!s || typeof s !== 'object') return null;
+        var map = { weight: 'вес', height: 'рост', chest: 'грудь', waist: 'талия', hip: 'бёдра', bicep: 'бицепс' };
+        var parts = [];
+        for (var k in map) if (s[k]) parts.push(map[k] + ' ' + s[k] + (k === 'weight' ? ' кг' : ' см'));
+        if (!parts.length) return null;
+        return 'Показатели тела: ' + parts.join(', ') + '.';
+      }
+    },
+
+    focus_tasks: {
+      name: 'Тренировка фокуса', group: 'mental', reward: 'focus_timer',
+      aliases: ['фокус', 'сесси', 'помидор', 'доделать', 'в процессе'],
+      screen: 'fokus_focus_timer.html',
+      summary: function () {
+        try {
+          if (!window.FocusTasks) return null;
+          var todo = window.FocusTasks.todoList();
+          var done = window.FocusTasks.doneList();
+          if (!todo.length && !done.length) return null;
+          var p = [];
+          if (todo.length) {
+            p.push('в процессе: ' + todo.slice(0, 4).map(function (t) {
+              return '«' + t.text + '»' + (t.comment ? ' (остановился на: ' + t.comment.slice(0, 60) + ')' : '');
+            }).join(', '));
+          }
+          if (done.length) p.push('закрыто в фокусе всего: ' + done.length);
+          return 'Тренировка фокуса — ' + p.join('; ') + '.';
+        } catch (e) { return null; }
+      }
+    },
+
+    about_me: {
+      name: 'Обо мне', group: 'mental', reward: 'about',
+      aliases: ['обо мне', 'запомни про меня', 'расскажу о себе', 'знай обо мне'],
+      screen: 'fokus_about.html',
+      /* Здесь человек пишет о себе свободным текстом — самый ценный контекст,
+         какой вообще есть. Ассистент его РАНЬШЕ НЕ ВИДЕЛ, поэтому отвечал
+         обезличенно, хотя человек уже всё про себя рассказал.
+         fill дописывает в свободное поле: «запомни, что я вегетарианец». */
+      fill: function (data) {
+        var txt = String(data || '').trim();
+        if (!txt) return null;
+        var d = readJSON('focus_about_me', {});
+        if (!d || typeof d !== 'object') d = {};
+        var cur = String(d.b_free || '').trim();
+        d.b_free = cur ? (cur + '\n' + cap(txt)) : cap(txt);
+        writeJSON('focus_about_me', d);
+        markDone(this);
+        return 'Запомнил про тебя: ' + cap(txt);
+      },
+      summary: function () {
+        var d = readJSON('focus_about_me', {});
+        if (!d || typeof d !== 'object') return null;
+        var MAP = {
+          b_story:     'о себе',
+          b_moments:   'важные события',
+          b_parents:   'о родителях',
+          b_relations: 'об отношениях',
+          b_fears:     'страхи и тревоги',
+          b_dreams:    'мечты и цели',
+          b_free:      'ещё'
+        };
+        var parts = [];
+        for (var k in MAP) {
+          var v = String(d[k] || '').trim();
+          if (v) parts.push(MAP[k] + ': ' + v.slice(0, 220));
+        }
+        if (!parts.length) return null;
+        return 'ЧЕЛОВЕК РАССКАЗАЛ О СЕБЕ — ' + parts.join('; ') + '.';
+      }
+    },
+
+    progress: {
+      name: 'Прогресс', group: 'mental', reward: 'progress',
+      aliases: ['прогресс', 'стрик', 'серия', 'как у меня дела', 'мои успехи', 'статистик'],
+      screen: 'fokus_progress.html',
+      /* Ассистент не мог ответить «как у меня дела» и не мог похвалить за серию —
+         он просто не знал, сколько дней человек держится. А это ровно то, ради
+         чего люди возвращаются. */
+      summary: function () {
+        try {
+          var days = readJSON('focus_activity_days', {});
+          if (!days || typeof days !== 'object') return null;
+          var all = days._all || [];
+          if (!all.length) return null;
+
+          // стрик: сколько дней подряд, считая от сегодня или вчера
+          var set = {}; all.forEach(function (d) { set[d] = 1; });
+          var streak = 0, cur = new Date();
+          var iso = function (dt) { return dt.toISOString().slice(0, 10); };
+          if (!set[iso(cur)]) cur.setDate(cur.getDate() - 1);   // сегодня ещё могли не отметить
+          while (set[iso(cur)]) { streak++; cur.setDate(cur.getDate() - 1); }
+
+          var d0 = today();
+          var todayDone = [];
+          var NAMES = { body: 'тело', mental: 'мысли', energy: 'энергия',
+                        relations: 'отношения', faith: 'вера', reward: 'поощрение' };
+          for (var k in days) {
+            if (k === '_all') continue;
+            if ((days[k] || []).indexOf(d0) !== -1) todayDone.push(NAMES[k] || k);
+          }
+          return 'Прогресс: серия ' + streak + ' дн. подряд, всего активных дней ' + all.length
+               + '. Сегодня' + (todayDone.length ? ' отмечено: ' + todayDone.join(', ') : ' пока ничего не отмечено') + '.';
+        } catch (e) { return null; }
+      }
+    },
+
+    rewards: {
+      name: 'Поощрение', group: 'reward', reward: 'reward',
+      aliases: ['награда', 'поощрен', 'заслужил', 'приз'],
+      screen: 'fokus_reward.html',
+      /* Человек сам назначает себе награды за достижения. Ассистент их не знал,
+         значит не мог ни напомнить, ни мотивировать. */
+      summary: function () {
+        try {
+          var list = readJSON('focus_personal_rewards', []);
+          if (!Array.isArray(list) || !list.length) return null;
+          var out = list.slice(0, 6).map(function (r) {
+            var used = Array.isArray(r.used) ? r.used.length : 0;
+            var lim = parseInt(r.limit, 10) || 0;
+            return (r.emoji ? r.emoji + ' ' : '') + r.name
+                 + (lim ? ' (' + used + '/' + lim + ' на неделе)' : '');
+          });
+          return 'Личные награды юзера: ' + out.join(', ') + '.';
+        } catch (e) { return null; }
+      }
     }
   };
 
@@ -538,14 +787,69 @@ fill: function (data) {
     return Object.keys(SECTIONS).map(function (id) { return id + ' (' + SECTIONS[id].name + ')'; }).join(', ');
   }
 
-  function userContext() {
+  /* ЧТО ИИ ЗНАЕТ О ЧЕЛОВЕКЕ.
+
+     Раньше в каждый запрос уходили сводки по ВСЕМ разделам разом. Пока данных мало
+     это незаметно, но за полгода накопится простыня: дорого по деньгам за каждый
+     запрос и хуже по качеству — модель тонет в лишнем и хуже слышит сам вопрос.
+
+     Теперь: всегда даём то, что важно всегда (кто человек, что он о себе рассказал,
+     его серия), а остальное — только если вопрос этого касается. Когда вопроса нет,
+     отдаём всё как прежде, чтобы ничего не потерять. */
+  var ALWAYS = ['about_me', 'progress'];
+
+  function userContext(question) {
     var parts = [];
+
+    /* КТО ПЕРЕД НИМ. Раньше ассистент не знал ни имени человека, ни возраста,
+       ни какие сферы он ведёт — поэтому отвечал обезличенно и предлагал то,
+       чего у человека нет. */
+    try {
+      var u = readJSON('focus_user', {}) || {};
+      var who = [];
+      if (u.firstName || u.name) who.push('Зовут ' + (u.firstName || String(u.name).split(' ')[0]));
+      if (u.gender) who.push(u.gender === 'male' ? 'мужчина' : (u.gender === 'female' ? 'женщина' : ''));
+      if (u.age) who.push(u.age + ' лет');
+      if (u.city) who.push('город ' + u.city);
+      who = who.filter(Boolean);
+      if (who.length) parts.push(who.join(', ') + '.');
+    } catch (e) {}
+
+    /* КАКИЕ СФЕРЫ ВКЛЮЧЕНЫ — чтобы не советовать раздел, который человек отключил. */
+    try {
+      var sph = readJSON('focus_active_spheres', null);
+      var NAMES = { body: 'тело', mental: 'мысли', energy: 'энергия',
+                    relations: 'отношения', faith: 'вера', reward: 'поощрение' };
+      if (Array.isArray(sph) && sph.length && sph.length < 6) {
+        parts.push('Ведёт сферы: ' + sph.map(function (s) { return NAMES[s] || s; }).join(', ') + '.');
+      }
+    } catch (e) {}
+
+    var q = String(question || '').toLowerCase();
+    var picked = null;
+
+    if (q) {
+      picked = {};
+      // раздел, про который спрашивают
+      var hit = detect(q);
+      if (hit) picked[hit] = 1;
+      // и всё, чьи ключевые слова встретились в вопросе
+      for (var sid in SECTIONS) {
+        var sec = SECTIONS[sid];
+        if (sec.aliases && sec.aliases.some(function (a) { return q.indexOf(a) !== -1; })) picked[sid] = 1;
+      }
+      ALWAYS.forEach(function (a) { picked[a] = 1; });
+      // ничего не опознали — лучше дать всё, чем ответить вслепую
+      if (Object.keys(picked).length <= ALWAYS.length) picked = null;
+    }
+
     for (var id in SECTIONS) {
+      if (picked && !picked[id]) continue;
       if (SECTIONS[id].summary) {
         try { var s = SECTIONS[id].summary(); if (s) parts.push(s); } catch (e) {}
       }
     }
-    return parts.join('. ');
+    return parts.join(' ');
   }
 
   /* ЦЕНТРАЛЬНЫЙ хук: после заполнения раздела ОТМЕЧАЕМ АКТИВНОСТЬ В ПРОГРЕССЕ.
@@ -752,6 +1056,64 @@ fill: function (data) {
       Программа = срок в днях + сколько раз в неделю + набор занятий.
       Раньше ИИ этого НЕ УМЕЛ: на просьбу «программа на 30 дней, 5 раз в неделю»
       он создавал ОДНУ разовую тренировку — совсем не то, что просили. */
+  function parseExercise(raw) {
+    var src = String(raw || '').trim().replace(/\s+/g, ' ');
+    var low = ' ' + src.toLowerCase() + ' ';
+    var setsN = null, reps = null, weight = null;
+
+    /* ВАЖНО: в JavaScript граница слова \b НЕ РАБОТАЕТ С КИРИЛЛИЦЕЙ — из-за этого
+       «подхода» обрезалось до «а», и мусор попадал в название. Поэтому нигде не
+       используем \b: границы задаём явно через пробелы, а название собираем
+       пословно, отбрасывая числа и служебные слова. */
+    var SEP = '(?:^|[^а-яёa-z])', END = '(?![а-яёa-z])';
+
+    // вес: «60 кг»
+    var w = low.match(new RegExp('(\\d+(?:[.,]\\d+)?)\\s*(?:кг|kg)' + END, 'i'));
+    if (w) { weight = parseFloat(String(w[1]).replace(',', '.')); low = low.replace(w[0], ' '); }
+
+    // «4х30», «4*30», «4 на 30», «4 по 30»
+    var m = low.match(/(\d+)\s*(?:[xх*]|на|по)\s*(\d+)/);
+    if (m) { setsN = parseInt(m[1], 10); reps = parseInt(m[2], 10); low = low.replace(m[0], ' '); }
+
+    // «4 подхода» / «5 сетов» / «3 серии»
+    if (setsN == null) {
+      var ms = low.match(/(\d+)\s*(?:подход|сет|сери)[а-яё]*/);
+      if (ms) { setsN = parseInt(ms[1], 10); low = low.replace(ms[0], ' '); }
+    }
+    // «по 30 повторений» / «15 раз»
+    if (reps == null) {
+      var mr = low.match(/(?:по\s*)?(\d+)\s*(?:повтор|раз|reps?)[а-яё]*/);
+      if (mr) { reps = parseInt(mr[1], 10); low = low.replace(mr[0], ' '); }
+    }
+    // осталась одинокая цифра после «по»
+    if (reps == null) {
+      var mp = low.match(/(?:^|\s)по\s*(\d+)(?:\s|$)/);
+      if (mp) { reps = parseInt(mp[1], 10); low = low.replace(mp[0], ' '); }
+    }
+
+    /* НАЗВАНИЕ — пословно. Выбрасываем числа и служебные слова целиком,
+       поэтому обрезков вроде «а» или «ений» появиться не может. */
+    var STOP = /^(подход|повтор|сет|раз|сери|прием|подх)[а-яё]*$|^(по|на|кг|kg|x|х|\*|×)$/i;
+    var keep = [];
+    src.split(' ').forEach(function (word) {
+      var clean = word.replace(/[.,;:]+$/, '');
+      if (!clean) return;
+      if (/^\d+([.,]\d+)?$/.test(clean)) return;                   // чистое число
+      if (/^\d+\s*[xх*]\s*\d+$/i.test(clean)) return;              // «4х30»
+      if (/^\d+(кг|kg)$/i.test(clean)) return;                      // «100кг»
+      if (STOP.test(clean)) return;                                 // служебное слово
+      keep.push(clean);
+    });
+    var exName = keep.join(' ').replace(/\s+/g, ' ').trim();
+
+    return {
+      name: exName,
+      sets: setsN != null ? setsN : 3,
+      reps: reps != null ? reps : 10,
+      weight: weight
+    };
+  }
+
   function createProgram(name, days, perWeek, exercises) {
     var nm = String(name || '').trim();
     if (!nm) return null;
@@ -766,7 +1128,12 @@ fill: function (data) {
       return 'Программа «' + cap(nm) + '» уже есть';
     }
 
-    // разбираем упражнения: «отжимания 3х50» / {name,sets,reps,weight}
+    /* РАЗБОР УПРАЖНЕНИЯ.
+       Раньше понимался ТОЛЬКО формат «3х50». Живая речь — «отжимания 4 подхода по
+       30 повторений» — не распознавалась: подходы и повторения оставались
+       умолчаниями, а ЦИФРЫ ОСТАВАЛИСЬ В НАЗВАНИИ, и получалось «Отжимания 4 30».
+       Теперь понимаем и словесную запись, и цифровую, и смешанную. */
+    // разбираем упражнения: «отжимания 4 подхода по 30 повторений» / {name,sets,reps,weight}
     var listRaw = Array.isArray(exercises) ? exercises : splitItems(exercises || '');
     var exList = [];
     listRaw.forEach(function (item) {
@@ -776,14 +1143,18 @@ fill: function (data) {
         setsN = parseInt(item.sets, 10) || 3;
         reps = parseInt(item.reps, 10) || 10;
         weight = (item.weight != null && item.weight !== '') ? parseFloat(item.weight) : null;
+        /* ИИ иногда кладёт подходы и повторения ПРЯМО В НАЗВАНИЕ, даже когда рядом
+           есть отдельные поля. Разбираем название и достаём оттуда числа. */
+        var inner = parseExercise(exName);
+        if (inner.name && inner.name !== exName) {
+          exName = inner.name;
+          if (item.sets == null) setsN = inner.sets;
+          if (item.reps == null) reps = inner.reps;
+          if (weight == null) weight = inner.weight;
+        }
       } else {
-        var t = String(item || '').trim();
-        var m = t.match(/(\d+)\s*[xх*]\s*(\d+)/i);
-        if (m) { setsN = parseInt(m[1], 10); reps = parseInt(m[2], 10); }
-        var w = t.match(/(\d+(?:[.,]\d+)?)\s*(?:кг|kg)/i);
-        if (w) weight = parseFloat(String(w[1]).replace(',', '.'));
-        exName = t.replace(/(\d+)\s*[xх*]\s*(\d+)/i, '').replace(/(\d+(?:[.,]\d+)?)\s*(?:кг|kg)/i, '')
-                  .replace(/\b(подход[а-я]*|повтор[а-я]*|по)\b/gi, '').trim();
+        var p = parseExercise(item);
+        exName = p.name; setsN = p.sets; reps = p.reps; weight = p.weight;
       }
       if (exName) exList.push({ name: cap(exName), sets: setsN, reps: reps, weight: weight });
     });
@@ -826,19 +1197,24 @@ fill: function (data) {
     var added = [];
     listRaw.forEach(function (item, i) {
       var exName = '', setsN = 3, reps = 10, weight = null;
+      /* Тот же разбор, что и для программ: понимает и «3х10 60кг», и живую речь
+         «4 подхода по 30 повторений». Раньше здесь распознавался только формат
+         с крестиком, а слова уезжали в название упражнения вместе с цифрами. */
       if (item && typeof item === 'object') {
         exName = String(item.name || '').trim();
         setsN = parseInt(item.sets, 10) || 3;
         reps = parseInt(item.reps, 10) || 10;
         weight = (item.weight != null && item.weight !== '') ? parseFloat(item.weight) : null;
+        var innerT = parseExercise(exName);
+        if (innerT.name && innerT.name !== exName) {
+          exName = innerT.name;
+          if (item.sets == null) setsN = innerT.sets;
+          if (item.reps == null) reps = innerT.reps;
+          if (weight == null) weight = innerT.weight;
+        }
       } else {
-        var s = String(item || '').trim();
-        // разбираем «жим лёжа 3х10 60кг» / «приседания 4x12»
-        var m = s.match(/(\d+)\s*[xх*]\s*(\d+)/i);
-        if (m) { setsN = parseInt(m[1], 10); reps = parseInt(m[2], 10); }
-        var w = s.match(/(\d+(?:[.,]\d+)?)\s*(?:кг|kg)/i);
-        if (w) weight = parseFloat(String(w[1]).replace(',', '.'));
-        exName = s.replace(/(\d+)\s*[xх*]\s*(\d+)/i, '').replace(/(\d+(?:[.,]\d+)?)\s*(?:кг|kg)/i, '').trim();
+        var pT = parseExercise(item);
+        exName = pT.name; setsN = pT.sets; reps = pT.reps; weight = pT.weight;
       }
       if (!exName) return;
       var sets = [];

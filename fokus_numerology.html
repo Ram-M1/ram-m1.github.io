@@ -100,16 +100,26 @@
             '</div>' +
             '<div class="section-title">✦ Глубокий разбор от ИИ</div>' +
             '<div id="forecastArea"><button class="gen-btn" id="genBtn">Раскрыть мой путь</button></div>' +
+            /* СОВМЕСТИМОСТЬ. Раньше просили ввести ЧИСЛО СУДЬБЫ партнёра — его нужно
+               было откуда-то знать и посчитать самому, поэтому почти никто не
+               пользовался. Теперь вводим имя и дату рождения, числа считаем сами,
+               а разбор даёт ИИ — и в том ключе, который человек выбрал. */
             '<div class="compat-box">' +
                 '<h3>💞 Совместимость</h3>' +
-                '<p>Узнай насколько вы совпадаете с партнёром. Введи его число судьбы (1–9, 11, 22, 33).</p>' +
-                '<input type="number" class="compat-input" id="compatInput" placeholder="Число судьбы партнёра">' +
+                '<p>Введи имя и дату рождения человека — посчитаю ваши числа и разберу, как вы сходитесь.</p>' +
+                '<input type="text" class="compat-input" id="cName" placeholder="Имя и фамилия" autocomplete="off">' +
+                '<input type="date" class="compat-input" id="cDate" style="margin-top:8px;">' +
+                '<div style="font-size:10.5px;color:#6e6e7e;margin:7px 0 10px;line-height:1.4;">Данные остаются только на твоём устройстве и в облако не уходят.</div>' +
+                '<div id="cKinds" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px;"></div>' +
                 '<button class="gen-btn" id="compatBtn" style="background:linear-gradient(135deg,#FF8AB0,var(--accent));">Проверить совместимость</button>' +
-                '<div class="compat-result" id="compatResult"><div class="compat-pct" id="compatPct"></div><div class="compat-desc" id="compatDesc"></div></div>' +
+                '<div id="compatResult" style="margin-top:12px;"></div>' +
+                '<div id="cSaved" style="margin-top:14px;"></div>' +
             '</div>';
 
         document.getElementById('genBtn').addEventListener('click', getForecast);
         document.getElementById('compatBtn').addEventListener('click', checkCompat);
+        renderKinds();
+        renderSavedPeople();
     }
 
     async function getForecast(){
@@ -132,19 +142,132 @@
             : '<div class="forecast-card">⚠️ Не удалось получить разбор. ' + (res.error || '') + '</div>';
     }
 
-    function checkCompat(){
-        const partnerNum = parseInt(document.getElementById('compatInput').value);
-        if (!partnerNum || isNaN(partnerNum)) { document.getElementById('compatInput').style.borderColor = '#FF6B6B'; return; }
-        const myNum = FocusAstro.getLifePathNumber(FS.birthDate);
-        const pct = FocusAstro.getCompatibility(myNum, partnerNum);
-        document.getElementById('compatPct').innerText = pct + '%';
-        let desc;
-        if (pct >= 80) desc = 'Прекрасное совпадение! Ваши числа резонируют — вы усиливаете друг друга.';
-        else if (pct >= 65) desc = 'Хорошая совместимость. Много общего, а различия делают союз интереснее.';
-        else if (pct >= 50) desc = 'Средняя совместимость. Понадобится работа над пониманием, но это возможно.';
-        else desc = 'Непростое сочетание. Разные энергии — но противоположности создают сильные пары.';
-        document.getElementById('compatDesc').innerText = desc;
-        document.getElementById('compatResult').style.display = 'block';
+    /* ═══ СОВМЕСТИМОСТЬ ═══
+       Пять ключей: любовь, страсть, дружба, дело и деньги, родители и дети.
+       Один и тот же человек может быть проверен в разных ключах — разбор будет
+       разным, поэтому проверенных сохраняем и к ним можно вернуться. */
+    var COMPAT_KINDS = [
+        { id:'love',   ic:'❤️', name:'Любовь',        hint:'притяжение, что даёт союз, где будете тереться' },
+        { id:'pass',   ic:'🔥', name:'Страсть',        hint:'темперамент, телесная совместимость, ритм' },
+        { id:'friend', ic:'🤝', name:'Дружба',         hint:'доверие, лёгкость, надолго ли' },
+        { id:'work',   ic:'💼', name:'Дело и деньги',  hint:'партнёрство, кто за что отвечает, где риски' },
+        { id:'family', ic:'👨‍👩‍👦', name:'Родители и дети', hint:'как понять друг друга, где не совпадают ритмы' }
+    ];
+    var COMPAT_KEY = 'focus_compat_people';
+    var compatKind = 'love';
+
+    function compatSaved(){
+        try { var l = JSON.parse(localStorage.getItem(COMPAT_KEY) || '[]'); return Array.isArray(l) ? l : []; }
+        catch(e){ return []; }
+    }
+    function compatStore(list){
+        try { localStorage.setItem(COMPAT_KEY, JSON.stringify(list.slice(-30))); } catch(e){}
+    }
+    function esc(s){ return String(s||'').replace(/[<>&"]/g, function(c){
+        return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]; }); }
+
+    function renderKinds(){
+        var box = document.getElementById('cKinds');
+        if (!box) return;
+        box.innerHTML = COMPAT_KINDS.map(function(k){
+            var on = k.id === compatKind;
+            return '<div data-kind="' + k.id + '" style="padding:7px 11px;border-radius:10px;cursor:pointer;font-size:11.5px;'
+                + 'background:' + (on ? 'rgba(var(--accent-rgb),0.16)' : 'rgba(255,255,255,0.05)') + ';'
+                + 'border:0.5px solid ' + (on ? 'rgba(var(--accent-rgb),0.5)' : 'rgba(255,255,255,0.10)') + ';'
+                + 'color:' + (on ? 'var(--accent)' : '#c8c8d2') + ';">' + k.ic + ' ' + k.name + '</div>';
+        }).join('');
+        box.querySelectorAll('[data-kind]').forEach(function(el){
+            el.addEventListener('click', function(){ compatKind = el.dataset.kind; renderKinds(); });
+        });
+    }
+
+    function renderSavedPeople(){
+        var box = document.getElementById('cSaved');
+        if (!box) return;
+        var list = compatSaved();
+        if (!list.length) { box.innerHTML = ''; return; }
+        box.innerHTML = '<div style="font-size:10.5px;color:#8e8e9e;letter-spacing:.05em;margin-bottom:7px;text-transform:uppercase;">Кого уже проверял</div>'
+          + list.slice().reverse().map(function(p, i){
+            return '<div data-person="' + (list.length - 1 - i) + '" style="padding:9px 11px;margin-bottom:6px;border-radius:10px;cursor:pointer;'
+                + 'background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);">'
+                + '<div style="font-size:12.5px;color:#e8e8ee;">' + esc(p.name) + '</div>'
+                + '<div style="font-size:10.5px;color:#8e8e9e;margin-top:2px;">число судьбы ' + p.num + ' · нажми, чтобы проверить снова</div>'
+                + '</div>';
+          }).join('');
+        box.querySelectorAll('[data-person]').forEach(function(el){
+            el.addEventListener('click', function(){
+                var p = compatSaved()[+el.dataset.person];
+                if (!p) return;
+                document.getElementById('cName').value = p.name;
+                document.getElementById('cDate').value = p.date;
+                document.getElementById('cName').scrollIntoView({ behavior:'smooth', block:'center' });
+            });
+        });
+    }
+
+    async function checkCompat(){
+        var nameEl = document.getElementById('cName');
+        var dateEl = document.getElementById('cDate');
+        var out    = document.getElementById('compatResult');
+        var name = (nameEl.value || '').trim();
+        var date = dateEl.value;
+        if (!name) { nameEl.style.borderColor = '#FF6B6B'; nameEl.focus(); return; }
+        if (!date) { dateEl.style.borderColor = '#FF6B6B'; dateEl.focus(); return; }
+        nameEl.style.borderColor = ''; dateEl.style.borderColor = '';
+
+        // считаем числа обоих сами — человеку ничего знать не нужно
+        var myNum   = FocusAstro.getLifePathNumber(FS.birthDate);
+        var hisNum  = FocusAstro.getLifePathNumber(date);
+        var hisName = FocusAstro.getNameNumber(name);
+        var hisZod  = FocusAstro.getZodiac(date);
+        var myZod   = FocusAstro.getZodiac(FS.birthDate);
+        var pct     = FocusAstro.getCompatibility(myNum, hisNum);
+        var kind    = COMPAT_KINDS.filter(function(k){ return k.id === compatKind; })[0] || COMPAT_KINDS[0];
+
+        out.innerHTML = '<div class="loading">✦ Свожу ваши числа...</div>';
+
+        var messages = [
+            { role:'system', content: 'Ты — нумеролог и астролог в приложении FOCUS. Разбери совместимость двух людей ИМЕННО в ключе «' + kind.name + '» (' + kind.hint + '). Не уходи в другие сферы.\n\nСТРУКТУРА (каждый блок с новой строки, заголовок капсом):\nЧТО МЕЖДУ ВАМИ — 3-4 предложения о сути связи в этом ключе.\nВ ЧЁМ СИЛА — 3 предложения: что у вас работает само собой.\nГДЕ БУДЕТ ТРЕНИЕ — 3 предложения, честно, но без приговоров.\nЧТО ДЕЛАТЬ — 3-4 предложения конкретных советов именно для этой пары.\nИТОГ — одна фраза.\n\nЖивой русский, на ты, тепло и по-взрослому. Без клише «звёзды говорят». Не выдумывай факты о человеке, опирайся только на числа и знаки.' },
+            { role:'user', content: 'Я: число судьбы ' + myNum + ', знак ' + (myZod ? myZod.sign : '') + '.\n'
+                + 'Второй человек: ' + name + ', число судьбы ' + hisNum + ', число имени ' + hisName + ', знак ' + (hisZod ? hisZod.sign : '') + '.\n'
+                + 'Числовая совместимость: ' + pct + '%.\nРазбери в ключе «' + kind.name + '».' }
+        ];
+
+        if (!window.fbAskAI) { out.innerHTML = '<div class="forecast-card">ИИ недоступен, обнови страницу.</div>'; return; }
+        try { if (window.FocusStorage && FocusStorage.canUseAI && !FocusStorage.canUseAI('astro','text').ok) { out.innerHTML = '<div class="forecast-card">🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.</div>'; return; } } catch(e){}
+
+        var _short = function(r){ return !(r && r.ok && r.reply && r.reply.trim().length >= 300); };
+        var res = await window.fbAskAI(messages, 2000);
+        if (_short(res)) {
+            await new Promise(function(r){ setTimeout(r, 900); });
+            res = await window.fbAskAI(messages, 2000);
+        }
+
+        var head = '<div style="text-align:center;margin-bottom:10px;">'
+                 + '<div style="font-size:30px;font-weight:800;color:var(--accent);line-height:1;">' + pct + '%</div>'
+                 + '<div style="font-size:11px;color:#8e8e9e;margin-top:3px;">' + kind.ic + ' ' + esc(kind.name) + ' · ' + esc(name) + '</div></div>';
+
+        if (res && res.ok && res.reply && res.reply.trim()) {
+            try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('astro','text'); } catch(e){}
+            out.innerHTML = '<div class="forecast-card">' + head + fmtCompat(res.reply) + '</div>';
+            // запоминаем человека, чтобы не вводить заново
+            var list = compatSaved().filter(function(p){ return !(p.name === name && p.date === date); });
+            list.push({ name: name, date: date, num: hisNum, at: new Date().toISOString() });
+            compatStore(list);
+            renderSavedPeople();
+        } else {
+            out.innerHTML = '<div class="forecast-card">' + head + 'Разбор не сложился — попробуй ещё раз чуть позже.</div>';
+        }
+    }
+
+    /* Заголовки блоков капсом подсвечиваем, иначе разбор читается стеной текста. */
+    function fmtCompat(raw){
+        var safe = String(raw || '').trim().replace(/</g, '&lt;');
+        return safe.replace(/^([А-ЯЁ][А-ЯЁ \u2014-]{3,40})(\s*[—:-])?\s*$/gm, function(_, head){
+            return '<div style="color:var(--accent);font-size:11px;letter-spacing:.07em;margin:13px 0 5px;font-weight:700;">' + head.trim() + '</div>';
+        }).replace(/^([А-ЯЁ][А-ЯЁ \u2014-]{3,40})\s*[—:-]\s*/gm, function(_, head){
+            return '<div style="color:var(--accent);font-size:11px;letter-spacing:.07em;margin:13px 0 5px;font-weight:700;">' + head.trim() + '</div>';
+        });
     }
 
     function getAboutText(){
