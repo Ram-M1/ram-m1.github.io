@@ -713,47 +713,11 @@
     document.addEventListener('visibilitychange', function(){ if (!document.hidden) refreshOnReturn(); });
     window.addEventListener('pageshow', function(){ refreshOnReturn(); });
 
-    /* ЖИВОЙ СПИСОК. Раньше список ждал опроса — до 15 секунд после прихода сообщения.
-       Теперь подписка обновляет строку сразу. Опрос ниже оставлен страховкой:
-       если подписка не поднялась (нет сессии, сбой), всё работает как раньше. */
-    var _liveOff = null;
-    function startLive(){
-      if (_liveOff || !window.fbListenChatList) return;
-      _liveOff = window.fbListenChatList(function(list){
-        if (!list) return;
-        if (!list.length) return;                      // пустой ответ игнорируем
-        /* ПОДПИСКА НИЧЕГО НЕ УДАЛЯЕТ И НЕ ПЕРЕСОБИРАЕТ СПИСОК.
-           Раньше она заменяла массив целиком — а параллельно тот же массив правила
-           фоновая догрузка (аватарки, «в сети», признак живого профиля). Два писателя
-           дрались за одни данные, и строки то появлялись, то исчезали.
-           Теперь подписка делает только одно: обновляет у СУЩЕСТВУЮЩИХ строк текст
-           последнего сообщения, время и счётчик. Появление новых и удаление мёртвых
-           остаётся за обычной загрузкой — она одна владеет составом списка. */
-        var byId = {};
-        chats.forEach(function(c){ byId[c.chatId] = c; });
-        var changed = false, hasNew = false;
-        list.forEach(function(raw){
-          var id = raw.chatId || raw.id;
-          if (!id || isDeleted(id)) return;
-          var cur = byId[id];
-          if (!cur) { hasNew = true; return; }         // новый чат — пусть подтянет загрузка
-          var last = raw.lastText || '';
-          var upd  = raw.updatedAt || '';
-          var unr  = raw.unread || 0;
-          if (cur.last !== last || cur.updatedAt !== upd || cur.unread !== unr) {
-            cur.last = last; cur.updatedAt = upd; cur.unread = unr;
-            changed = true;
-          }
-        });
-        if (changed) {
-          chats.sort(function(a, b){ return (b.updatedAt || '').localeCompare(a.updatedAt || ''); });
-          saveCache(); render();
-        }
-        if (hasNew) refreshSoft();                     // новый собеседник — догрузить его данные
-      });
-    }
-    startLive();
-    setTimeout(startLive, 1500);      // сессия Firebase поднимается не мгновенно
+    /* Живая подписка на список чатов УБРАНА.
+       Она обновляла строки мгновенно, но конфликтовала с фоновой догрузкой
+       (аватарки, «в сети», признак живого профиля): два механизма писали в один
+       список, и строки то мигали, то пропадали. Надёжность важнее мгновенности —
+       список обновляется опросом ниже и при возврате на экран. */
 
     // лёгкий фоновый пуллинг, пока экран открыт (раз в 15 сек — дёшево, список живой)
     setInterval(function(){ if (!document.hidden) refreshSoft(); }, 15000);
