@@ -643,6 +643,21 @@
 
     // клики внутри списка + внутри модалок (делегирование — работает и после перерисовки)
     document.body.addEventListener('click', async function(e){
+      /* ТАП ПО АВАТАРКЕ — открывает карточку человека, а не диалог (как в WhatsApp).
+         Раньше обработчика не было: тап по аватарке просто открывал чат, потому что
+         клик долетал до строки. Теперь аватарка перехватывает клик первой. */
+      var avEl = e.target.closest && e.target.closest('.av');
+      if (avEl) {
+        var avRow = avEl.closest('.chat-row');
+        if (avRow && avRow.dataset.uid && window.FocusUserCard) {
+          e.stopPropagation();
+          window.FocusUserCard.open(avRow.dataset.uid, {
+            name: avRow.dataset.name || '',
+            chatId: avRow.dataset.id || null
+          });
+          return;
+        }
+      }
       // открыть диалог
       var row = e.target.closest('.chat-row');
       if (row && !e.target.closest('[data-add]') && !e.target.closest('[data-write]')) {

@@ -232,6 +232,7 @@
 
     <div class="toast" id="toast"></div>
 </div>
+<script src="focus-errors.js"></script>
 <script src="focus-storage.js"></script>
 <script src="focus-rewards.js"></script>
 <script type="module" src="firebase-auth-helper.js"></script>
@@ -660,6 +661,7 @@ initAtmosphere(canvasId) {
                                 <div class="basket-item-text ${it.done?'done':''}">${escapeHtml(it.text)}</div>
                                 ${meta ? `<div class="item-meta-row">${meta}</div>` : ''}
                             </div>
+                            ${(!it.done && (b.key === 'now' || b.key === 'plan')) ? `<div class="basket-item-focus" data-focus="${b.key}|${it.id}" title="Сфокусироваться" style="flex:0 0 auto;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.65;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></div>` : ''}
                             <div class="basket-item-del" data-del="${b.key}|${it.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></div>
                         </div>`;
                 });
@@ -761,5 +763,21 @@ initAtmosphere(canvasId) {
 </script>
     <script src="focus-chat-fab.js"></script>
 <script src="focus-reminders.js"></script>
+
+<script>
+/* Кнопка «Сфокусироваться» рядом с делом: уводит в тренировку фокуса с уже
+   выбранной задачей. Так связь работает в обе стороны — не только «взять дело
+   в таймере», но и «начать фокус прямо отсюда». */
+document.addEventListener('click', function(e){
+  var el = e.target.closest && e.target.closest('[data-focus]');
+  if (!el) return;
+  e.stopPropagation();
+  var parts = (el.getAttribute('data-focus') || '').split('|');
+  try {
+    localStorage.setItem('focus_pick_pending', JSON.stringify({ bucket: parts[0], id: parts[1] }));
+  } catch(err){}
+  location.href = 'fokus_focus_timer.html';
+});
+</script>
 </body>
 </html>

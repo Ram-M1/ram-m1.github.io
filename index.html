@@ -998,6 +998,7 @@ window._focusUnlockAudio = function(){
         </div>
     </div>
 </div>
+<script src="focus-errors.js"></script>
 <script src="focus-storage.js"></script>
 <script src="focus-rewards.js"></script>
 <script src="focus-astro.js"></script>
@@ -1073,7 +1074,35 @@ window._focusUnlockAudio = function(){
             var entered = anchor
                 || (_u && _u.flags && (_u.flags.loggedIn || _u.flags.profileCompleted))
                 || (_u && _u.name && _u.assistantName && _u.birthDate);
-            if (!entered) { location.replace('landing.html'); return; }
+            if (!entered) {
+                /* НЕ ВЫКИДЫВАЕМ, ПОКА НЕ УБЕДИЛИСЬ, ЧТО СЕССИИ НЕТ.
+                   Раньше решение принималось ТОЛЬКО по локальному хранилищу. А его
+                   чистит сам браузер: iOS Safari удаляет данные сайта примерно через
+                   неделю простоя, «очистка истории» делает то же самое. При этом вход
+                   Firebase хранится ОТДЕЛЬНО и переживает такую чистку — то есть
+                   человек оставался залогинен, но приложение слало его на страницу
+                   входа как чужого.
+                   Теперь ждём до 3 секунд: появилась сессия — восстанавливаем якорь
+                   и остаёмся, профиль подтянется из облака ниже. Сессии нет — это
+                   действительно новый гость, идём на лендинг. */
+                var _waited = 0;
+                var _look = setInterval(function(){
+                    var live = null;
+                    try { live = window.fbCurrentUser && window.fbCurrentUser(); } catch(e){}
+                    if (live) {
+                        clearInterval(_look);
+                        try { localStorage.setItem('focus_login_anchor', '1'); } catch(e){}
+                        /* Перезагрузку НЕ делаем намеренно: если запись в хранилище
+                           запрещена (приватный режим), якорь не сохранится и страница
+                           перезагружалась бы бесконечно. Просто остаёмся — профиль
+                           подтянется из облака сам, это делает помощник при входе. */
+                        return;
+                    }
+                    _waited += 150;
+                    if (_waited >= 3000) { clearInterval(_look); location.replace('landing.html'); }
+                }, 150);
+                return;
+            }
 
             // Вошёл, но анкеты локально НЕТ. ВАЖНО: облако грузится асинхронно (1-3 сек),
             // а гард выполняется мгновенно. Раньше здесь стоял моментальный редирект —
@@ -1134,7 +1163,28 @@ window._focusUnlockAudio = function(){
                                 try { if (window.FocusStorage) FocusStorage.applyCloudData(data); } catch(e){}
                                 var has = !!(data.name && data.assistantName && data.birthDate);
                                 if (has) { clearInterval(watch); done = true; return; }   // профиль есть — остаёмся
-                                clearInterval(watch); finish(true);                       // ОТВЕТ ПОЛУЧЕН, анкеты нет
+
+                                /* НЕ ВЫГОНЯЕМ ТОГО, У КОГО АНКЕТА УЖЕ ЗАПОЛНЕНА.
+                                   Раньше решение принималось ТОЛЬКО по облаку: если там не
+                                   хватало хоть одного из трёх полей — человека уводило
+                                   заполнять анкету заново, хотя на устройстве она была.
+                                   А в облако профиль уходит фоновой записью, которая легко
+                                   не успевает. Теперь: есть локальные данные — остаёмся
+                                   и ДОСЫЛАЕМ их наверх, вместо того чтобы гнать по кругу. */
+                                var loc = {};
+                                try { loc = JSON.parse(localStorage.getItem('focus_user') || '{}') || {}; } catch(e){}
+                                if (loc.name || loc.assistantName || loc.birthDate) {
+                                    clearInterval(watch); done = true;
+                                    try {
+                                        if (window.fbSaveUserData) window.fbSaveUserData({
+                                            name: loc.name || '', assistantName: loc.assistantName || '',
+                                            birthDate: loc.birthDate || '', firstName: loc.firstName || '',
+                                            gender: loc.gender || '', city: loc.city || '', phone: loc.phone || ''
+                                        });
+                                    } catch(e){}
+                                    return;
+                                }
+                                clearInterval(watch); finish(true);                       // пусто И тут, И там — анкеты нет
                             }).catch(function(){ retry(3000); });                         // связь оборвалась — не выкидываем
                         }).catch(function(){ retry(3000); });
                     };

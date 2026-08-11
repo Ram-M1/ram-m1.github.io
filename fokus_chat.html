@@ -177,7 +177,7 @@
     .messages-area { flex:1; overflow-y:auto; scrollbar-width:none; padding:12px 2px; display:flex; flex-direction:column; gap:8px; }
     .messages-area::-webkit-scrollbar { display:none; }
     .msg { max-width:78%; padding:9px 13px; border-radius:16px; font-size:13px; line-height:1.4; word-wrap:break-word; position:relative; }
-    .msg-time { font-size:9px; opacity:0.6; margin-top:3px; text-align:right; }
+    .msg-time { font-size:10px; opacity:0.55; margin-top:5px; margin-left:14px; text-align:right; display:block; white-space:nowrap; }
     .msg.them { align-self:flex-start; background:rgba(255,255,255,0.08); color:#e8e8ee; border-bottom-left-radius:5px; }
     .msg.me { align-self:flex-end; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0a0a0f; border-bottom-right-radius:5px; }
     .msg.me .msg-time { color:rgba(10,10,15,0.6); }
@@ -349,6 +349,7 @@
     <div class="toast" id="toast"></div>
 </div>
 
+<script src="focus-errors.js"></script>
 <script src="focus-storage.js"></script>
 <script src="focus-ai.js"></script>
 <script type="module" src="firebase-auth-helper.js"></script>

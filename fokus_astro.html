@@ -53,6 +53,7 @@
 </div>
 
 <script src="focus-astro.js"></script>
+<script src="focus-errors.js"></script>
 <script src="focus-storage.js"></script>
 <script src="focus-core.js"></script>
 <script src="focus-ai.js"></script>
@@ -101,10 +102,15 @@
         ];
         if (!window.fbAskAI) { area.innerHTML = '<div class="forecast-card">ИИ недоступен.</div>'; return; }
         try { if (window.FocusStorage && FocusStorage.canUseAI && !FocusStorage.canUseAI('astro','text').ok) { area.innerHTML = '<div class="forecast-card">🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.</div>'; return; } } catch(e){}
-        let res = await window.fbAskAI(messages, 400);
-        if (!(res && res.ok && res.reply && res.reply.trim())) {
+        /* ОБРЫВОК СЧИТАЕМ СБОЕМ. Раньше проверялось только «ответ непустой» —
+           и если модель присылала пару слов, они так и показывались. Теперь
+           слишком короткий ответ (меньше 60 символов — это не гороскоп) тоже
+           уходит в повтор. */
+        var _tooShort = function(r){ return !(r && r.ok && r.reply && r.reply.trim().length >= 60); };
+        let res = await window.fbAskAI(messages, 900);   // было 400 — на русском этого мало
+        if (_tooShort(res)) {
             await new Promise(function(r){ setTimeout(r, 900); });   // пауза и ретрай (два запроса разом могли захлебнуться)
-            res = await window.fbAskAI(messages, 400);
+            res = await window.fbAskAI(messages, 900);
         }
         if (res && res.ok && res.reply && res.reply.trim()) { try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('astro','text'); } catch(e){} }
         area.innerHTML = (res.ok && res.reply && res.reply.trim())
@@ -123,10 +129,11 @@
         ];
         if (!window.fbAskAI) { area.innerHTML = '<div class="forecast-card">ИИ недоступен, обнови страницу.</div>'; return; }
         try { if (window.FocusStorage && FocusStorage.canUseAI && !FocusStorage.canUseAI('astro','text').ok) { area.innerHTML = '<div class="forecast-card">🔒 Лимит ИИ исчерпан. Пополни F-coin или оформи подписку.</div>'; return; } } catch(e){}
-        let res = await window.fbAskAI(messages, 600);
-        if (!(res && res.ok && res.reply && res.reply.trim())) {
+        var _tooShort2 = function(r){ return !(r && r.ok && r.reply && r.reply.trim().length >= 80); };
+        let res = await window.fbAskAI(messages, 1200);  // было 600 — ответ обрывался
+        if (_tooShort2(res)) {
             await new Promise(function(r){ setTimeout(r, 900); });
-            res = await window.fbAskAI(messages, 600);
+            res = await window.fbAskAI(messages, 1200);
         }
         if (res && res.ok && res.reply && res.reply.trim()) { try { if (window.FocusStorage && FocusStorage.useAI) FocusStorage.useAI('astro','text'); } catch(e){} }
         area.innerHTML = (res.ok && res.reply && res.reply.trim())

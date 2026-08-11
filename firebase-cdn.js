@@ -103,6 +103,17 @@ export const startAfter = S.startAfter;
 export const deleteDoc = S.deleteDoc;
 export const arrayUnion = S.arrayUnion;
 
+/* ── ОФЛАЙН-РЕЖИМ ──
+   Firestore умеет держать локальную копию данных: чтение идёт мгновенно, без
+   похода в сеть, а записи копятся и уходят сами, когда связь появится.
+   Раньше эти функции не экспортировались, поэтому режим было невозможно включить —
+   каждое чтение ждало сервер, отсюда паузы на экранах.
+   Названия отличаются между версиями библиотеки, поэтому берём что есть. */
+export const initializeFirestore = S.initializeFirestore;
+export const persistentLocalCache = S.persistentLocalCache;
+export const persistentMultipleTabManager = S.persistentMultipleTabManager;
+export const enableIndexedDbPersistence = S.enableIndexedDbPersistence;
+
 /** Уведомления грузим по требованию — они нужны не на каждом экране. */
 export async function loadMessaging() {
   for (const src of SOURCES) {

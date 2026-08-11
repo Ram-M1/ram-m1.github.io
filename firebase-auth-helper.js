@@ -23,7 +23,8 @@ import {
 } from "./firebase-cdn.js";
 import {
   getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, arrayUnion,
-  addDoc, onSnapshot, orderBy, serverTimestamp, limit, startAfter, deleteDoc, loadMessaging
+  addDoc, onSnapshot, orderBy, serverTimestamp, limit, startAfter, deleteDoc, loadMessaging,
+  initializeFirestore, persistentLocalCache, persistentMultipleTabManager, enableIndexedDbPersistence
 } from "./firebase-cdn.js";
 
 const firebaseConfig = {
@@ -114,7 +115,38 @@ window.fbVerifyCode = async function(email, code) {
     }
   }
 };
-const db = getFirestore(app);
+/* ═══ ОФЛАЙН-РЕЖИМ БАЗЫ ═══
+   Раньше КАЖДОЕ чтение шло в сеть: экраны ждали сервер, а без связи данных не было
+   вообще. Теперь Firestore держит локальную копию — чтение мгновенное, а записи,
+   сделанные без сети, копятся и уходят сами, когда связь появится.
+
+   Три пути по убыванию: новый способ (свежие версии библиотеки), старый способ
+   (версии постарше), и если ни один не сработал — обычный режим, как было.
+   Любой сбой не мешает приложению запуститься. */
+let db;
+try {
+  if (typeof initializeFirestore === 'function' && typeof persistentLocalCache === 'function') {
+    db = initializeFirestore(app, {
+      localCache: persistentLocalCache(
+        typeof persistentMultipleTabManager === 'function'
+          ? { tabManager: persistentMultipleTabManager() }   // несколько вкладок не мешают друг другу
+          : {}
+      )
+    });
+    try { window.FOCUS_OFFLINE = 'on'; } catch (e) {}
+  } else {
+    db = getFirestore(app);
+    if (typeof enableIndexedDbPersistence === 'function') {
+      // старый способ: включаем уже после создания, ошибку глушим (например, открыто много вкладок)
+      enableIndexedDbPersistence(db)
+        .then(function () { try { window.FOCUS_OFFLINE = 'on-legacy'; } catch (e) {} })
+        .catch(function () { try { window.FOCUS_OFFLINE = 'off'; } catch (e) {} });
+    }
+  }
+} catch (e) {
+  db = getFirestore(app);              // что-то пошло не так — работаем как раньше
+  try { window.FOCUS_OFFLINE = 'off'; } catch (e2) {}
+}
 
 // перевод ошибок Firebase на русский
 function ruError(code) {
@@ -250,6 +282,19 @@ window.fbEnsureProfileInCloud = async function(){
 /** БЫСТРОЕ ожидание сессии (опрос каждые 150 мс, обычно 300-500 мс).
     Нужен гарду на главной: нельзя решать «анкеты нет», пока Firebase
     ещё поднимает сессию — иначе выкинет в анкету человека с готовым профилем. */
+/* ТОКЕН ЛИЧНОСТИ для запросов к серверу.
+   Сервер раньше верил uid из тела запроса — значит кто угодно мог представиться
+   другим человеком. Теперь прикладываем подписанный токен Firebase: сервер
+   проверит подпись и возьмёт личность из него. Если токена нет — сервер работает
+   по-старому (мягкий режим), поэтому ничего не ломается. */
+window.fbIdToken = async function(){
+  try {
+    const u = _currentUser || auth.currentUser;
+    if (!u || !u.getIdToken) return '';
+    return await u.getIdToken();
+  } catch (e) { return ''; }
+};
+
 window.fbWaitSession = function(maxMs){
   return new Promise(function(resolve){
     const now = _currentUser || auth.currentUser;
@@ -450,6 +495,10 @@ window.fbSaveUserData = async function(data) {
     await setDoc(doc(db, 'users', user.uid), payload, { merge: true });
     return { ok: true };
   } catch (e) {
+    /* Сбой здесь = профиль не доехал до облака. Именно из-за этого человека
+       с заполненной анкетой могло уводить заполнять её заново. Раньше причина
+       была невидима — теперь видна в админке. */
+    try { if (window.FocusErrors) window.FocusErrors.report('облако: сохранение профиля', e); } catch(e2){}
     return { ok: false, error: e.message };
   }
 };
@@ -905,7 +954,11 @@ window.fbTouchOnline = async function(force, online) {
     try {
       var lu = (window.FocusStorage && window.FocusStorage.getUser()) || {};
       name = lu.name || '';
-      avatar = lu.avatarSmall || '';   // лёгкая версия для списка (см. профиль)
+      /* ЕДИНЫЙ АВАТАР. Берём лёгкую версию, а если её нет — обычную.
+         Раньше бралась ТОЛЬКО лёгкая: у кого она не создалась (фото поставлено
+         в старой версии, сжатие не сработало), в чате у собеседников вместо фото
+         показывалась буква, хотя в профиле FOCUS аватарка стояла. */
+      avatar = lu.avatarSmall || lu.avatar || '';
     } catch(e){}
     var payload = { name: name, online: online === false ? false : true, lastSeen: now };
     /* ОТПЕЧАТОК НОМЕРА для поиска.
@@ -1455,6 +1508,37 @@ window.fbListenChatMeta = function(chatId, callback) {
 };
 
 // Получить список чатов пользователя
+/* ОТЧЁТЫ ОБ ОШИБКАХ — пишем в облако, чтобы они были видны в админке.
+   Пишем в отдельную коллекцию, а не в профиль: так они не раздувают документ
+   пользователя и их можно смотреть отдельно. */
+window.fbReportErrors = async function(list) {
+  try {
+    if (!list || !list.length) return true;
+    const user = _currentUser || auth.currentUser;
+    const uid = user ? user.uid : 'anon';
+    await setDoc(doc(db, 'errors', uid + '__' + Date.now()), {
+      uid: uid,
+      at: new Date().toISOString(),
+      items: list.slice(-20)      // не больше 20 за раз — этого достаточно
+    });
+    return true;
+  } catch (e) { return false; }
+};
+
+/** Прочитать сбои пользователей — для админки. Возвращает плоский список, новые сверху. */
+window.fbLoadErrors = async function() {
+  try {
+    const snap = await getDocs(query(collection(db, 'errors'), orderBy('at', 'desc'), limit(40)));
+    const out = [];
+    snap.forEach(function(d){
+      const v = d.data() || {};
+      (v.items || []).forEach(function(it){ out.push(Object.assign({ uid: v.uid }, it)); });
+    });
+    out.sort(function(a, b){ return String(b.at || '').localeCompare(String(a.at || '')); });
+    return out.slice(0, 60);
+  } catch (e) { return []; }
+};
+
 window.fbGetChatList = async function() {
   const user = _currentUser || auth.currentUser;
   if (!user) return [];
@@ -1508,6 +1592,41 @@ window.fbGetChatList = async function() {
 
 // Адрес твоего прокси-воркера (ключ спрятан на стороне Cloudflare)
 window.FOCUS_AI_PROXY = 'https://focus-ai.playing-life-rama.workers.dev';
+
+/* ═══ ТОКЕН ЛИЧНОСТИ КО ВСЕМ ЗАПРОСАМ НА НАШ СЕРВЕР ═══
+   Сервер раньше верил идентификатору из тела запроса — значит кто угодно мог
+   представиться другим человеком и, например, увести чужие купленные монеты.
+   Теперь к каждому запросу прикладывается подписанный токен Firebase: сервер
+   проверяет подпись и берёт личность из него.
+
+   Перехват сделан ОДИН раз здесь, а не в каждом вызове по отдельности —
+   так ни один запрос не может остаться без токена по недосмотру, включая те,
+   что появятся позже. Чужие домены не трогаем. */
+(function(){
+  if (window.__focusFetchPatched) return;
+  window.__focusFetchPatched = true;
+  var _origFetch = window.fetch.bind(window);
+  window.fetch = function(input, init){
+    try {
+      var url = (typeof input === 'string') ? input : (input && input.url) || '';
+      var base = window.FOCUS_AI_PROXY || '';
+      if (base && url.indexOf(base) === 0) {
+        return (async function(){
+          var tok = '';
+          try { tok = await window.fbIdToken(); } catch(e){}
+          var opts = init || {};
+          if (tok) {
+            var h = new Headers(opts.headers || {});
+            h.set('X-Focus-Token', tok);
+            opts = Object.assign({}, opts, { headers: h });
+          }
+          return _origFetch(input, opts);
+        })();
+      }
+    } catch(e){}
+    return _origFetch(input, init);
+  };
+})();
 
 // Универсальный вызов ИИ. messages — массив [{role, content}]
 // Возвращает { ok, reply } или { ok:false, error }
@@ -1677,7 +1796,17 @@ window.fbBackupAllData = function(){
       await setDoc(doc(db, 'users', user.uid, 'backup', 'sections'), {
         data: data, updatedAt: new Date().toISOString()
       });
-    } catch(e){}
+    } catch(e){
+      /* РАНЬШЕ СБОЙ ЗДЕСЬ БЫЛ НЕВИДИМ. Именно тут облако умирало бы тихо:
+         документ упёрся в предел размера — сохранение падает, ошибка глушится,
+         человек продолжает работать, данные копятся только на телефоне, и он
+         узнаёт об этом, лишь сменив устройство. Теперь сбой попадает в админку. */
+      try {
+        var size = 0;
+        try { size = JSON.stringify(_collectLocalData()).length; } catch(e2){}
+        if (window.FocusErrors) window.FocusErrors.report('облако: выгрузка разделов', e, 'размер ~' + size + ' байт');
+      } catch(e3){}
+    }
   }, 4000);
 };
 

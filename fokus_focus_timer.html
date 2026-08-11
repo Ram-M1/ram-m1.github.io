@@ -186,6 +186,10 @@
         <div class="focus-body">
             <div class="focus-task" id="taskWrap">
                 <input type="text" id="taskInput" placeholder="На чём фокусируешься?" autocomplete="off">
+                <!-- ВЫБОР ИЗ РЕАЛЬНЫХ ДЕЛ. Раньше задачу можно было только вписать руками,
+                     и сессия ни с чем не связывалась: отсидел время — результата не видно.
+                     Теперь можно взять дело из разгрузки мозга или шаг цели — и закрыть его. -->
+                <div id="pickWrap" style="margin-top:10px;"></div>
             </div>
 
             <div class="timer-wrap">
@@ -270,6 +274,7 @@
 
     <div class="toast" id="toast"></div>
 </div>
+<script src="focus-errors.js"></script>
 <script src="focus-storage.js"></script>
 <script src="focus-rewards.js"></script>
 <script type="module" src="firebase-auth-helper.js"></script>
@@ -559,6 +564,12 @@ initAtmosphere(canvasId) {
                 return;
             }
             sessionTask = task;
+            /* Если задача взята из разгрузки мозга или из цели — запоминаем связь,
+               чтобы после сессии поставить галочку в источнике. Вписанная руками
+               задача связи не имеет, и это нормально. */
+            if (!window._pickedTask || window._pickedTask.text !== task) {
+                window._pickedTask = window.FocusTasks ? window.FocusTasks.custom(task) : null;
+            }
             sessionStartTs = Date.now();
             pausedTotalMs = 0;
             taskLabelEl.innerText = '🎯 ' + task;
@@ -615,6 +626,14 @@ initAtmosphere(canvasId) {
         renderStats();
         // открыть модалку фото-отчёта (награда — только с фото и без долгих пауз)
         openReportModal();
+        /* Спрашиваем судьбу задачи: доделал или продолжим. Только если сессия была
+           привязана к реальному делу — вписанную руками задачу закрывать негде. */
+        try {
+            if (window.focusAskOutcome && window._pickedTask && window._pickedTask.source !== 'own') {
+                var _spent = Math.round((durationMin * 60) - (remaining > 0 ? remaining : 0)) || durationMin * 60;
+                setTimeout(function(){ window.focusAskOutcome(_spent); }, 600);
+            }
+        } catch(e){}
     }
 
     // ===== Архив сессий =====
@@ -802,5 +821,148 @@ initAtmosphere(canvasId) {
 </script>
     <script src="focus-chat-fab.js"></script>
 <script src="focus-reminders.js"></script>
+<script src="focus-tasks.js"></script>
+<script>
+/* ═══ ВЫБОР РЕАЛЬНОГО ДЕЛА + РАЗДЕЛ «ДОДЕЛАТЬ» ═══
+   Сессия фокуса привязывается к настоящей задаче из разгрузки мозга или к шагу
+   бизнес-цели. Завершил — галочка ставится в источнике. Не доделал — задача уходит
+   в «Доделать» вместе с комментарием, чтобы в следующий раз вспомнить контекст. */
+(function(){
+  var FT = window.FocusTasks;
+  if (!FT) return;
+
+  var pickWrap = document.getElementById('pickWrap');
+  var input    = document.getElementById('taskInput');
+  if (!pickWrap || !input) return;
+
+  function esc(s){ return String(s||'').replace(/[<>&"]/g, function(c){
+    return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]; }); }
+
+  function chip(text, sub, onTap, accent){
+    var d = document.createElement('div');
+    d.style.cssText = 'padding:9px 12px;margin-bottom:6px;border-radius:11px;cursor:pointer;'
+      + 'background:rgba(255,255,255,0.05);border:0.5px solid rgba(var(--accent-rgb),'
+      + (accent ? '0.35' : '0.14') + ');';
+    d.innerHTML = '<div style="font-size:12.5px;color:#e8e8ee;line-height:1.35;">' + esc(text) + '</div>'
+      + (sub ? '<div style="font-size:10px;color:#8e8e9e;margin-top:3px;">' + esc(sub) + '</div>' : '');
+    d.addEventListener('click', onTap);
+    return d;
+  }
+
+  function render(){
+    pickWrap.innerHTML = '';
+
+    // 1) НЕЗАКОНЧЕННОЕ — самое важное, всегда сверху
+    var todo = FT.todoList();
+    if (todo.length){
+      var h1 = document.createElement('div');
+      h1.style.cssText = 'font-size:10.5px;color:var(--accent);letter-spacing:.06em;margin:2px 0 7px;text-transform:uppercase;';
+      h1.textContent = 'Доделать';
+      pickWrap.appendChild(h1);
+      todo.slice(0, 6).forEach(function(rec){
+        var alive = FT.sourceAlive(rec);
+        var sub = FT.fmtTime(rec.seconds) + ' · подход ' + ((rec.rounds||0)+1)
+                + (alive ? '' : ' · источник удалён');
+        var c = chip(rec.text, sub, function(){ pick(rec); }, true);
+        if (rec.comment){
+          var note = document.createElement('div');
+          note.style.cssText = 'font-size:11px;color:#b9b5c4;margin-top:5px;padding-left:9px;border-left:2px solid rgba(var(--accent-rgb),0.4);line-height:1.4;';
+          note.textContent = rec.comment;
+          c.appendChild(note);
+        }
+        pickWrap.appendChild(c);
+      });
+    }
+
+    // 2) ЧТО МОЖНО ВЗЯТЬ
+    var av = FT.available().filter(function(a){
+      return !todo.some(function(t){ return t.key === a.key; });
+    });
+    if (av.length){
+      var h2 = document.createElement('div');
+      h2.style.cssText = 'font-size:10.5px;color:#8e8e9e;letter-spacing:.06em;margin:12px 0 7px;text-transform:uppercase;';
+      h2.textContent = 'Твои дела и цели';
+      pickWrap.appendChild(h2);
+      av.slice(0, 8).forEach(function(a){
+        pickWrap.appendChild(chip(a.text, a.sourceLabel, function(){ pick(a); }));
+      });
+    }
+
+    if (!todo.length && !av.length){
+      var e = document.createElement('div');
+      e.style.cssText = 'font-size:11px;color:#6e6e7e;line-height:1.5;padding:4px 2px;';
+      e.textContent = 'Задачи появятся здесь из «Разгрузки мозга» и из шагов твоих целей. Пока просто впиши, на чём фокусируешься.';
+      pickWrap.appendChild(e);
+    }
+  }
+
+  function pick(task){
+    window._pickedTask = task;
+    input.value = task.text;
+    pickWrap.innerHTML = '<div style="font-size:11px;color:var(--accent);padding:4px 2px;">Выбрано: '
+      + esc(task.sourceLabel || 'своя задача') + '</div>';
+  }
+
+  // человек начал печатать сам — связь с источником сбрасываем
+  input.addEventListener('input', function(){
+    if (window._pickedTask && window._pickedTask.text !== input.value.trim()) window._pickedTask = null;
+  });
+
+  render();
+
+  /* Пришли из разгрузки мозга по кнопке «Сфокусироваться» — задача уже выбрана. */
+  try {
+    var pending = JSON.parse(localStorage.getItem('focus_pick_pending') || 'null');
+    if (pending) {
+      localStorage.removeItem('focus_pick_pending');
+      var match = FT.available().filter(function(a){
+        return a.source === 'braindump' && a.ref && a.ref.bucket === pending.bucket && a.ref.id === pending.id;
+      })[0];
+      if (match) pick(match);
+    }
+  } catch(e){}
+
+  /* ═══ ИТОГ СЕССИИ ═══
+     Спрашиваем мягко: доделал или нет. Не доделал — просим пару слов, чтобы
+     в следующий раз не начинать с нуля. Заставлять отмечать выполненным нельзя:
+     иначе люди начнут врать статистике, и она потеряет смысл. */
+  window.focusAskOutcome = function(seconds){
+    var task = window._pickedTask;
+    if (!task || !task.text) return;
+
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:absolute;inset:0;z-index:99;background:rgba(8,8,12,0.93);'
+      + 'display:flex;align-items:center;justify-content:center;padding:24px;';
+    ov.innerHTML =
+      '<div style="width:100%;max-width:300px;background:#12121a;border:0.5px solid rgba(var(--accent-rgb),0.2);border-radius:16px;padding:20px;">'
+      + '<div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:4px;">Как прошло?</div>'
+      + '<div style="font-size:12px;color:#b9b5c4;line-height:1.4;margin-bottom:14px;">' + esc(task.text) + '</div>'
+      + '<div id="foDone" style="padding:11px;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#0a0a0f;font-weight:700;font-size:13px;text-align:center;cursor:pointer;margin-bottom:9px;">Готово, закрываю</div>'
+      + '<div id="foMore" style="padding:11px;border-radius:11px;border:0.5px solid rgba(255,255,255,0.15);color:#e8e8ee;font-size:13px;text-align:center;cursor:pointer;">Ещё не доделал</div>'
+      + '<div id="foNote" style="display:none;margin-top:12px;">'
+        + '<textarea id="foText" placeholder="На чём остановился? Прочитаешь в следующий раз и сразу вспомнишь." '
+        + 'style="width:100%;min-height:76px;background:rgba(0,0,0,0.3);border:0.5px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px;color:#e8e8ee;font-size:12.5px;font-family:inherit;resize:none;"></textarea>'
+        + '<div id="foSave" style="margin-top:9px;padding:11px;border-radius:11px;background:rgba(var(--accent-rgb),0.16);color:var(--accent);font-weight:600;font-size:13px;text-align:center;cursor:pointer;">Сохранить и вернуться</div>'
+      + '</div></div>';
+    (document.querySelector('.phone') || document.body).appendChild(ov);
+
+    ov.querySelector('#foDone').addEventListener('click', function(){
+      var r = FT.complete(task, seconds);
+      ov.remove(); window._pickedTask = null; render();
+      var where = (r.markedIn && r.markedIn.length) ? ' · отмечено: ' + r.markedIn.join(', ') : '';
+      try { toast('Закрыто за ' + FT.fmtTime(r.seconds) + where); } catch(e){}
+    });
+    ov.querySelector('#foMore').addEventListener('click', function(){
+      ov.querySelector('#foNote').style.display = 'block';
+      ov.querySelector('#foText').focus();
+    });
+    ov.querySelector('#foSave').addEventListener('click', function(){
+      FT.parkUnfinished(task, ov.querySelector('#foText').value, seconds);
+      ov.remove(); window._pickedTask = null; render();
+      try { toast('Сохранено в «Доделать»'); } catch(e){}
+    });
+  };
+})();
+</script>
 </body>
 </html>

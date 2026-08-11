@@ -253,6 +253,10 @@
                     <div class="panel-title">🕐 Последние события</div>
                     <div id="eventsLog"></div>
                 </div>
+                <div class="panel">
+                    <div class="panel-title">⚠️ Сбои у пользователей <span class="count-badge" id="errCount">0</span></div>
+                    <div id="errorsLog"></div>
+                </div>
             </div>
 
             <!-- ЗАЯВКИ ОРАКУЛОВ -->
@@ -357,6 +361,7 @@
     <div class="toast" id="toast"></div>
 </div>
 
+<script src="focus-errors.js"></script>
 <script src="focus-storage.js"></script>
 <script type="module" src="firebase-auth-helper.js"></script>
 <script src="focus-core.js"></script>
@@ -568,6 +573,31 @@ initAtmosphere(canvasId) {
                 <div class="row-info"><div class="row-name">${escapeHtml(e.what)}</div><div class="row-sub">${escapeHtml(e.who)}</div></div>
                 <div style="font-size:16px;">${e.status}</div>
             </div>`).join('') || '<div class="empty-row">Нет событий</div>';
+
+        /* СБОИ У ПОЛЬЗОВАТЕЛЕЙ. До этого поломки были невидимы: около 140 мест в коде
+           глушат ошибку молча, и о проблеме можно было узнать только от самого человека —
+           а обычно он просто уходит. Теперь сбои видно здесь. */
+        (async function(){
+            var box = document.getElementById('errorsLog');
+            var cnt = document.getElementById('errCount');
+            if (!box) return;
+            var items = [];
+            try { if (window.fbLoadErrors) items = await window.fbLoadErrors(); } catch(e){}
+            if (cnt) cnt.textContent = items.length;
+            if (!items.length) { box.innerHTML = '<div class="empty-row">Сбоев нет — всё чисто</div>'; return; }
+            box.innerHTML = items.slice(0, 25).map(function(e){
+                var when = '';
+                try { when = new Date(e.at).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); } catch(_){}
+                return '<div class="row-item">' +
+                    '<div class="row-info">' +
+                      '<div class="row-name">' + escapeHtml(e.where || 'сбой') + '</div>' +
+                      '<div class="row-sub">' + escapeHtml((e.text || '').slice(0,110)) +
+                        (e.page ? ' · ' + escapeHtml(e.page) : '') + '</div>' +
+                    '</div>' +
+                    '<div style="font-size:10px;color:#8e8e9e;white-space:nowrap;">' + when + '</div>' +
+                  '</div>';
+            }).join('');
+        })();
     }
 
     // ===== ЗАЯВКИ (реальное одобрение) =====

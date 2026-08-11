@@ -101,7 +101,9 @@ const FocusStorage = {
     _migrateLegacy() {
         const legacy = {
             email: localStorage.getItem('focus_user_email'),
-            password: localStorage.getItem('focus_user_password'),
+            /* Пароль больше НЕ переносим: вход в приложение идёт по коду с почты,
+               пароль не нужен, а лежал он на устройстве открытым текстом. У кого он
+               остался от старых версий — стирается ниже. */
             name: localStorage.getItem('focus_user_name'),
             age: localStorage.getItem('focus_user_age'),
             city: localStorage.getItem('focus_user_city'),
@@ -481,6 +483,68 @@ const FocusStorage = {
 if (typeof window !== 'undefined') {
     window.FocusStorage = FocusStorage;
 }
+
+/* Разовая зачистка: у части пользователей от старых версий на устройстве остался
+   пароль ОТКРЫТЫМ ТЕКСТОМ. Он нигде не используется — вход по коду с почты. Стираем. */
+(function(){
+  try {
+    if (localStorage.getItem('focus_user_password') != null) {
+      localStorage.removeItem('focus_user_password');
+    }
+    var u = JSON.parse(localStorage.getItem('focus_user') || '{}');
+    if (u && u.password) {
+      delete u.password;
+      (window.__focusRawSet || localStorage.setItem.bind(localStorage))('focus_user', JSON.stringify(u));
+    }
+  } catch (e) {}
+})();
+
+/* ═══ ЧИСТКА СТАРЫХ ЕЖЕДНЕВНЫХ ОТМЕТОК ═══
+   Часть разделов заводит НОВЫЙ ключ на каждый день: приём лекарств, добавок,
+   отметки тренировок, закрытие дня, молитвы. За год это тысячи записей, и все
+   они попадают в один облачный документ, у которого есть жёсткий предел размера.
+   Когда предел будет превышен, сохранение начнёт падать — а ошибка глушится,
+   то есть облако умрёт тихо и незаметно.
+
+   Поэтому раз в сутки убираем отметки старше 90 дней. Трогаем ТОЛЬКО ключи с
+   датой на конце и только из этого списка — всё остальное (дневники, цели,
+   программы, настройки) не затрагивается никогда. */
+(function(){
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  var DAILY = ['focus_med_taken_', 'focus_supp_taken_', 'focus_day_closed_',
+               'focus_workout_checks_', 'focus_workout_note_', 'focus_session_done_',
+               'faith_prayer_rem_'];
+  var KEEP_DAYS = 90;
+  var MARK = 'focus_prune_at';
+  try {
+    var last = parseInt(localStorage.getItem(MARK) || '0', 10);
+    if (Date.now() - last < 24 * 60 * 60 * 1000) return;    // уже чистили сегодня
+
+    var edge = new Date(Date.now() - KEEP_DAYS * 86400000).toISOString().slice(0, 10);
+    var doomed = [];
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (!k) continue;
+      for (var j = 0; j < DAILY.length; j++) {
+        if (k.indexOf(DAILY[j]) !== 0) continue;
+        var tail = k.slice(DAILY[j].length);
+        // хвост обязан быть датой вида 2026-08-11 — иначе не наш ключ, не трогаем
+        if (/^\d{4}-\d{2}-\d{2}$/.test(tail) && tail < edge) doomed.push(k);
+        break;
+      }
+    }
+    doomed.forEach(function(k){ try { localStorage.removeItem(k); } catch(e){} });
+
+    // и из журнала отметок времени, чтобы он тоже не рос
+    try {
+      var meta = JSON.parse(localStorage.getItem('focus_sync_meta') || '{}');
+      doomed.forEach(function(k){ delete meta[k]; });
+      (window.__focusRawSet || localStorage.setItem.bind(localStorage))('focus_sync_meta', JSON.stringify(meta));
+    } catch(e){}
+
+    (window.__focusRawSet || localStorage.setItem.bind(localStorage))(MARK, String(Date.now()));
+  } catch (e) {}
+})();
 
 /* ============================================================================
    АВТОСИНХРОНИЗАЦИЯ ВСЕХ РАЗДЕЛОВ (критичный фикс потери данных)
