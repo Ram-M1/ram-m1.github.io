@@ -1043,25 +1043,30 @@ initAtmosphere(canvasId) {
             })();
             /* Незавершённая отправка с прошлого захода — показываем и дошлём. */
             try { renderOutbox(); flushOutbox(); } catch(e){}
-            /* Пока облако отвечает — показываем сохранённую переписку, чтобы экран
-               не был пустым (особенно без сети). Придут настоящие — перерисуем.
-               ВАЖНО: рисуем ТОЛЬКО когда уже известно, кто я. Раньше проверки не было:
-               сессия могла не успеть подняться, свой идентификатор был пустым, и все
-               сообщения показывались как чужие — а через миг приходили настоящие и
-               перескакивали на свою сторону. Это и было мелькание слева-направо. */
-            try {
-                var uidC = myUidNow();
-                var cached = JSON.parse(localStorage.getItem('focus_msgs_' + realChatId) || '[]');
-                if (uidC && cached.length && !area.dataset.inited) {
+            /* Сохранённая переписка — ЗАПАСНОЙ вариант, а не основной.
+               Раньше она рисовалась сразу, и экран перерисовывался ДВАЖДЫ: сначала
+               кэш, через мгновение настоящие сообщения из облака. Отсюда рывок и
+               ощущение, что сообщения появляются по одному и перескакивают.
+               Теперь кэш показывается, ТОЛЬКО если облако не ответило за 400 мс —
+               то есть при плохой связи или совсем без неё. При нормальной сети
+               отрисовка ровно одна. */
+            var _cloudAnswered = false;
+            setTimeout(function(){
+                if (_cloudAnswered || area.dataset.inited) return;
+                try {
+                    var uidC = myUidNow();
+                    var cached = JSON.parse(localStorage.getItem('focus_msgs_' + realChatId) || '[]');
+                    if (!uidC || !cached.length) return;
                     var fragC = document.createDocumentFragment();
                     cached.forEach(function(m){ fragC.appendChild(renderMsg(m, m.from === uidC)); });
                     area.innerHTML = '';
                     area.appendChild(fragC);
                     area.scrollTop = area.scrollHeight;
                     try { renderOutbox(); } catch(e){}
-                }
-            } catch(e){}
+                } catch(e){}
+            }, 400);
             window.fbListenMessages(realChatId, (msgs) => {
+                _cloudAnswered = true;          // облако ответило — кэш больше не нужен
                 /* Своё сообщение вернулось из облака — снимаем временный пузырь,
                    иначе текст покажется дважды: временный и настоящий. */
                 try {
