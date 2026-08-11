@@ -927,7 +927,6 @@ window.fbTouchOnline = async function(force, online) {
          Короткий постоянный код, по которому человека можно найти всегда,
          даже если ни телефон, ни имя не доехали до базы. Считается из номера
          аккаунта, поэтому не меняется и не повторяется. */
-      payload.code = window.fbMyCode ? window.fbMyCode() : '';
     } catch(e){}
     if (avatar) payload.avatar = avatar;   // ЕДИНЫЙ аватар FOCUS — виден везде
     await setDoc(doc(db, 'publicProfiles', user.uid), payload, { merge: true });
@@ -1020,38 +1019,9 @@ window.ADMIN_EMAIL = 'moorsalimov@mail.ru';
 // поиск юзеров по ИМЕНИ (частичное совпадение, до 10 результатов)
 /* ПОИСК ПО ПОЧТЕ — самый надёжный: почта есть у каждого зарегистрированного,
    а телефон и имя попадают в базу только при удачной синхронизации профиля. */
-/** Короткий код FOCUS текущего пользователя (как @имя в Telegram).
-    Постоянный, выводится из номера аккаунта. Буквы и цифры без похожих символов. */
-window.fbMyCode = function(uid){
-  try {
-    var id = uid || ((_currentUser || auth.currentUser) || {}).uid || '';
-    if (!id) return '';
-    var ALPHABET = 'ACDEFGHJKLMNPQRTUVWXY3456789';   // без 0/O, 1/I, S/5, B/8
-    var h = 0;
-    for (var i = 0; i < id.length; i++) { h = (h * 31 + id.charCodeAt(i)) >>> 0; }
-    var out = '';
-    for (var k = 0; k < 6; k++) { out += ALPHABET[h % ALPHABET.length]; h = Math.floor(h / ALPHABET.length) + (k + 7) * 131; }
-    return out;
-  } catch (e) { return ''; }
-};
-
-/** ПОИСК ПО КОДУ FOCUS — работает всегда: код есть у каждого, кто открывал приложение. */
-window.fbFindUserByCode = async function(code) {
-  const user = _currentUser || auth.currentUser;
-  if (!user) return { ok: false, error: 'Не авторизован' };
-  const c = String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (c.length < 4) return { ok: false, error: 'Код из 6 символов' };
-  try {
-    const base = (window.FOCUS_AI_PROXY || '').replace(/\/+$/, '');
-    const r = await fetch(base + '/users/find', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid: user.uid, mode: 'code', q: c })
-    });
-    const d = await r.json();
-    if (!d.ok) return { ok: false, error: d.error || 'Не найден' };
-    return { ok: true, user: d.user, users: d.users || [d.user] };
-  } catch (e) { return { ok: false, error: 'Нет связи. Попробуй ещё раз' }; }
-};
+/* Личный код FOCUS удалён целиком: людей находят по номеру телефона, как в WhatsApp.
+   Убраны и генератор кода, и поиск по нему — эта сущность больше не нужна.
+   Коды родителя, наставника и админа — ДРУГИЕ механизмы, они не затронуты. */
 
 window.fbFindUserByEmail = async function(email) {
   const user = _currentUser || auth.currentUser;
@@ -1071,7 +1041,10 @@ window.fbFindUserByEmail = async function(email) {
 };
 
 window.fbFindUsersByName = async function(query) {
-  /* ПОИСК ПО ИМЕНИ — через сервер, по индексу. Ответ тот же, что раньше. */
+  /* ПОИСК ПО ИМЕНИ — остался ТОЛЬКО для админки (admin.html).
+     Обычным людям он закрыт: раньше по имени возвращались карточки незнакомцев
+     вместе с их настоящими телефонами. Режим переименован в 'adminName', и сервер
+     в этой ветке номера не отдаёт. */
   const user = _currentUser || auth.currentUser;
   if (!user) return { ok: false, error: 'Не авторизован' };
   const q = (query || '').trim();
@@ -1081,7 +1054,7 @@ window.fbFindUsersByName = async function(query) {
     const r = await fetch(base + '/users/find', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid: user.uid, mode: 'name', q: q })
+      body: JSON.stringify({ uid: user.uid, mode: 'adminName', q: q })
     });
     const d = await r.json();
     if (!d.ok) return { ok: false, error: d.error || 'Никого не найдено' };

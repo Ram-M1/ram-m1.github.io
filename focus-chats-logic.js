@@ -388,8 +388,8 @@
     showSheet(
       '<div class="sheet-grip"></div>' +
       '<div class="sheet-title">Найти человека</div>' +
-      '<div class="sheet-sub">Введи <b>код FOCUS</b>, почту, номер или имя. Свой код виден в профиле.</div>' +
-      '<input class="sheet-input" id="findInput" placeholder="Код FOCUS, почта, номер или имя" autocomplete="off">' +
+      '<div class="sheet-sub">Введи номер телефона — так же, как в WhatsApp.</div>' +
+      '<input class="sheet-input" id="findInput" type="tel" inputmode="tel" placeholder="+7 917 963-07-77" autocomplete="off">' +
       '<button class="btn" id="findBtn">Найти</button>' +
       '<div id="findResults" style="margin-top:14px;"></div>'
     );
@@ -402,39 +402,26 @@
       var box = $('findResults');
       box.innerHTML = '<div class="skel" style="padding:8px 0;"><div class="skel-av"></div><div class="skel-l"><div class="skel-l1"></div><div class="skel-l2"></div></div></div>';
       try {
-        var looksCode  = /^[A-Za-z0-9]{6}$/.test(q) && /[A-Za-z]/.test(q) && !/^\d+$/.test(q);
-        var looksEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(q);
-        var looksPhone = /[\d]{5,}/.test(q.replace(/\D/g,''));
+        /* ПОИСК ТОЛЬКО ПО НОМЕРУ — как в WhatsApp.
+           Поиск по имени отдавал карточки незнакомых людей вместе с их настоящими
+           номерами, а промах запускал перебор тысяч записей на сервере. Номер
+           обязателен при заполнении анкеты, значит по нему находится любой. */
         var matches = [];
-        /* ПОЧТА — первым делом: она есть у каждого зарегистрированного,
-           а телефон и имя попадают в базу только при удачной синхронизации профиля. */
-        if (looksCode && window.fbFindUserByCode) {
-          var rc0 = await window.fbFindUserByCode(q);
-          if (rc0.ok) matches = rc0.users || [rc0.user];
-        } else if (looksEmail && window.fbFindUserByEmail) {
-          var re = await window.fbFindUserByEmail(q);
-          if (re.ok) matches = re.users || [re.user];
-        } else if (looksPhone && window.fbFindUserByPhone) {
+        var digits = q.replace(/\D/g, '');
+        if (digits.length < 10) {
+          box.innerHTML = '<div class="empty" style="padding:20px 14px;"><div class="empty-s">Введи полный номер телефона</div>' +
+            '<div style="font-size:11.5px;color:#8e8e9e;margin-top:8px;line-height:1.5;">Например: +7 917 963-07-77</div></div>';
+          btn.disabled = false; btn.textContent = 'Найти';
+          return;
+        }
+        if (window.fbFindUserByPhone) {
           var r = await window.fbFindUserByPhone(q);
           if (r.ok) matches = [r.user];
-          else if (/^\d+$/.test(q.replace(/\D/g,'')) && r.error && /номер/i.test(r.error)) {
-            /* Ввели одни цифры, но номер неполный. Раньше запрос молча уходил в поиск
-               по имени и человек видел «никого не найдено» — хотя проблема была
-               в недобранных цифрах. Теперь говорим прямо. */
-            box.innerHTML = '<div class="empty" style="padding:20px 14px;"><div class="empty-s">' + esc(r.error) + '</div></div>';
-            btn.disabled = false; btn.textContent = 'Найти';
-            return;
-          }
-          else if (window.fbFindUsersByName) { var r2 = await window.fbFindUsersByName(q); if (r2.ok) matches = r2.users; }
-        } else if (window.fbFindUsersByName) {
-          var r3 = await window.fbFindUsersByName(q);
-          if (r3.ok) matches = r3.users;
         }
         if (!matches.length) {
           box.innerHTML = '<div class="empty" style="padding:20px 14px;"><div class="empty-s">Никого не найдено</div>' +
             '<div style="font-size:11.5px;color:#8e8e9e;margin-top:8px;line-height:1.5;">' +
-            'Надёжнее всего — <b>код FOCUS</b> или <b>почта</b>. Свой код человек видит у себя в профиле. Если ищешь по номеру или имени, ' +
-            'человек должен был хотя бы раз открыть приложение после обновления.</div></div>';
+            'Этого номера нет в FOCUS. Проверь, верно ли он набран — или позови человека в приложение.</div></div>';
         }
         else box.innerHTML = matches.map(renderFoundUser).join('');
       } catch(e) { box.innerHTML = '<div class="empty" style="padding:24px;"><div class="empty-s">Ошибка поиска</div></div>'; }
