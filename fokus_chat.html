@@ -1403,7 +1403,19 @@ initAtmosphere(canvasId) {
     function openCard(){
         try {
             var uid = window._peerUid || null;
-            if (!uid) return;
+            /* Запасной путь: собеседник мог не сохраниться (баг сервера стирал поле).
+               Достаём его из идентификатора чата — у личного он вида uid1__uid2.
+               Без этого тап по аватарке в шапке молча ничего не делал. */
+            if (!uid) {
+                var cid = window._realChatId || '';
+                var me = '';
+                try { me = (window.fbCurrentUser && window.fbCurrentUser() || {}).uid || ''; } catch(e){}
+                if (cid.indexOf('__') !== -1) {
+                    var pair = cid.split('__').filter(function(x){ return x && x !== me; });
+                    if (pair.length === 1) uid = pair[0];
+                }
+            }
+            if (!uid) { try { toast('Профиль пока недоступен'); } catch(e){} return; }
             var nm = (document.getElementById('hdrName') || {}).innerText || '';
             if (window.FocusUserCard) window.FocusUserCard.open(uid, { name: nm, chatId: window._realChatId || null });
         } catch(e){}

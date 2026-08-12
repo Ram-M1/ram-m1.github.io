@@ -310,9 +310,23 @@
   }
 
   function normalizeChat(c){
+    /* СОБЕСЕДНИК. Раньше брали только withUid — а его СТИРАЛ баг сервера: запрос
+       превью уходил без updateMask, и Firestore заменял документ целиком, вынося
+       withUid и withName. У таких записей тап по аватарке не находил, кого
+       открывать, и молча проваливался в открытие чата.
+       Теперь, если поле пустое, достаём собеседника из самого идентификатора:
+       у личного чата он имеет вид uid1__uid2. */
+    var cid = c.chatId || c.id || '';
+    var uid = c.withUid || c.uid || '';
+    if (!uid && cid.indexOf('__') !== -1) {
+      var me = '';
+      try { me = (window.fbCurrentUser && window.fbCurrentUser() || {}).uid || ''; } catch(e){}
+      var pair = cid.split('__').filter(function(x){ return x && x !== me; });
+      if (pair.length === 1) uid = pair[0];
+    }
     return {
-      chatId: c.chatId || c.id,
-      uid: c.withUid || c.uid || '',
+      chatId: cid,
+      uid: uid,
       name: c.withName || c.name || 'Пользователь',
       avatar: c.avatar || '',
       last: c.lastText || c.last || '',
@@ -360,6 +374,36 @@
       var sigOld = chats.map(function(c){ return c.chatId + c.updatedAt + c.unread; }).sort().join('|');
       var sigNew = fresh.map(function(c){ return c.chatId + c.updatedAt + c.unread; }).sort().join('|');
       if (sigOld !== sigNew) { chats = fresh; render(); saveCache(); }
+
+      /* ВОССТАНАВЛИВАЕМ ИМЯ И ФОТО.
+         Список чатов брал имя только из своей записи — а её портил баг сервера:
+         запрос превью шёл без updateMask, и Firestore заменял документ целиком,
+         вынося имя собеседника. У таких строк навсегда оставалось «Пользователь»
+         без аватарки, и карточка человека по тапу открывалась пустой.
+         Теперь недостающее дотягиваем из визиток — они всегда свежие. */
+      try {
+        var needs = chats.filter(function(c){
+          return c.uid && c.type !== 'group' &&
+                 (!c.avatar || !c.name || c.name === 'Пользователь');
+        });
+        if (needs.length && window.fbGetProfilesBatch) {
+          var profs = await Promise.race([
+            window.fbGetProfilesBatch(needs.map(function(c){ return c.uid; })),
+            new Promise(function(res){ setTimeout(function(){ res(null); }, 7000); })
+          ]);
+          if (profs) {
+            var touched = false;
+            chats.forEach(function(c){
+              var p = profs[c.uid];
+              if (!p) return;
+              if (p.name && (!c.name || c.name === 'Пользователь')) { c.name = p.name; touched = true; }
+              if (p.avatar && !c.avatar) { c.avatar = p.avatar; touched = true; }
+              if (p.online != null) c._online = !!p.online;
+            });
+            if (touched) { render(); saveCache(); }
+          }
+        }
+      } catch(e){}
     } catch(e){}
     loading = false;
   }
@@ -587,7 +631,13 @@
     document.querySelectorAll('.nav-item').forEach(function(n){
       n.classList.toggle('active', n.dataset.nav === nav);
     });
-    if (nav === 'contacts') openContacts();
+    /* Кнопка внизу ведёт на ТУ ЖЕ вкладку «Контакты», а не открывает шторку —
+       иначе получилось бы два разных вида одного и того же раздела. */
+    if (nav === 'contacts') {
+      var tab = document.querySelector('.tab[data-tab="contacts"]');
+      if (tab) { tab.click(); return; }
+      openContacts();
+    }
   }
 
   // ─────────── ИНИЦИАЛИЗАЦИЯ ───────────
@@ -628,7 +678,23 @@
       var t = e.target.closest('.tab'); if (!t) return;
       currentTab = t.dataset.tab;
       document.querySelectorAll('.tab').forEach(function(x){ x.classList.toggle('active', x === t); });
-      render();
+
+      /* КОНТАКТЫ — ТАКАЯ ЖЕ ВКЛАДКА, как «Все» и «Группы».
+         Раньше они открывались шторкой поверх экрана, и первым делом человек видел
+         кнопку «Найти человека» — казалось, что его контакты пропали. Теперь просто
+         переключается список: чаты прячем, контакты показываем. */
+      var listBox = $('list'), ctBox = $('contactsList'), fab = $('fab');
+      if (currentTab === 'contacts') {
+        if (listBox) listBox.style.display = 'none';
+        if (ctBox) ctBox.style.display = 'block';
+        if (fab) fab.style.display = 'none';
+        renderContacts();
+      } else {
+        if (ctBox) ctBox.style.display = 'none';
+        if (listBox) listBox.style.display = 'block';
+        if (fab) fab.style.display = '';
+        render();
+      }
     });
 
     // навигация
